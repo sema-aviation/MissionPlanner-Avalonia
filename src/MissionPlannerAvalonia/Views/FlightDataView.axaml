@@ -156,7 +156,16 @@
         </TabItem>
 
         <TabItem Header="Gauges">
-          <TextBlock Margin="8" Text="Gauges" />
+          <Grid Margin="6" RowDefinitions="*,*" ColumnDefinitions="*,*">
+            <ctl:Gauge Grid.Row="0" Grid.Column="0" Margin="6" MinHeight="120"
+                       Label="Airspeed" Units="m/s" Min="0" Max="50" Value="{Binding AirSpeed}" />
+            <ctl:Gauge Grid.Row="0" Grid.Column="1" Margin="6" MinHeight="120"
+                       Label="Altitude" Units="m" Min="0" Max="200" Value="{Binding Alt}" />
+            <ctl:Gauge Grid.Row="1" Grid.Column="0" Margin="6" MinHeight="120"
+                       Label="Heading" Units="deg" Min="0" Max="360" Value="{Binding Yaw}" />
+            <ctl:Gauge Grid.Row="1" Grid.Column="1" Margin="6" MinHeight="120"
+                       Label="Climb" Units="m/s" Min="-10" Max="10" Value="{Binding VerticalSpeed}" />
+          </Grid>
         </TabItem>
 
         <TabItem Header="Transponder">
