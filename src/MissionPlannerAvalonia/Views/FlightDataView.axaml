@@ -60,21 +60,21 @@
             <Border Classes="qv">
               <StackPanel>
                 <TextBlock
-                  Text="{Binding BatCurrent, StringFormat={}{0:0.00}}"
+                  Text="{Binding WpDist, StringFormat={}{0:0.00}}"
                   Foreground="#FF605B"
                   Classes="qval"
                 />
-                <TextBlock Text="Bat Current (Amps)" Classes="qlbl" />
+                <TextBlock Text="Dist to WP (m)" Classes="qlbl" />
               </StackPanel>
             </Border>
             <Border Classes="qv">
               <StackPanel>
                 <TextBlock
-                  Text="{Binding AirSpeed, StringFormat={}{0:0.00}}"
+                  Text="{Binding Yaw, StringFormat={}{0:0.00}}"
                   Foreground="#00FF53"
                   Classes="qval"
                 />
-                <TextBlock Text="AirSpeed (m/s)" Classes="qlbl" />
+                <TextBlock Text="Yaw (deg)" Classes="qlbl" />
               </StackPanel>
             </Border>
             <Border Classes="qv">

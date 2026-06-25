@@ -164,39 +164,31 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private double _batCurrent;
 
-  // ---- Status tab (full telemetry dump, mirrors MP's variable grid) ----
+  // ---- Status tab: full cs.GetProperties() reflection dump (mirrors MP tabStatus_Paint) ----
   public ObservableCollection<StatusItem> Statuses { get; } = new();
 
-  private static readonly (string Name, Func<MissionPlanner.CurrentState, object> Get)[] StatusFields =
-  {
-        ("roll", c => c.roll), ("pitch", c => c.pitch), ("yaw", c => c.yaw),
-        ("alt", c => c.alt), ("altasl", c => c.altasl), ("alt_error", c => c.alt_error),
-        ("airspeed", c => c.airspeed), ("groundspeed", c => c.groundspeed),
-        ("verticalspeed", c => c.verticalspeed), ("climbrate", c => c.climbrate),
-        ("wp_dist", c => c.wp_dist), ("wpno", c => c.wpno), ("DistToHome", c => c.DistToHome),
-        ("battery_voltage", c => c.battery_voltage), ("current", c => c.current),
-        ("battery_remaining", c => c.battery_remaining), ("watts", c => c.watts),
-        ("lat", c => c.lat), ("lng", c => c.lng), ("satcount", c => c.satcount),
-        ("gpshdop", c => c.gpshdop), ("gpsstatus", c => c.gpsstatus),
-        ("ch3percent", c => c.ch3percent), ("nav_bearing", c => c.nav_bearing),
-        ("target_bearing", c => c.target_bearing), ("turnrate", c => c.turnrate),
-        ("ax", c => c.ax), ("ay", c => c.ay), ("az", c => c.az),
-        ("gx", c => c.gx), ("gy", c => c.gy), ("gz", c => c.gz),
-        ("mx", c => c.mx), ("my", c => c.my), ("mz", c => c.mz),
-        ("press_abs", c => c.press_abs), ("press_temp", c => c.press_temp),
-        ("rxrssi", c => c.rxrssi), ("linkqualitygcs", c => c.linkqualitygcs),
-        ("armed", c => c.armed), ("mode", c => c.mode ?? ""), ("ekfstatus", c => c.ekfstatus),
-  };
+  // MP: cs.GetItemList(true) -> all public instance props, alpha-sorted.
+  private static readonly System.Reflection.PropertyInfo[] StatusProps =
+      typeof(MissionPlanner.CurrentState)
+          .GetProperties()
+          .Where(p => p.GetIndexParameters().Length == 0 && p.CanRead)
+          .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+          .ToArray();
 
   private void RefreshStatus(MissionPlanner.CurrentState cs) {
-    if (Statuses.Count != StatusFields.Length) {
+    if (Statuses.Count != StatusProps.Length) {
       Statuses.Clear();
-      foreach (var f in StatusFields) {
-        Statuses.Add(new StatusItem(f.Name));
+      foreach (var p in StatusProps) {
+        Statuses.Add(new StatusItem(p.Name));
       }
     }
-    for (int i = 0; i < StatusFields.Length; i++) {
-      var v = StatusFields[i].Get(cs);
+    for (int i = 0; i < StatusProps.Length; i++) {
+      object? v;
+      try {
+        v = StatusProps[i].GetValue(cs);
+      } catch {
+        v = null;
+      }
       Statuses[i].Value = v is float or double ? $"{v:0.000}" : v?.ToString() ?? "";
     }
   }
