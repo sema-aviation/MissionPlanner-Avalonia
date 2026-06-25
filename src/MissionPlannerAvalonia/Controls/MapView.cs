@@ -18,7 +18,10 @@ public class MapView : MapControl {
   private bool _centered;
 
   public MapView() {
-    var map = new Map();
+    // dark backgrounds so no white shows around/behind tiles during resize
+    Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(0x26, 0x27, 0x28));
+    ClipToBounds = true;
+    var map = new Map { BackColor = new Color(0x26, 0x27, 0x28) };
     var esri = new HttpTileSource(
         new GlobalSphericalMercator(),
         "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",

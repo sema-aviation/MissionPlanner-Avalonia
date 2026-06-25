@@ -311,16 +311,19 @@
         </TabItem>
 
         <TabItem Header="Servo/Relay">
-          <ScrollViewer HorizontalScrollBarVisibility="Auto">
+          <!-- horizontal wrap: rows reflow into as many columns as the width allows,
+               vertical scroll for overflow (mirrors MP FlowLayoutPanel). -->
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding ServoRelayItems}" Margin="4">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                  <WrapPanel Orientation="Vertical" Height="236" />
+                  <WrapPanel Orientation="Horizontal" />
                 </ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
               <ItemsControl.DataTemplates>
                 <DataTemplate DataType="vm:ServoChannel">
-                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="2,1">
+                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="2,1" Width="316">
                     <Button Content="Low" Width="38" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:low'}" />
@@ -342,7 +345,7 @@
                   </StackPanel>
                 </DataTemplate>
                 <DataTemplate DataType="vm:RelayChannel">
-                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="2,1">
+                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="2,1" Width="316">
                     <Button Content="Low" Width="38" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
                             CommandParameter="{Binding Index, StringFormat='{}{0}:low'}" />
