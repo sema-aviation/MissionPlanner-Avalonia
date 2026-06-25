@@ -17,6 +17,6 @@
     <Copyright>Copyright © 2026 Sema Aviation. Based on ArduPilot Mission Planner © Michael Oborne (GPLv3).</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/sema-aviation/MissionPlanner-Avalonia</RepositoryUrl>
-    <Version>2026.6.0</Version>
+    <Version>2026.6.1</Version>
   </PropertyGroup>
 </Project>
