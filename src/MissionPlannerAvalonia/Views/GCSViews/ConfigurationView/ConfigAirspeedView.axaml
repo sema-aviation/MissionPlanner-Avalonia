@@ -1,0 +1,46 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="560"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigAirspeedView"
+  x:DataType="cv:ConfigAirspeedViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" />
+
+      <Grid ColumnDefinitions="220,260,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,6,0,0">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Type" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Type.Options}" SelectedItem="{Binding Type.SelectedOption}" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Type.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Enable" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Enable.Options}" SelectedItem="{Binding Enable.SelectedOption}" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Enable.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Use Airspeed" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="2" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Use.Options}" SelectedItem="{Binding Use.SelectedOption}" />
+        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Use.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Pin" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="3" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Pin.Options}" SelectedItem="{Binding Pin.SelectedOption}" />
+        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Pin.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+      </Grid>
+
+      <Border BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,8,0,0" HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Classes="fieldlbl" Text="Airspeed: " VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Airspeed}" Foreground="#94C11F" VerticalAlignment="Center" />
+          <TextBlock Classes="fieldlbl" Text="m/s" VerticalAlignment="Center" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

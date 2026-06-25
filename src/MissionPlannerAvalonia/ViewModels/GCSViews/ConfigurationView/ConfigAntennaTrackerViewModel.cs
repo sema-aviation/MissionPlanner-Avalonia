@@ -1,117 +1,557 @@
 using System;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MissionPlanner;
+using MissionPlanner.Comms;
+using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-public partial class ConfigAntennaTrackerViewModel : ParamPageBase, IDisposable {
-  private readonly DispatcherTimer _timer;
+public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable {
+  private const string KeyPrefix = "Tracker_";
 
-  public ConfigAntennaTrackerViewModel() {
-    Title = "Antenna Tracker";
-    Intro = "ArduTracker servo, range and PID setup. Test the yaw and pitch servos with live output.";
+  private readonly MAVLinkInterface _comPort = AppState.comPort;
 
-    F("AHRS_ORIENTATION", "combo");
-    F("SERVO_YAW_TYPE", "combo");
-    F("SERVO_PITCH_TYPE", "combo");
-    F("ALT_SOURCE", "combo");
+  private MaestroDriver? _tracker;
+  private CancellationTokenSource? _loopCts;
 
-    F("RC1_MIN");
-    F("RC1_MAX");
-    F("RC1_TRIM");
-    F("RC1_REV", "combo");
-
-    F("RC2_MIN");
-    F("RC2_MAX");
-    F("RC2_TRIM");
-    F("RC2_REV", "combo");
-
-    F("YAW_RANGE");
-    F("PITCH_MIN");
-    F("PITCH_MAX");
-
-    F("YAW2SRV_P");
-    F("YAW2SRV_I");
-    F("YAW2SRV_D");
-    F("YAW2SRV_IMAX");
-    F("YAW_SLEW_TIME");
-
-    F("PITCH2SRV_P");
-    F("PITCH2SRV_I");
-    F("PITCH2SRV_D");
-    F("PITCH2SRV_IMAX");
-    F("PITCH_SLEW_TIME");
-
-    _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-    _timer.Tick += (_, _) => {
-      YawPwm = comPort.MAV.cs.ch1out.ToString("0");
-      PitchPwm = comPort.MAV.cs.ch2out.ToString("0");
-    };
-  }
+  public ObservableCollection<string> Interfaces { get; } = new() { "Maestro", "ArduTracker" };
+  public ObservableCollection<string> Ports { get; } = new();
+  public ObservableCollection<string> Bauds { get; } =
+      new() { "4800", "9600", "14400", "19200", "28800", "38400", "57600", "115200" };
 
   [ObservableProperty]
-  private string _yawPwm = "0";
+  private string _selectedInterface = "Maestro";
 
   [ObservableProperty]
-  private string _pitchPwm = "0";
+  private string _selectedPort = "";
 
   [ObservableProperty]
-  private double _yawTest = 50;
+  private string _selectedBaud = "9600";
 
   [ObservableProperty]
-  private double _pitchTest = 50;
+  private string _connectText = "Connect";
+
+  [ObservableProperty]
+  private bool _controlsEnabled = true;
 
   [ObservableProperty]
   private string _status = "";
 
+  // Pan group
+  [ObservableProperty]
+  private string _panRange = "360";
+
+  [ObservableProperty]
+  private string _panPwmRange = "1000";
+
+  [ObservableProperty]
+  private string _panCenter = "1500";
+
+  [ObservableProperty]
+  private string _panSpeed = "100";
+
+  [ObservableProperty]
+  private string _panAccel = "5";
+
+  [ObservableProperty]
+  private double _panTrim;
+
+  [ObservableProperty]
+  private double _panTrimMin = -180;
+
+  [ObservableProperty]
+  private double _panTrimMax = 180;
+
+  [ObservableProperty]
+  private bool _panReverse;
+
+  // Tilt group
+  [ObservableProperty]
+  private string _tiltRange = "90";
+
+  [ObservableProperty]
+  private string _tiltPwmRange = "1000";
+
+  [ObservableProperty]
+  private string _tiltCenter = "1500";
+
+  [ObservableProperty]
+  private string _tiltSpeed = "100";
+
+  [ObservableProperty]
+  private string _tiltAccel = "5";
+
+  [ObservableProperty]
+  private double _tiltTrim;
+
+  [ObservableProperty]
+  private double _tiltTrimMin = -45;
+
+  [ObservableProperty]
+  private double _tiltTrimMax = 45;
+
+  [ObservableProperty]
+  private bool _tiltReverse;
+
+  public bool IsRunning => _loopCts is { IsCancellationRequested: false };
+
+  public ConfigAntennaTrackerViewModel() {
+    LoadSettings();
+    RefreshPorts();
+    UpdatePanTrimRange();
+    UpdateTiltTrimRange();
+  }
+
   public void Activate() {
-    if (IsConnected) {
-      _timer.Start();
+    RefreshPorts();
+    if (IsRunning) {
+      ConnectText = "Disconnect";
     }
   }
 
-  public void Deactivate() => _timer.Stop();
+  public void Deactivate() => SaveSettings();
+
+  private void RefreshPorts() {
+    Ports.Clear();
+    foreach (var p in SerialPort.GetPortNames().Distinct()) {
+      Ports.Add(p);
+    }
+
+    if (!Ports.Contains(SelectedPort)) {
+      SelectedPort = Ports.FirstOrDefault() ?? "";
+    }
+  }
+
+  partial void OnPanRangeChanged(string value) => UpdatePanTrimRange();
+
+  partial void OnTiltRangeChanged(string value) => UpdateTiltTrimRange();
+
+  private void UpdatePanTrimRange() {
+    // Upstream forces the pan trim slider to a full 360 sweep.
+    PanTrimMin = -180;
+    PanTrimMax = 180;
+  }
+
+  private void UpdateTiltTrimRange() {
+    int range = ParseInt(TiltRange, 90);
+    TiltTrimMin = range / 2 * -1;
+    TiltTrimMax = range / 2;
+  }
+
+  partial void OnPanTrimChanged(double value) {
+    if (_tracker != null) {
+      _tracker.TrimPan = value;
+    }
+  }
+
+  partial void OnTiltTrimChanged(double value) {
+    if (_tracker != null) {
+      _tracker.TrimTilt = value;
+    }
+  }
+
+  partial void OnPanSpeedChanged(string value) {
+    if (_tracker != null) {
+      _tracker.PanSpeed = ParseInt(value, 0);
+    }
+  }
+
+  partial void OnPanAccelChanged(string value) {
+    if (_tracker != null) {
+      _tracker.PanAccel = ParseInt(value, 0);
+    }
+  }
+
+  partial void OnTiltSpeedChanged(string value) {
+    if (_tracker != null) {
+      _tracker.TiltSpeed = ParseInt(value, 0);
+    }
+  }
+
+  partial void OnTiltAccelChanged(string value) {
+    if (_tracker != null) {
+      _tracker.TiltAccel = ParseInt(value, 0);
+    }
+  }
 
   [RelayCommand]
-  private Task TestYaw() => SendServo(1, "RC1_MIN", "RC1_MAX", "RC1_REV", YawTest);
+  private void Connect() {
+    SaveSettings();
 
-  [RelayCommand]
-  private Task TestPitch() => SendServo(2, "RC2_MIN", "RC2_MAX", "RC2_REV", PitchTest);
-
-  private async Task SendServo(int channel, string minParam, string maxParam, string revParam,
-      double percent) {
-    if (!IsConnected) {
-      Status = "Connect to a vehicle first.";
+    if (IsRunning) {
+      StopLoop();
+      _tracker?.Close();
+      _tracker = null;
+      ControlsEnabled = true;
+      ConnectText = "Connect";
+      Status = "Disconnected.";
       return;
     }
 
-    double min = GetParam(minParam, 1000);
-    double max = GetParam(maxParam, 2000);
-    bool reversed = GetParam(revParam, 1) < 0;
+    if (SelectedInterface != "Maestro") {
+      Status = SelectedInterface + " is not supported by this build. Use Maestro.";
+      return;
+    }
 
-    double output = reversed
-        ? Map(percent, 100, 0, min, max)
-        : Map(percent, 0, 100, min, max);
+    if (string.IsNullOrWhiteSpace(SelectedPort)) {
+      Status = "No serial port selected.";
+      return;
+    }
+
+    var driver = new MaestroDriver();
 
     try {
-      bool ok = await Task.Run(() => comPort.doCommand(
-          (byte)comPort.sysidcurrent,
-          (byte)comPort.compidcurrent,
-          MAVLink.MAV_CMD.DO_SET_SERVO,
-          channel, (float)output, 0, 0, 0, 0, 0));
-      Status = ok ? $"Ch{channel} → {output:0} us" : "No response from the autopilot.";
-    } catch {
-      Status = "No response from the autopilot.";
+      driver.ComPort = new SerialPort {
+        PortName = SelectedPort,
+        BaudRate = ParseInt(SelectedBaud, 9600),
+      };
+    } catch (Exception ex) {
+      Status = "Error connecting: " + ex.Message;
+      return;
     }
+
+    try {
+      int panRange = ParseInt(PanRange, 360);
+      driver.PanStartRange = panRange / 2 * -1;
+      driver.PanEndRange = panRange / 2;
+      driver.TrimPan = PanTrim;
+
+      int tiltRange = ParseInt(TiltRange, 90);
+      driver.TiltStartRange = tiltRange / 2 * -1;
+      driver.TiltEndRange = tiltRange / 2;
+      driver.TrimTilt = TiltTrim;
+
+      driver.PanReverse = PanReverse;
+      driver.TiltReverse = TiltReverse;
+
+      driver.PanPWMRange = ParseInt(PanPwmRange, 1000);
+      driver.TiltPWMRange = ParseInt(TiltPwmRange, 1000);
+
+      driver.PanPWMCenter = ParseInt(PanCenter, 1500);
+      driver.TiltPWMCenter = ParseInt(TiltCenter, 1500);
+
+      driver.PanSpeed = ParseInt(PanSpeed, 100);
+      driver.PanAccel = ParseInt(PanAccel, 5);
+      driver.TiltSpeed = ParseInt(TiltSpeed, 100);
+      driver.TiltAccel = ParseInt(TiltAccel, 5);
+    } catch (Exception ex) {
+      Status = "Invalid number entered: " + ex.Message;
+      return;
+    }
+
+    if (!driver.Init(out var err)) {
+      Status = err;
+      return;
+    }
+
+    driver.Setup();
+
+    try {
+      driver.PanAndTilt(0, 0);
+    } catch (Exception ex) {
+      Status = "Failed to set initial pan and tilt: " + ex.Message;
+      driver.Close();
+      return;
+    }
+
+    _tracker = driver;
+    ControlsEnabled = false;
+    ConnectText = "Disconnect";
+    Status = "Connected.";
+    StartLoop();
   }
 
-  private double GetParam(string name, double fallback) =>
-      comPort.MAV.param.ContainsKey(name) ? comPort.MAV.param[name].Value : fallback;
+  [RelayCommand]
+  private async Task FindTrimPan() {
+    if (!IsRunning) {
+      Status = "Connect to the tracker first.";
+      return;
+    }
 
-  private static double Map(double x, double inMin, double inMax, double outMin, double outMax) =>
-      (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+    float snr = _comPort.MAV.cs.localsnrdb;
+    if (snr == 0) {
+      Status = "No valid SiK radio detected.";
+      return;
+    }
 
-  public void Dispose() => _timer.Stop();
+    Status = "Searching for best pan trim...";
+
+    await Task.Run(() => {
+      float pan = (float)PanTrim;
+      float panRange = ParseInt(PanRange, 360);
+
+      float ans = CheckPos(pan - panRange / 4, pan + panRange / 4 - 1, 30);
+      ans = CheckPos(-30 + ans, 30 + ans, 5);
+      ans = CheckPos(-5 + ans, 5 + ans, 1);
+
+      SetPan(ans);
+    });
+
+    Status = "Pan trim search complete.";
+  }
+
+  private float CheckPos(float start, float end, float scale) {
+    float lastsnr = 0;
+    float best = 0;
+
+    SetPan(start);
+    Thread.Sleep(4000);
+
+    for (float n = start; n < end; n += scale) {
+      SetPan(n);
+      Thread.Sleep(2000);
+
+      float snr = _comPort.MAV.cs.localsnrdb;
+      if (snr > lastsnr) {
+        best = n;
+        lastsnr = snr;
+      }
+    }
+
+    return best;
+  }
+
+  private void SetPan(float angle) =>
+      Dispatcher.UIThread.Post(() => PanTrim = angle);
+
+  private void StartLoop() {
+    _loopCts = new CancellationTokenSource();
+    var token = _loopCts.Token;
+    _ = Task.Run(() => {
+      while (!token.IsCancellationRequested) {
+        try {
+          // 10 hz - position updates default to 3 hz on the stream rate
+          _tracker?.PanAndTilt(_comPort.MAV.cs.AZToMAV, _comPort.MAV.cs.ELToMAV);
+        } catch {
+        }
+
+        Thread.Sleep(100);
+      }
+    }, token);
+  }
+
+  private void StopLoop() {
+    _loopCts?.Cancel();
+    _loopCts = null;
+  }
+
+  private void LoadSettings() {
+    SelectedInterface = Get("CMB_interface", SelectedInterface);
+    SelectedPort = Get("CMB_serialport", SelectedPort);
+    SelectedBaud = Get("CMB_baudrate", SelectedBaud);
+
+    PanRange = Get("TXT_panrange", PanRange);
+    PanPwmRange = Get("TXT_pwmrangepan", PanPwmRange);
+    PanCenter = Get("TXT_centerpan", PanCenter);
+    PanSpeed = Get("TXT_panspeed", PanSpeed);
+    PanAccel = Get("TXT_panaccel", PanAccel);
+
+    TiltRange = Get("TXT_tiltrange", TiltRange);
+    TiltPwmRange = Get("TXT_pwmrangetilt", TiltPwmRange);
+    TiltCenter = Get("TXT_centertilt", TiltCenter);
+    TiltSpeed = Get("TXT_tiltspeed", TiltSpeed);
+    TiltAccel = Get("TXT_tiltaccel", TiltAccel);
+
+    PanTrim = Settings.Instance.GetInt32(KeyPrefix + "TRK_pantrim", 0);
+    TiltTrim = Settings.Instance.GetInt32(KeyPrefix + "TRK_tilttrim", 0);
+    PanReverse = Settings.Instance.GetBoolean(KeyPrefix + "CHK_revpan", false);
+    TiltReverse = Settings.Instance.GetBoolean(KeyPrefix + "CHK_revtilt", false);
+  }
+
+  private void SaveSettings() {
+    Set("CMB_interface", SelectedInterface);
+    Set("CMB_serialport", SelectedPort);
+    Set("CMB_baudrate", SelectedBaud);
+
+    Set("TXT_panrange", PanRange);
+    Set("TXT_pwmrangepan", PanPwmRange);
+    Set("TXT_centerpan", PanCenter);
+    Set("TXT_panspeed", PanSpeed);
+    Set("TXT_panaccel", PanAccel);
+
+    Set("TXT_tiltrange", TiltRange);
+    Set("TXT_pwmrangetilt", TiltPwmRange);
+    Set("TXT_centertilt", TiltCenter);
+    Set("TXT_tiltspeed", TiltSpeed);
+    Set("TXT_tiltaccel", TiltAccel);
+
+    Set("TRK_pantrim", ((int)PanTrim).ToString(CultureInfo.InvariantCulture));
+    Set("TRK_tilttrim", ((int)TiltTrim).ToString(CultureInfo.InvariantCulture));
+    Set("CHK_revpan", PanReverse.ToString());
+    Set("CHK_revtilt", TiltReverse.ToString());
+  }
+
+  private static string Get(string name, string fallback) {
+    var key = KeyPrefix + name;
+    return Settings.Instance.ContainsKey(key) && Settings.Instance[key] != null
+        ? Settings.Instance[key]
+        : fallback;
+  }
+
+  private static void Set(string name, string value) =>
+      Settings.Instance[KeyPrefix + name] = value;
+
+  private static int ParseInt(string value, int fallback) =>
+      int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : fallback;
+
+  public void Dispose() {
+    SaveSettings();
+    StopLoop();
+    _tracker?.Close();
+    _tracker = null;
+  }
+
+  // Minimal Pololu Maestro driver (ported from MissionPlanner.Antenna.Maestro).
+  // The upstream class is not reachable from this project (Antenna.csproj is not
+  // referenced and the build file may not be modified), so the compact-protocol
+  // commands are reimplemented here over MissionPlanner.Comms.SerialPort.
+  private sealed class MaestroDriver {
+    private const byte SetTarget = 0x84;
+    private const byte SetSpeed = 0x87;
+    private const byte SetAccel = 0x89;
+
+    private const byte PanAddress = 0;
+    private const byte TiltAddress = 1;
+
+    private int _panReverse = 1;
+    private int _tiltReverse = 1;
+
+    public SerialPort ComPort { get; set; } = null!;
+
+    public double TrimPan { get; set; }
+    public double TrimTilt { get; set; }
+
+    public int PanStartRange { get; set; }
+    public int TiltStartRange { get; set; }
+    public int PanEndRange { get; set; }
+    public int TiltEndRange { get; set; }
+    public int PanPWMRange { get; set; }
+    public int TiltPWMRange { get; set; }
+    public int PanPWMCenter { get; set; }
+    public int TiltPWMCenter { get; set; }
+    public int PanSpeed { get; set; }
+    public int TiltSpeed { get; set; }
+    public int PanAccel { get; set; }
+    public int TiltAccel { get; set; }
+
+    public bool PanReverse {
+      get => _panReverse == -1;
+      set => _panReverse = value ? -1 : 1;
+    }
+
+    public bool TiltReverse {
+      get => _tiltReverse == -1;
+      set => _tiltReverse = value ? -1 : 1;
+    }
+
+    public bool Init(out string error) {
+      error = "";
+
+      if (PanStartRange - PanEndRange == 0) {
+        error = "Invalid pan range.";
+        return false;
+      }
+
+      if (TiltStartRange - TiltEndRange == 0) {
+        error = "Invalid tilt range.";
+        return false;
+      }
+
+      try {
+        ComPort.Open();
+      } catch (Exception ex) {
+        error = "Error connecting: " + ex.Message;
+        return false;
+      }
+
+      return true;
+    }
+
+    public bool Setup() {
+      SendCompactCommand(SetSpeed, PanAddress, PanSpeed);
+      SendCompactCommand(SetSpeed, TiltAddress, TiltSpeed);
+      SendCompactCommand(SetAccel, PanAddress, PanAccel);
+      SendCompactCommand(SetAccel, TiltAddress, TiltAccel);
+      return true;
+    }
+
+    public bool Pan(double angle) {
+      double angleRange = Math.Abs(PanStartRange - PanEndRange);
+      double pulseWidth =
+          PanPWMRange / angleRange * Wrap180(angle - TrimPan) * _panReverse + PanPWMCenter;
+      short target =
+          Constrain(pulseWidth, PanPWMCenter - PanPWMRange / 2.0, PanPWMCenter + PanPWMRange / 2.0);
+      target *= 4;
+      SendCompactCommand(SetTarget, PanAddress, target);
+      return true;
+    }
+
+    public bool Tilt(double angle) {
+      double angleRange = Math.Abs(TiltStartRange - TiltEndRange);
+      double pulseWidth =
+          TiltPWMRange / angleRange * (angle - TrimTilt) * _tiltReverse + TiltPWMCenter;
+      short target = Constrain(pulseWidth, TiltPWMCenter - TiltPWMRange / 2.0,
+          TiltPWMCenter + TiltPWMRange / 2.0);
+      target *= 4;
+      SendCompactCommand(SetTarget, TiltAddress, target);
+      return true;
+    }
+
+    public bool PanAndTilt(double pan, double tilt) {
+      if (Math.Abs(TiltStartRange - TiltEndRange) > 120) {
+        double target = Wrap180(pan - TrimPan);
+        if (Math.Abs(target) > 90) {
+          return Tilt(180 - tilt) && Pan(target);
+        }
+
+        return Tilt(tilt) && Pan(pan);
+      }
+
+      return Tilt(tilt) && Pan(pan);
+    }
+
+    public void Close() {
+      try {
+        ComPort?.Close();
+      } catch {
+      }
+    }
+
+    private static double Wrap180(double input) {
+      if (input > 180) {
+        return input - 360;
+      }
+
+      if (input < -180) {
+        return input + 360;
+      }
+
+      return input;
+    }
+
+    private static short Constrain(double input, double min, double max) {
+      if (input < min) {
+        return (short)min;
+      }
+
+      if (input > max) {
+        return (short)max;
+      }
+
+      return (short)input;
+    }
+
+    private void SendCompactCommand(byte cmd, byte addr, int data) {
+      byte[] buffer = { cmd, addr, (byte)(data & 0x7F), (byte)((data >> 7) & 0x7F) };
+      ComPort.DiscardInBuffer();
+      ComPort.Write(buffer, 0, buffer.Length);
+    }
+  }
 }

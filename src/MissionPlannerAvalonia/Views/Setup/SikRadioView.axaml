@@ -1,0 +1,92 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels.Setup"
+  mc:Ignorable="d"
+  d:DesignWidth="820"
+  d:DesignHeight="680"
+  x:Class="MissionPlannerAvalonia.Views.Setup.SikRadioView"
+  x:DataType="vm:SikRadioViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+
+    <TextBlock
+      Grid.Row="1"
+      Text="{Binding Instructions}"
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      MaxWidth="680"
+      HorizontalAlignment="Left"
+      Margin="0,0,0,12"
+    />
+
+    <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+      <TextBlock Classes="fieldlbl" Text="Port" VerticalAlignment="Center" Margin="0,0,6,0" />
+      <ComboBox
+        ItemsSource="{Binding Ports}"
+        SelectedItem="{Binding SelectedPort}"
+        MinWidth="140"
+        Margin="0,0,12,0"
+      />
+      <TextBlock Classes="fieldlbl" Text="Baud" VerticalAlignment="Center" Margin="0,0,6,0" />
+      <ComboBox
+        ItemsSource="{Binding Bauds}"
+        SelectedItem="{Binding SelectedBaud}"
+        MinWidth="100"
+        Margin="0,0,12,0"
+      />
+      <Button Content="Refresh" Command="{Binding RefreshPortsCommand}" Margin="0,0,16,0" />
+      <Button Content="Load Settings" Command="{Binding LoadCommand}" Margin="0,0,8,0" />
+      <Button Content="Save Settings" Command="{Binding SaveCommand}" Margin="0,0,8,0" />
+      <Button Content="Reset to Defaults" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,0" />
+      <Button Content="Upload Firmware" Command="{Binding UploadFirmwareCommand}" IsEnabled="False" />
+    </WrapPanel>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8" Spacing="20">
+      <TextBlock Classes="fieldlbl" Text="{Binding Status, StringFormat='Status: {0}'}" />
+      <TextBlock Classes="fieldlbl" Text="{Binding LocalVersion, StringFormat='Local: {0}'}" />
+      <TextBlock Classes="fieldlbl" Text="{Binding RemoteVersion, StringFormat='Remote: {0}'}" />
+    </StackPanel>
+
+    <Grid Grid.Row="4" RowDefinitions="Auto,*,160" ColumnDefinitions="*">
+      <Grid Grid.Row="0" ColumnDefinitions="2*,*,*,*" Margin="0,0,0,4">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Setting" FontWeight="Bold" />
+        <TextBlock Grid.Column="1" Classes="fieldlbl" Text="Sn" FontWeight="Bold" />
+        <TextBlock Grid.Column="2" Classes="fieldlbl" Text="Local" FontWeight="Bold" />
+        <TextBlock Grid.Column="3" Classes="fieldlbl" Text="Remote" FontWeight="Bold" />
+      </Grid>
+
+      <ScrollViewer Grid.Row="1">
+        <ItemsControl ItemsSource="{Binding Registers}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SikRadioViewModel+SikRegister">
+              <Grid ColumnDefinitions="2*,*,*,*" Margin="0,1">
+                <TextBlock Grid.Column="0" Classes="fieldlbl" Text="{Binding Label}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="fieldlbl" Text="{Binding Num}" VerticalAlignment="Center" />
+                <TextBox Grid.Column="2" Text="{Binding LocalValue}" Margin="0,0,6,0" />
+                <TextBox Grid.Column="3" Text="{Binding RemoteValue}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <Border Grid.Row="2" Background="Black" BorderBrush="#262728" BorderThickness="1" Margin="0,8,0,0">
+        <ScrollViewer>
+          <TextBlock
+            Text="{Binding Log}"
+            Foreground="#94C11F"
+            FontFamily="Consolas,Menlo,monospace"
+            FontSize="12"
+            Padding="8"
+            TextWrapping="Wrap"
+          />
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

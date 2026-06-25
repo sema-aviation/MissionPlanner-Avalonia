@@ -26,6 +26,7 @@
               Classes="backstage"
               Classes.sub="{Binding IsSub}"
               Classes.active="{Binding IsSelected}"
+              IsVisible="{Binding Visible}"
               Content="{Binding Header}"
               Command="{Binding $parent[ItemsControl].((vm:BackstageViewModel)DataContext).SelectCommand}"
               CommandParameter="{Binding}"

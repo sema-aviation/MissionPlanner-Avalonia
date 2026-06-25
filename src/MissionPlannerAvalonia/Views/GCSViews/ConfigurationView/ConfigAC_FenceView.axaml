@@ -1,0 +1,50 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="560"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigAC_FenceView"
+  x:DataType="cv:ConfigAC_FenceViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" />
+
+      <Grid ColumnDefinitions="220,200,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,6,0,0">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Enable" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding Enable.Checked}" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Enable.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Type" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="180" ItemsSource="{Binding Type.Options}" SelectedItem="{Binding Type.SelectedOption}" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Type.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Action" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="2" Grid.Column="1" MinWidth="180" ItemsSource="{Binding Action.Options}" SelectedItem="{Binding Action.SelectedOption}" />
+        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Action.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="{Binding MaxAltLabel}" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="3" Grid.Column="1" MinWidth="180" Value="{Binding MaxAlt.Value}" Minimum="10" Maximum="1000" Increment="1" FormatString="0.######" />
+        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding MaxAlt.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="{Binding MinAltLabel}" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="4" Grid.Column="1" MinWidth="180" Value="{Binding MinAlt.Value}" Minimum="-100" Maximum="100" Increment="1" FormatString="0.######" />
+        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding MinAlt.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Classes="fieldlbl" Text="{Binding MaxRadiusLabel}" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="5" Grid.Column="1" MinWidth="180" Value="{Binding MaxRadius.Value}" Minimum="30" Maximum="65536" Increment="1" FormatString="0.######" />
+        <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding MaxRadius.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Classes="fieldlbl" Text="{Binding RtlAltLabel}" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="6" Grid.Column="1" MinWidth="180" Value="{Binding RtlAlt.Value}" Minimum="1" Maximum="500" Increment="1" FormatString="0.######" />
+        <TextBlock Grid.Row="6" Grid.Column="2" Text="{Binding RtlAlt.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

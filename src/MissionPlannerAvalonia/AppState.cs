@@ -7,6 +7,14 @@ namespace MissionPlannerAvalonia;
 public static class AppState {
   public static MAVLinkInterface comPort { get; } = new MAVLinkInterface();
 
+  // Raised after the link opens or closes so connection-gated nav (Setup/Config)
+  // can refresh which pages are visible.
+  public static event System.Action? ConnectionChanged;
+
+  public static void RaiseConnectionChanged() => ConnectionChanged?.Invoke();
+
+  public static bool IsConnected => comPort.BaseStream?.IsOpen == true;
+
   // Connection params (host/port/url) consumed by the Comms transports through
   // CommsBase.Settings. The UI prefills these before opening a network stream.
   public static Dictionary<string, string> CommsSettings { get; } = new();

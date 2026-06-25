@@ -1,0 +1,8 @@
+using Avalonia.Controls;
+using Avalonia.Markup.Xaml;
+
+namespace MissionPlannerAvalonia.Views.GCSViews.ConfigurationView;
+
+public partial class ConfigRangeFinderView : UserControl {
+  public ConfigRangeFinderView() => AvaloniaXamlLoader.Load(this);
+}

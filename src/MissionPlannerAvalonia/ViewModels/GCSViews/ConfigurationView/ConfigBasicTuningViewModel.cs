@@ -136,6 +136,7 @@ public partial class ConfigBasicTuningViewModel : ViewModelBase {
     }
   }
 
+  [Obsolete]
   private async void OnItemChanged(SimplePidItem item) {
     Info = "";
     await WriteOne(item.Name, item.Value);

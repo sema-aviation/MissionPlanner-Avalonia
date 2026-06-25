@@ -1,0 +1,83 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels.Setup"
+  mc:Ignorable="d"
+  d:DesignWidth="860"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.Setup.InstallFirmwareView"
+  x:DataType="vm:InstallFirmwareViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Margin="16">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
+      <TextBlock Grid.Column="0" Classes="pagetitle" Text="Install Firmware" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Classes="fieldlbl" Text="{Binding ChannelLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+      <Button Grid.Column="2" Content="Refresh" Command="{Binding RefreshTilesCommand}" />
+    </Grid>
+
+    <ScrollViewer Grid.Row="1">
+      <ItemsControl ItemsSource="{Binding Tiles}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:FirmwareTile">
+            <Button
+              Width="150"
+              Height="140"
+              Margin="6"
+              Background="#262728"
+              Command="{Binding $parent[ItemsControl].((vm:InstallFirmwareViewModel)DataContext).FlashTileCommand}"
+              CommandParameter="{Binding}"
+            >
+              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+                <TextBlock Text="{Binding Glyph}" FontSize="40" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#EEEEEE" />
+                <TextBlock
+                  Text="{Binding VersionLabel}"
+                  HorizontalAlignment="Center"
+                  TextAlignment="Center"
+                  TextWrapping="Wrap"
+                  FontSize="11"
+                  Foreground="#94C11F"
+                />
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <WrapPanel Grid.Row="2" Margin="0,8,0,0">
+      <Button Content="All Options" Command="{Binding AllOptionsCommand}" Margin="0,0,8,0" />
+      <Button Content="Bootloader Update" Command="{Binding BootloaderUpdateCommand}" Margin="0,0,8,0" />
+      <Button Content="Force Bootloader" Command="{Binding ForceBootloaderCommand}" Margin="0,0,8,0" />
+      <Button x:Name="CustomFwBtn" Content="Load custom firmware" Margin="0,0,8,0" />
+      <Button Content="Beta firmwares" Command="{Binding ToggleBetaCommand}" Margin="0,0,8,0" />
+    </WrapPanel>
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+      <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding Progress}" Height="22" Foreground="#94C11F" />
+      <TextBlock Grid.Column="1" Text="{Binding Progress, StringFormat='\{0:0\}%'}" Classes="fieldlbl" VerticalAlignment="Center" Margin="8,0,0,0" />
+    </Grid>
+
+    <StackPanel Grid.Row="4" Margin="0,8,0,0">
+      <TextBlock Text="{Binding Status}" Classes="fieldlbl" TextWrapping="Wrap" Margin="0,0,0,6" />
+      <TextBox
+        Text="{Binding Log}"
+        IsReadOnly="True"
+        AcceptsReturn="True"
+        TextWrapping="NoWrap"
+        Height="120"
+        Background="#262728"
+        Foreground="#DDDDDD"
+        FontFamily="Consolas,Menlo,monospace"
+      />
+    </StackPanel>
+  </Grid>
+</UserControl>

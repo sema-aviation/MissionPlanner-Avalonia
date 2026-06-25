@@ -5,59 +5,153 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
   mc:Ignorable="d"
-  d:DesignWidth="800"
-  d:DesignHeight="640"
+  d:DesignWidth="900"
+  d:DesignHeight="760"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigGpsInjectView"
   x:DataType="cv:ConfigGpsInjectViewModel"
   Background="#434445"
 >
-  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="16">
-    <TextBlock Grid.Row="0" Classes="pagetitle" Text="RTK/GPS Inject" />
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="RTK/GPS Inject" />
 
-    <TextBlock
-      Grid.Row="1"
-      Text="{Binding Status}"
-      Classes="fieldlbl"
-      TextWrapping="Wrap"
-      Margin="0,0,0,12"
-    />
+      <TextBlock Text="{Binding Status}" Classes="fieldlbl" TextWrapping="Wrap" />
 
-    <Grid
-      Grid.Row="2"
-      ColumnDefinitions="140,*"
-      RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
-      VerticalAlignment="Top"
-    >
-      <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Caster Host" VerticalAlignment="Center" Margin="0,4" />
-      <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Host}" Watermark="caster.example.com" Margin="0,4" />
+      <!-- Port / baud / connect -->
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <ComboBox Width="160" ItemsSource="{Binding Ports}" SelectedItem="{Binding SelectedPort}" />
+        <ComboBox Width="110" ItemsSource="{Binding BaudRates}" SelectedItem="{Binding SelectedBaud}"
+                  IsEnabled="{Binding IsSerial}" />
+        <Button Content="{Binding ConnectLabel}" Command="{Binding ToggleConnectCommand}" />
+        <Button Content="Refresh" Command="{Binding RefreshPortsCommand}" />
+      </StackPanel>
 
-      <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Port" VerticalAlignment="Center" Margin="0,4" />
-      <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Port}" Margin="0,4" />
+      <!-- NTRIP fields -->
+      <Grid ColumnDefinitions="120,*,120,*" RowDefinitions="Auto,Auto,Auto" IsVisible="{Binding IsNtrip}">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Caster Host" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Host}" Watermark="caster.example.com" Margin="0,4,8,4" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Classes="fieldlbl" Text="Port" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding Port}" Margin="0,4" />
 
-      <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Mount Point" VerticalAlignment="Center" Margin="0,4" />
-      <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Mount}" Watermark="MOUNT" Margin="0,4" />
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Mount Point" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Mount}" Watermark="MOUNT" Margin="0,4,8,4" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="fieldlbl" Text="Username" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding Username}" Margin="0,4" />
 
-      <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Username" VerticalAlignment="Center" Margin="0,4" />
-      <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Username}" Margin="0,4" />
+        <TextBlock Grid.Row="2" Grid.Column="2" Classes="fieldlbl" Text="Password" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding Password}" PasswordChar="*" Margin="0,4" />
+      </Grid>
 
-      <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Password" VerticalAlignment="Center" Margin="0,4" />
-      <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Password}" PasswordChar="*" Margin="0,4" />
+      <!-- Options -->
+      <WrapPanel Orientation="Horizontal">
+        <CheckBox Content="Send NTRIP GGA? (VRS/Smart)" IsChecked="{Binding SendGga}" Margin="0,0,16,0" />
+        <CheckBox Content="Send NTRIP protocol v1.0 ?" IsChecked="{Binding NtripV1}" Margin="0,0,16,0" />
+        <CheckBox Content="Automatically Configure Receiver" IsChecked="{Binding AutoConfig}" Margin="0,0,16,0" />
+        <ComboBox Width="180" ItemsSource="{Binding ReceiverTypes}" SelectedItem="{Binding SelectedReceiverType}"
+                  IsVisible="{Binding AutoConfig}" />
+      </WrapPanel>
 
-      <CheckBox Grid.Row="5" Grid.Column="1" Content="Use NTRIP v1" IsChecked="{Binding NtripV1}" Margin="0,8,0,0" />
-      <CheckBox Grid.Row="6" Grid.Column="1" Content="Send GGA (vehicle position) to caster" IsChecked="{Binding SendGga}" Margin="0,4,0,0" />
-    </Grid>
+      <!-- Link status -->
+      <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="fieldlbl" Text="Link Status" FontWeight="Bold" />
+          <Grid ColumnDefinitions="160,*">
+            <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Input data rate" />
+            <TextBlock Grid.Column="1" Classes="fieldlbl" Text="{Binding InputRate}" />
+          </Grid>
+          <Grid ColumnDefinitions="160,*">
+            <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Output data rate (bps)" />
+            <TextBlock Grid.Column="1" Classes="fieldlbl" Text="{Binding OutputRate}" />
+          </Grid>
+          <Grid ColumnDefinitions="160,*">
+            <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Injected" />
+            <TextBlock Grid.Column="1" Classes="fieldlbl" Text="{Binding Injected}" />
+          </Grid>
+          <TextBlock Classes="fieldlbl" Text="Messages Seen" />
+          <TextBlock Classes="fieldlbl" Text="{Binding MessagesSeen}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
 
-    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0" Spacing="12">
-      <TextBlock Classes="fieldlbl" Text="Injected:" VerticalAlignment="Center" />
-      <TextBlock Classes="fieldlbl" Text="{Binding Injected}" VerticalAlignment="Center" />
+      <!-- RTCM -->
+      <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="fieldlbl" Text="RTCM" FontWeight="Bold" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Border Background="{Binding BaseColor}" Width="70" Height="24" CornerRadius="2">
+              <TextBlock Text="Base" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Border Background="{Binding GpsColor}" Width="70" Height="24" CornerRadius="2">
+              <TextBlock Text="Gps" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Border Background="{Binding GlonassColor}" Width="70" Height="24" CornerRadius="2">
+              <TextBlock Text="Glonass" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Border Background="{Binding BeidouColor}" Width="70" Height="24" CornerRadius="2">
+              <TextBlock Text="Beidou" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Border Background="{Binding GalileoColor}" Width="70" Height="24" CornerRadius="2">
+              <TextBlock Text="Galileo" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+          </StackPanel>
+          <Grid ColumnDefinitions="160,*">
+            <TextBlock Grid.Column="0" Classes="fieldlbl" Text="RTCM Base (Lat Lng Alt)" />
+            <TextBlock Grid.Column="1" Classes="fieldlbl" Text="{Binding RtcmBasePos}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- Automatic Config Options -->
+      <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10" IsVisible="{Binding AutoConfig}">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="fieldlbl" Text="Automatic Config Options" FontWeight="Bold" />
+          <CheckBox Content="M8P fw 130+/F9P" IsChecked="{Binding M8p130Plus}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="fieldlbl" Text="SurveyIn Acc(m)" VerticalAlignment="Center" />
+            <TextBox Width="80" Text="{Binding SurveyInAcc}" />
+            <TextBlock Classes="fieldlbl" Text="Time(s)" VerticalAlignment="Center" />
+            <TextBox Width="80" Text="{Binding SurveyInTime}" />
+            <Button Content="Restart" Command="{Binding RestartSurveyInCommand}" />
+            <Button Content="Save Current Position" Command="{Binding SaveCurrentPositionCommand}" />
+          </StackPanel>
+          <Border Background="{Binding SurveyInColor}" Padding="6" CornerRadius="2">
+            <TextBlock Text="{Binding SurveyInStatus}" Foreground="White" TextWrapping="Wrap" />
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <!-- Base positions -->
+      <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="fieldlbl" Text="Saved Base Positions" FontWeight="Bold" />
+          <DataGrid ItemsSource="{Binding BasePositions}" AutoGenerateColumns="False"
+                    CanUserResizeColumns="True" Height="160" MinHeight="120">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Lat/ECEFX" Binding="{Binding Lat}" Width="150" />
+              <DataGridTextColumn Header="Long/ECEFY" Binding="{Binding Long}" Width="150" />
+              <DataGridTextColumn Header="Alt/ECEFZ" Binding="{Binding Alt}" Width="120" />
+              <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
+              <DataGridTemplateColumn Header="Use" Width="80">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Button Content="Use"
+                            Command="{Binding $parent[DataGrid].((cv:ConfigGpsInjectViewModel)DataContext).UseBasePosCommand}"
+                            CommandParameter="{Binding}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Delete" Width="90">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <Button Content="Delete"
+                            Command="{Binding $parent[DataGrid].((cv:ConfigGpsInjectViewModel)DataContext).DeleteBasePosCommand}"
+                            CommandParameter="{Binding}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+        </StackPanel>
+      </Border>
     </StackPanel>
-
-    <Button
-      Grid.Row="4"
-      Content="{Binding ConnectLabel}"
-      Command="{Binding ToggleConnectCommand}"
-      HorizontalAlignment="Left"
-      Margin="0,12,0,0"
-    />
-  </Grid>
+  </ScrollViewer>
 </UserControl>

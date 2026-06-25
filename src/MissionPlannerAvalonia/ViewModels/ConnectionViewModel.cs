@@ -59,6 +59,7 @@ public partial class ConnectionViewModel : ViewModelBase {
       IsConnected = false;
       ConnectText = "CONNECT";
       Status = "Disconnected.";
+      AppState.RaiseConnectionChanged();
       return;
     }
 
@@ -81,6 +82,7 @@ public partial class ConnectionViewModel : ViewModelBase {
       IsConnected = _comPort.BaseStream.IsOpen;
       ConnectText = IsConnected ? "DISCONNECT" : "CONNECT";
       Status = IsConnected ? $"Connected. {_comPort.MAV.param.Count} params." : "Connect failed.";
+      AppState.RaiseConnectionChanged();
     } catch (Exception ex) {
       Status = "Connect error: " + ex.Message;
       IsConnected = false;

@@ -6,74 +6,123 @@
   xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
   mc:Ignorable="d"
   d:DesignWidth="820"
-  d:DesignHeight="720"
+  d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigAntennaTrackerView"
   x:DataType="cv:ConfigAntennaTrackerViewModel"
   Background="#434445"
 >
   <ScrollViewer>
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto" Margin="16">
-      <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="Antenna Tracker" />
 
-      <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,4,0,10">
-        <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
-        <TextBlock Text="{Binding Intro}" Classes="fieldlbl" VerticalAlignment="Center" TextWrapping="Wrap" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <ComboBox
+          MinWidth="120"
+          ItemsSource="{Binding Interfaces}"
+          SelectedItem="{Binding SelectedInterface}"
+          IsEnabled="{Binding ControlsEnabled}"
+        />
+        <ComboBox
+          MinWidth="120"
+          ItemsSource="{Binding Ports}"
+          SelectedItem="{Binding SelectedPort}"
+          IsEnabled="{Binding ControlsEnabled}"
+        />
+        <ComboBox
+          MinWidth="100"
+          ItemsSource="{Binding Bauds}"
+          SelectedItem="{Binding SelectedBaud}"
+          IsEnabled="{Binding ControlsEnabled}"
+        />
+        <Button Content="{Binding ConnectText}" Command="{Binding ConnectCommand}" />
+        <Button Content="Find Trim Pan (Sik Radio)" Command="{Binding FindTrimPanCommand}" />
       </StackPanel>
 
-      <Border Grid.Row="2" Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,0,0,12">
-        <StackPanel Spacing="8">
-          <TextBlock Classes="fieldlbl" FontSize="15" Text="Servo Test" />
-          <Grid ColumnDefinitions="60,*,90,Auto" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="8">
-            <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Yaw" VerticalAlignment="Center" />
-            <Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding YawTest}" />
-            <TextBlock Grid.Row="0" Grid.Column="2" Classes="fieldlbl" VerticalAlignment="Center" Text="{Binding YawPwm, StringFormat='PWM: {0}'}" />
-            <Button Grid.Row="0" Grid.Column="3" Content="Test Yaw" Command="{Binding TestYawCommand}" />
+      <TextBlock
+        Foreground="#E2A33A"
+        FontWeight="Bold"
+        Text="Misusing this interface can cause servo damage, use with caution!!!"
+      />
 
-            <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Pitch" VerticalAlignment="Center" />
-            <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding PitchTest}" />
-            <TextBlock Grid.Row="1" Grid.Column="2" Classes="fieldlbl" VerticalAlignment="Center" Text="{Binding PitchPwm, StringFormat='PWM: {0}'}" />
-            <Button Grid.Row="1" Grid.Column="3" Content="Test Pitch" Command="{Binding TestPitchCommand}" />
-          </Grid>
-          <TextBlock Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" />
-        </StackPanel>
-      </Border>
+      <Grid ColumnDefinitions="*,12,*">
+        <!-- Pan -->
+        <Border Grid.Column="0" Background="#2D2D2D" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="fieldlbl" FontSize="15" Text="Pan" />
 
-      <ItemsControl Grid.Row="3" ItemsSource="{Binding Fields}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="cv:ParamField">
-            <Grid ColumnDefinitions="220,200,Auto,*" Margin="0,3">
-              <TextBlock
-                Grid.Column="0"
-                Text="{Binding Label}"
-                Classes="fieldlbl"
-                ToolTip.Tip="{Binding Description}"
-                TextWrapping="Wrap"
-                Margin="0,0,8,0"
-              />
-              <ComboBox
-                Grid.Column="1"
-                IsVisible="{Binding IsCombo}"
-                MinWidth="180"
-                ItemsSource="{Binding Options}"
-                SelectedItem="{Binding SelectedOption}"
-              />
-              <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
-              <NumericUpDown
-                Grid.Column="1"
-                IsVisible="{Binding IsNumeric}"
-                MinWidth="180"
-                Value="{Binding Value}"
-                Minimum="{Binding Min}"
-                Maximum="{Binding Max}"
-                Increment="{Binding Increment}"
-                FormatString="0.######"
-              />
-              <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+            <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Range / Angle" VerticalAlignment="Center" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding PanRange}" IsEnabled="{Binding ControlsEnabled}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="PWM Range" VerticalAlignment="Center" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PanPwmRange}" IsEnabled="{Binding ControlsEnabled}" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Center PWM" VerticalAlignment="Center" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding PanCenter}" IsEnabled="{Binding ControlsEnabled}" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Speed" VerticalAlignment="Center" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding PanSpeed}" IsEnabled="{Binding ControlsEnabled}" />
+
+              <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Acceleration" VerticalAlignment="Center" />
+              <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding PanAccel}" IsEnabled="{Binding ControlsEnabled}" />
             </Grid>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </Grid>
+
+            <StackPanel Spacing="2">
+              <TextBlock Classes="fieldlbl" Text="{Binding PanTrim, StringFormat='Trim: {0:0}'}" />
+              <Slider
+                Minimum="{Binding PanTrimMin}"
+                Maximum="{Binding PanTrimMax}"
+                Value="{Binding PanTrim}"
+                TickFrequency="5"
+                TickPlacement="BottomRight"
+              />
+              <TextBlock Classes="fieldlbl" Text="0" HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <CheckBox Content="Rev" IsChecked="{Binding PanReverse}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Tilt -->
+        <Border Grid.Column="2" Background="#2D2D2D" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="fieldlbl" FontSize="15" Text="Tilt" />
+
+            <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Range / Angle" VerticalAlignment="Center" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding TiltRange}" IsEnabled="{Binding ControlsEnabled}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="PWM Range" VerticalAlignment="Center" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TiltPwmRange}" IsEnabled="{Binding ControlsEnabled}" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Center PWM" VerticalAlignment="Center" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TiltCenter}" IsEnabled="{Binding ControlsEnabled}" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Speed" VerticalAlignment="Center" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TiltSpeed}" IsEnabled="{Binding ControlsEnabled}" />
+
+              <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Acceleration" VerticalAlignment="Center" />
+              <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TiltAccel}" IsEnabled="{Binding ControlsEnabled}" />
+            </Grid>
+
+            <StackPanel Spacing="2">
+              <TextBlock Classes="fieldlbl" Text="{Binding TiltTrim, StringFormat='Trim: {0:0}'}" />
+              <Slider
+                Minimum="{Binding TiltTrimMin}"
+                Maximum="{Binding TiltTrimMax}"
+                Value="{Binding TiltTrim}"
+                TickFrequency="5"
+                TickPlacement="BottomRight"
+              />
+              <TextBlock Classes="fieldlbl" Text="0" HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <CheckBox Content="Rev" IsChecked="{Binding TiltReverse}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <TextBlock Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" />
+    </StackPanel>
   </ScrollViewer>
 </UserControl>

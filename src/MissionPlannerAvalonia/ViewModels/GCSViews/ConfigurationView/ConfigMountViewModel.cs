@@ -146,18 +146,25 @@ public partial class ConfigMountViewModel : ViewModelBase {
     SetParam(_typeParam, value.Value);
   }
 
+  [Obsolete]
   partial void OnSelectedShutterChanged(string value) => AxisSelectionChanged();
 
+  [Obsolete]
   partial void OnNeutralXChanged(double value) => WriteNum(ParamHead + "NEUTRAL_X", value);
 
+  [Obsolete]
   partial void OnNeutralYChanged(double value) => WriteNum(ParamHead + "NEUTRAL_Y", value);
 
+  [Obsolete]
   partial void OnNeutralZChanged(double value) => WriteNum(ParamHead + "NEUTRAL_Z", value);
 
+  [Obsolete]
   partial void OnRetractXChanged(double value) => WriteNum(ParamHead + "RETRACT_X", value);
 
+  [Obsolete]
   partial void OnRetractYChanged(double value) => WriteNum(ParamHead + "RETRACT_Y", value);
 
+  [Obsolete]
   partial void OnRetractZChanged(double value) => WriteNum(ParamHead + "RETRACT_Z", value);
 
   [Obsolete]
@@ -404,6 +411,7 @@ public partial class MountAxisViewModel : ObservableObject {
       _parent.HasParam(SelectedFunction + "_REVERSED") ? SelectedFunction + "_REVERSED"
                                                        : SelectedFunction + "_REV";
 
+  [Obsolete]
   partial void OnSelectedFunctionChanged(string value) {
     if (_suppress) {
       return;
