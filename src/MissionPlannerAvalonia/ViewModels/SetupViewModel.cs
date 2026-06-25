@@ -58,22 +58,14 @@ public class SetupViewModel : BackstageViewModel {
         () => new InfoPageViewModel("Joystick", "Joystick mapping (SharpDX→Silk.NET) — deferred."),
         sub: true
     );
-    Add(
-        "Compass/Motor Calib",
-        () => new InfoPageViewModel("Compass/Motor Calibration", "CompassMot — port pending."),
-        sub: true
-    );
+    Add("Compass/Motor Calib", () => new ConfigCompassMotViewModel(), sub: true);
     Add("RangeFinder", () => new ConfigRangeFinderViewModel(), sub: true);
     Add("Airspeed", () => new ConfigAirspeedViewModel(), sub: true);
     Add("PX4Flow", () => new InfoPageViewModel("PX4Flow", "PX4Flow setup — port pending."), sub: true);
     Add("OpticalFlow", () => new ConfigOptFlowViewModel(), sub: true);
     Add("Onboard OSD", () => new ConfigHWOSDViewModel(), sub: true);
     Add("Camera Gimbal", () => new ConfigMountViewModel(), sub: true);
-    Add(
-        "Antenna Tracker",
-        () => new InfoPageViewModel("Antenna Tracker", "Tracker control — deferred."),
-        sub: true
-    );
+    Add("Antenna Tracker", () => new ConfigAntennaTrackerViewModel(), sub: true);
     Add("Motor Test", () => new ConfigMotorTestViewModel(), sub: true);
     Add(
         "Bluetooth Setup",
