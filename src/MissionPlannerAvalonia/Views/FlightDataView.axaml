@@ -157,23 +157,28 @@
         </TabItem>
 
         <TabItem Header="Actions">
-          <ScrollViewer HorizontalScrollBarVisibility="Auto">
-            <Grid Margin="6" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto"
+          <!-- 5 equal star columns + uniform cells: every button/combo same size and
+               reflows automatically as the panel resizes (mirrors MP TableLayoutPanel). -->
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Grid Margin="6" ColumnDefinitions="*,*,*,*,*"
                   RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="3" RowSpacing="3">
               <Grid.Styles>
                 <Style Selector="Button">
                   <Setter Property="FontSize" Value="11" />
-                  <Setter Property="Padding" Value="5,3" />
+                  <Setter Property="Padding" Value="2,3" />
+                  <Setter Property="MinHeight" Value="28" />
                   <Setter Property="HorizontalAlignment" Value="Stretch" />
+                  <Setter Property="VerticalAlignment" Value="Stretch" />
                   <Setter Property="HorizontalContentAlignment" Value="Center" />
                 </Style>
                 <Style Selector="ComboBox">
                   <Setter Property="FontSize" Value="11" />
-                  <Setter Property="MinWidth" Value="96" />
+                  <Setter Property="HorizontalAlignment" Value="Stretch" />
+                  <Setter Property="MinHeight" Value="28" />
                 </Style>
                 <Style Selector="NumericUpDown">
                   <Setter Property="FontSize" Value="11" />
-                  <Setter Property="Width" Value="84" />
+                  <Setter Property="MinWidth" Value="0" />
                 </Style>
               </Grid.Styles>
 
@@ -183,10 +188,11 @@
               <Button Grid.Row="0" Grid.Column="1" Content="Do Action" Command="{Binding DoActionCommand}" />
               <Button Grid.Row="0" Grid.Column="2" Content="Auto" Command="{Binding QuickAutoCommand}" />
               <Button Grid.Row="0" Grid.Column="3" Content="Set Home Alt" Command="{Binding SetHomeCommand}" />
-              <StackPanel Grid.Row="0" Grid.Column="4" Orientation="Horizontal" Spacing="2">
-                <Button Content="Change Speed" Command="{Binding ChangeSpeedCommand}" />
-                <NumericUpDown FormatString="0.0" Value="{Binding ChangeSpeedValue}" />
-              </StackPanel>
+              <DockPanel Grid.Row="0" Grid.Column="4">
+                <NumericUpDown DockPanel.Dock="Right" Width="62" FormatString="0.0"
+                               Value="{Binding ChangeSpeedValue}" />
+                <Button Content="Speed" Command="{Binding ChangeSpeedCommand}" />
+              </DockPanel>
 
               <!-- Row 1 -->
               <ComboBox Grid.Row="1" Grid.Column="0" ItemsSource="{Binding WpNumbers}"
@@ -195,10 +201,11 @@
               <Button Grid.Row="1" Grid.Column="2" Content="Loiter" Command="{Binding QuickLoiterCommand}" />
               <Button Grid.Row="1" Grid.Column="3" Content="Restart Mission"
                       Command="{Binding RestartMissionCommand}" />
-              <StackPanel Grid.Row="1" Grid.Column="4" Orientation="Horizontal" Spacing="2">
-                <Button Content="Change Alt" Command="{Binding ChangeAltCommand}" />
-                <NumericUpDown FormatString="0.0" Value="{Binding ChangeAltValue}" />
-              </StackPanel>
+              <DockPanel Grid.Row="1" Grid.Column="4">
+                <NumericUpDown DockPanel.Dock="Right" Width="62" FormatString="0.0"
+                               Value="{Binding ChangeAltValue}" />
+                <Button Content="Alt" Command="{Binding ChangeAltCommand}" />
+              </DockPanel>
 
               <!-- Row 2 -->
               <ComboBox Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Modes}"
@@ -207,10 +214,11 @@
               <Button Grid.Row="2" Grid.Column="2" Content="RTL" Command="{Binding QuickRtlCommand}" />
               <Button Grid.Row="2" Grid.Column="3" Content="Raw Sensor View"
                       Command="{Binding RawSensorViewCommand}" />
-              <StackPanel Grid.Row="2" Grid.Column="4" Orientation="Horizontal" Spacing="2">
-                <Button Content="Set Loiter Rad" Command="{Binding SetLoiterRadCommand}" />
-                <NumericUpDown FormatString="0" Value="{Binding LoiterRadValue}" />
-              </StackPanel>
+              <DockPanel Grid.Row="2" Grid.Column="4">
+                <NumericUpDown DockPanel.Dock="Right" Width="62" FormatString="0"
+                               Value="{Binding LoiterRadValue}" />
+                <Button Content="Loiter Rad" Command="{Binding SetLoiterRadCommand}" />
+              </DockPanel>
 
               <!-- Row 3 -->
               <ComboBox Grid.Row="3" Grid.Column="0" ItemsSource="{Binding MountModes}"

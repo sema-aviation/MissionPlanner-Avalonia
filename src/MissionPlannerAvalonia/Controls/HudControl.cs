@@ -396,25 +396,24 @@ public class HudControl : Control {
       DrawText(context, batt, new Point(2, h - fontsize - 4), fontsize, bb);
     }
 
-    // ---- bottom-right GPS / EKF / Vibe / Prearm ----
-    double rx = w - tapeW - 6;
+    // ---- bottom-right cluster: GPS (bottom), EKF/Vibe (mid), Prearm (top) ----
+    double ry0 = h - fontsize - 4;
+    double ry1 = h - 2 * fontsize - 8;
+    double ry2 = h - 3 * fontsize - 12;
     if (DisplayGps) {
       bool gps = SatCount >= 3;
-      string g = SatCount >= 3 ? $"GPS: 3D Fix ({SatCount:0})" : "GPS: No Fix";
-      DrawText(context, g, new Point(w - 13 * fontsize, h - fontsize - 4), fontsize,
-          gps ? Brushes.LimeGreen : Brushes.Red);
+      string g = gps ? $"GPS: 3D Fix ({SatCount:0})" : "GPS: No Fix";
+      DrawTextRight(context, g, w - 6, ry0, fontsize, gps ? Brushes.LimeGreen : Brushes.Red);
+    }
+    double rightX = w - 6;
+    if (DisplayVibe) {
+      rightX -= DrawTextRight(context, "Vibe", rightX, ry1, fontsize, Brushes.White) + 12;
     }
     if (DisplayEkf) {
-      DrawText(context, "EKF", new Point(w - 21 * fontsize, h - 2 * fontsize - 8), fontsize,
-          Brushes.White);
-    }
-    if (DisplayVibe) {
-      DrawText(context, "Vibe", new Point(w - 17 * fontsize, h - 2 * fontsize - 8), fontsize,
-          Brushes.White);
+      DrawTextRight(context, "EKF", rightX, ry1, fontsize, Brushes.White);
     }
     if (DisplayPrearm && !Armed) {
-      DrawText(context, "Not Ready to Arm", new Point(w - 24 * fontsize, h - 3 * fontsize - 12),
-          fontsize, Brushes.Red);
+      DrawTextRight(context, "Not Ready to Arm", w - 6, ry2, fontsize, Brushes.Red);
     }
 
     // ---- custom user items (left) ----
@@ -569,7 +568,19 @@ public class HudControl : Control {
   }
 
   private void DrawText(DrawingContext ctx, string text, Point at, double size, IBrush? brush = null) {
-    var ft = new FormattedText(
+    ctx.DrawText(MakeText(text, size, brush), at);
+  }
+
+  // Right-aligns text so rightX is the right edge; returns the text width.
+  private double DrawTextRight(DrawingContext ctx, string text, double rightX, double y, double size,
+      IBrush? brush = null) {
+    var ft = MakeText(text, size, brush);
+    ctx.DrawText(ft, new Point(rightX - ft.Width, y));
+    return ft.Width;
+  }
+
+  private static FormattedText MakeText(string text, double size, IBrush? brush) {
+    return new FormattedText(
         text,
         CultureInfo.InvariantCulture,
         FlowDirection.LeftToRight,
@@ -577,6 +588,5 @@ public class HudControl : Control {
         size,
         brush ?? TextBrush
     );
-    ctx.DrawText(ft, at);
   }
 }
