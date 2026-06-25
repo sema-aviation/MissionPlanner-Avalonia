@@ -2,7 +2,9 @@
 Type=Application
 Name=Mission Planner
 Comment=Ground control station for ArduPilot vehicles
-Exec=MissionPlannerAvalonia
-Icon=missionplanner-avalonia
+Exec=@INSTALL_DIR@/MissionPlannerAvalonia
+Icon=@INSTALL_DIR@/missionplanner-avalonia.png
 Terminal=false
-Categories=Utility;Science;
+Categories=Science;Engineering;Utility;
+Keywords=ArduPilot;Drone;UAV;MAVLink;GCS;Pixhawk;Telemetry;
+StartupWMClass=MissionPlannerAvalonia

@@ -38,44 +38,62 @@ jobs:
         shell: bash
         run: |
           REF="${GITHUB_REF_NAME:-dev}"
-          echo "v=${REF#v}" >> "$GITHUB_OUTPUT"
+          V="${REF#v}"
+          echo "v=$V" >> "$GITHUB_OUTPUT"
+          echo "fv=$V.0" >> "$GITHUB_OUTPUT"
 
       - name: Package macOS (.app, self-contained)
         if: matrix.rid == 'osx-arm64'
         shell: bash
         run: |
           V=${{ steps.ver.outputs.v }}
+          rm -rf out/osx dist
           dotnet publish "$APP" -c Release -r osx-arm64 --self-contained true \
-            -p:DebugType=none -p:Version="$V" -o out/osx
+            -p:DebugType=none -p:StripSymbols=true \
+            -p:Version="$V" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
+            -o out/osx
           chmod +x build/macos/make-app.sh
-          ./build/macos/make-app.sh out/osx "$V" "dist/MissionPlanner Avalonia.app"
+          ./build/macos/make-app.sh out/osx "$V" "dist/Mission Planner.app"
           mkdir -p upload
-          ( cd dist && zip -qry "../upload/MissionPlannerAvalonia-$V-osx-arm64.zip" "MissionPlanner Avalonia.app" )
+          ( cd dist && ditto -c -k --sequesterRsrc --keepParent \
+              "Mission Planner.app" "../upload/MissionPlannerAvalonia-$V-osx-arm64.zip" )
 
       - name: Package Windows (self-contained single-file)
         if: matrix.rid == 'win-x64'
         shell: bash
         run: |
           V=${{ steps.ver.outputs.v }}
+          rm -rf out/win stage
           dotnet publish "$APP" -c Release -r win-x64 --self-contained true \
-            -p:DebugType=none -p:Version="$V" \
+            -p:DebugType=none \
+            -p:Version="$V" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
             -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:EnableCompressionInSingleFile=true \
             -o out/win
+          DIR="MissionPlannerAvalonia-$V-win-x64"
+          mkdir -p "stage/$DIR"
+          cp -r out/win/. "stage/$DIR/"
           mkdir -p upload
-          ( cd out/win && 7z a -tzip "../../upload/MissionPlannerAvalonia-$V-win-x64.zip" . >/dev/null )
+          ( cd stage && 7z a -tzip "../upload/$DIR.zip" "$DIR" >/dev/null )
 
-      - name: Package Linux (framework-dependent, smaller)
+      - name: Package Linux (self-contained)
         if: matrix.rid == 'linux-x64'
         shell: bash
         run: |
           V=${{ steps.ver.outputs.v }}
-          dotnet publish "$APP" -c Release -r linux-x64 --self-contained false \
-            -p:DebugType=none -p:Version="$V" -o out/linux
+          rm -rf out/linux
+          dotnet publish "$APP" -c Release -r linux-x64 --self-contained true \
+            -p:DebugType=none \
+            -p:Version="$V" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
+            -o out/linux
           cp build/linux/missionplanner-avalonia.desktop out/linux/
           cp build/linux/missionplanner-avalonia.png out/linux/
-          chmod +x out/linux/MissionPlannerAvalonia
+          cp build/linux/install.sh out/linux/
+          chmod +x out/linux/MissionPlannerAvalonia out/linux/install.sh
+          DIR="MissionPlannerAvalonia-$V-linux-x64"
+          mv out/linux "out/$DIR"
           mkdir -p upload
-          tar -czf "upload/MissionPlannerAvalonia-$V-linux-x64.tar.gz" -C out/linux .
+          tar -czf "upload/$DIR.tar.gz" -C out "$DIR"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -100,9 +118,15 @@ jobs:
             Many screens are wired to the real MAVLink API; several pages are still stubs and the app
             has not yet been verified end-to-end against a real vehicle or SITL. Expect rough edges.
 
-            Downloads: macOS (arm64 `.app`) and Windows (single-file) are self-contained; the Linux
-            build is framework-dependent and needs the **.NET 10 runtime** installed.
+            All three downloads are self-contained — no .NET runtime needed. macOS is **Apple Silicon only**.
 
-            macOS is unsigned: right-click -> Open, or `xattr -dr com.apple.quarantine "Mission Planner.app"`.
+            **macOS** (unsigned): right-click -> Open, or
+            `xattr -dr com.apple.quarantine "Mission Planner.app"`.
+
+            **Windows** (unsigned): SmartScreen will warn — **More info** -> **Run anyway**.
+
+            **Linux**: extract, run `./install.sh` for a launcher entry, then `./MissionPlannerAvalonia`.
+            Serial access needs the `dialout` group (`sudo usermod -aG dialout $USER`, then re-login).
+            Standard desktop libs required: `libfontconfig1`, `libice6`, `libsm6`, `libgl1`.
 
             Independent project, GPLv3, not affiliated with ArduPilot.
