@@ -69,7 +69,6 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
   }
 
   [RelayCommand]
-  [Obsolete]
   private void ToggleConnect() {
     if (Connected) {
       StopWorker();
@@ -123,7 +122,6 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
     return $"http://{userinfo}{Host}:{Port}/{mount}";
   }
 
-  [Obsolete]
   private void StartWorker() {
     _running = true;
     _worker = new Thread(Loop) { IsBackground = true, Name = "NTRIP inject" };
