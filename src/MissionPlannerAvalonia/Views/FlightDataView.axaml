@@ -252,40 +252,34 @@
 
         <TabItem Header="Servo/Relay">
           <ScrollViewer>
-            <StackPanel Margin="6" Spacing="4">
-              <ItemsControl ItemsSource="{Binding ServoChannels}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ServoChannel">
-                    <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1">
-                      <Button Content="Low" MinWidth="44" FontSize="11" Padding="4,2"
-                              Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
-                              CommandParameter="{Binding Number, StringFormat='{}{0}:low'}" />
-                      <Button Content="Mid" MinWidth="44" FontSize="11" Padding="4,2"
-                              Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
-                              CommandParameter="{Binding Number, StringFormat='{}{0}:mid'}" />
-                      <Button Content="High" MinWidth="44" FontSize="11" Padding="4,2"
-                              Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
-                              CommandParameter="{Binding Number, StringFormat='{}{0}:high'}" />
-                      <Button Content="Toggle" MinWidth="56" FontSize="11" Padding="4,2"
-                              Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
-                              CommandParameter="{Binding Number, StringFormat='{}{0}:toggle'}" />
-                      <TextBlock Text="{Binding Number}" Width="24" VerticalAlignment="Center"
-                                 HorizontalAlignment="Center" />
-                      <NumericUpDown Width="92" FontSize="11" Value="{Binding Min}" />
-                      <NumericUpDown Width="92" FontSize="11" Value="{Binding Max}" />
-                    </StackPanel>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-
-              <TextBlock Text="Relays" FontWeight="Bold" Margin="0,8,0,0" />
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Content="Relay 1" Command="{Binding ToggleRelayCommand}" CommandParameter="0" />
-                <Button Content="Relay 2" Command="{Binding ToggleRelayCommand}" CommandParameter="1" />
-                <Button Content="Relay 3" Command="{Binding ToggleRelayCommand}" CommandParameter="2" />
-                <Button Content="Relay 4" Command="{Binding ToggleRelayCommand}" CommandParameter="3" />
-              </StackPanel>
-            </StackPanel>
+            <ItemsControl ItemsSource="{Binding ServoChannels}" Margin="4">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ServoChannel">
+                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,1">
+                    <Button Content="Low" Width="40" FontSize="11" Padding="2,2"
+                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
+                            CommandParameter="{Binding Number, StringFormat='{}{0}:low'}" />
+                    <Button Content="Mid" Width="40" FontSize="11" Padding="2,2"
+                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
+                            CommandParameter="{Binding Number, StringFormat='{}{0}:mid'}" />
+                    <Button Content="High" Width="40" FontSize="11" Padding="2,2"
+                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
+                            CommandParameter="{Binding Number, StringFormat='{}{0}:high'}" />
+                    <Button Content="Toggle" Width="50" FontSize="11" Padding="2,2"
+                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
+                            CommandParameter="{Binding Number, StringFormat='{}{0}:toggle'}" />
+                    <Border Background="#C00000" Width="54" Margin="6,0,0,0">
+                      <TextBlock Text="{Binding Number}" Foreground="White" FontSize="11"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBox Width="44" FontSize="11" Padding="2,1"
+                             Text="{Binding Min}" />
+                    <TextBox Width="44" FontSize="11" Padding="2,1"
+                             Text="{Binding Max}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </ScrollViewer>
         </TabItem>
 

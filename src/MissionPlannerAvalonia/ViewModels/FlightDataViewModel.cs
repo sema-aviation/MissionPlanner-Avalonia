@@ -105,7 +105,10 @@ public partial class FlightDataViewModel : ViewModelBase {
   public FlightDataViewModel() {
     for (int i = 1; i <= 8; i++) {
       Servos.Add(new ServoOut(i));
-      ServoChannels.Add(new ServoChannel(i));
+    }
+    // MP tabServo = servoOptions for output channels 5..16
+    for (int ch = 5; ch <= 16; ch++) {
+      ServoChannels.Add(new ServoChannel(ch));
     }
 
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
