@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=MissionPlanner Avalonia
+Comment=Ground control station for ArduPilot vehicles
+Exec=MissionPlannerAvalonia
+Icon=missionplanner-avalonia
+Terminal=false
+Categories=Utility;Science;

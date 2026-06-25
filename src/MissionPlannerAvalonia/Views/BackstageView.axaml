@@ -1,0 +1,42 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  mc:Ignorable="d"
+  d:DesignWidth="1100"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.BackstageView"
+  x:DataType="vm:BackstageViewModel"
+  Background="#434445"
+>
+  <Grid ColumnDefinitions="Auto,*">
+    <ScrollViewer
+      Grid.Column="0"
+      Background="#1A1A1B"
+      Width="210"
+      VerticalScrollBarVisibility="Auto"
+      HorizontalScrollBarVisibility="Disabled"
+    >
+      <ItemsControl ItemsSource="{Binding Pages}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:BackstagePage">
+            <Button
+              Classes="backstage"
+              Classes.sub="{Binding IsSub}"
+              Classes.active="{Binding IsSelected}"
+              Content="{Binding Header}"
+              Command="{Binding $parent[ItemsControl].((vm:BackstageViewModel)DataContext).SelectCommand}"
+              CommandParameter="{Binding}"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Left"
+            />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <ContentControl Grid.Column="1" Content="{Binding CurrentContent}" />
+  </Grid>
+</UserControl>

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Format check
+        run: |
+          for p in src/MissionPlannerAvalonia/MissionPlannerAvalonia.csproj tests/MissionPlannerAvalonia.Tests/MissionPlannerAvalonia.Tests.csproj; do
+            dotnet format whitespace "$p" --verify-no-changes
+            dotnet format style "$p" --verify-no-changes
+          done
+
+      - name: Test
+        run: dotnet test tests/MissionPlannerAvalonia.Tests/MissionPlannerAvalonia.Tests.csproj -c Release

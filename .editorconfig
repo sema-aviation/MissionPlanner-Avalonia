@@ -1,0 +1,80 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[*.{json,yml,yaml,csproj,props,targets,axaml,xaml}]
+indent_size = 2
+
+# Google C# Style Guide — https://google.github.io/styleguide/csharp-style.html
+[*.cs]
+indent_size = 2
+max_line_length = 100
+
+# Usings: outside namespace, System first, sorted, no blank-line groups.
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+
+# Namespace matches folder (file-scoped kept as the modern shallow-namespace form).
+dotnet_style_namespace_match_folder = true:suggestion
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Braces: K&R (open brace on same line), braces always used.
+csharp_new_line_before_open_brace = none
+csharp_new_line_before_else = false
+csharp_new_line_before_catch = false
+csharp_new_line_before_finally = false
+csharp_prefer_braces = true:warning
+
+# Indentation details.
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_indent_labels = one_less_than_current
+
+# Spacing.
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_method_call_name_and_opening_parenthesis = false
+csharp_space_between_method_declaration_name_and_open_parenthesis = false
+csharp_space_after_cast = false
+
+# this. not used for fields/properties (Google relies on _ prefix instead).
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# Naming rules are guidance (suggestion), not a CI gate: upstream Mission Planner names
+# (e.g. comPort) are kept verbatim for 1:1 fidelity, and dotnet format cannot auto-fix naming.
+dotnet_diagnostic.IDE1006.severity = suggestion
+
+# Naming: private/internal/protected fields = _camelCase.
+dotnet_naming_rule.non_public_fields_underscore.severity = suggestion
+dotnet_naming_rule.non_public_fields_underscore.symbols = non_public_fields
+dotnet_naming_rule.non_public_fields_underscore.style = underscore_camel
+dotnet_naming_symbols.non_public_fields.applicable_kinds = field
+dotnet_naming_symbols.non_public_fields.applicable_accessibilities = private, internal, protected, protected_internal, private_protected
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+
+# Naming: types/methods/public members = PascalCase.
+dotnet_naming_rule.members_pascal.severity = suggestion
+dotnet_naming_rule.members_pascal.symbols = type_and_members
+dotnet_naming_rule.members_pascal.style = pascal
+dotnet_naming_symbols.type_and_members.applicable_kinds = class, struct, enum, interface, delegate, method, property, event, namespace
+dotnet_naming_style.pascal.capitalization = pascal_case
+
+# Interfaces prefixed with I.
+dotnet_naming_rule.interfaces_i.severity = suggestion
+dotnet_naming_rule.interfaces_i.symbols = interfaces
+dotnet_naming_rule.interfaces_i.style = i_pascal
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.i_pascal.capitalization = pascal_case
+dotnet_naming_style.i_pascal.required_prefix = I
+
+# Acronyms count as words (MyRpc, not MyRPC) — analyzers can't enforce; convention only.
+dotnet_diagnostic.CA1707.severity = none

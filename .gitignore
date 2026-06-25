@@ -1,0 +1,33 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+
+# .NET
+project.lock.json
+.packages/
+artifacts/
+publish/
+*.app/
+
+# Packaging output (build/ inputs are tracked; these are generated)
+/out/
+/dist/
+/upload/
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / scratch
+*.binlog
+/tmp/
+
+# Internal project notes — not published
+HANDOFF.md

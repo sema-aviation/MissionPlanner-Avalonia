@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <Product>MissionPlanner Avalonia</Product>
+    <Company>Sema Aviation</Company>
+    <Authors>Sema Aviation</Authors>
+    <Description>Native cross-platform (macOS/Linux/Windows) Avalonia port of the ArduPilot Mission Planner UI. Independent community project, not affiliated with ArduPilot. GPLv3.</Description>
+    <Copyright>Copyright © 2026 Sema Aviation. Based on ArduPilot Mission Planner © Michael Oborne (GPLv3).</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/sema-aviation/MissionPlanner-Avalonia</RepositoryUrl>
+    <Version>2026.6.0</Version>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,62 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigRadioInputView"
+  x:DataType="cv:ConfigRadioInputViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Radio Calibration" />
+    <TextBlock
+      Grid.Row="1"
+      Text="{Binding Status}"
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,0,0,12"
+    />
+
+    <ItemsControl Grid.Row="2" ItemsSource="{Binding Channels}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="cv:RcChannel">
+          <Grid ColumnDefinitions="80,*,70,70" Margin="0,4">
+            <TextBlock Grid.Column="0" Text="{Binding Number, StringFormat='Ch \{0\}'}" Classes="fieldlbl" />
+            <ProgressBar
+              Grid.Column="1"
+              Minimum="1000"
+              Maximum="2000"
+              Value="{Binding Value}"
+              Height="22"
+              Foreground="#94C11F"
+            />
+            <TextBlock
+              Grid.Column="2"
+              Text="{Binding Value}"
+              Classes="fieldlbl"
+              HorizontalAlignment="Center"
+            />
+            <TextBlock
+              Grid.Column="3"
+              HorizontalAlignment="Center"
+              Classes="fieldlbl"
+              Text="{Binding Min, StringFormat='\{0\}'}"
+            />
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Button
+      Grid.Row="3"
+      Content="{Binding CalibrateLabel}"
+      Command="{Binding ToggleCalibrateCommand}"
+      HorizontalAlignment="Left"
+      Margin="0,12,0,0"
+    />
+  </Grid>
+</UserControl>

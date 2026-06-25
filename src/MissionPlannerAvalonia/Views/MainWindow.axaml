@@ -1,0 +1,151 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  xmlns:local="using:MissionPlannerAvalonia"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="1100"
+  d:DesignHeight="700"
+  x:Class="MissionPlannerAvalonia.Views.MainWindow"
+  x:DataType="vm:MainWindowViewModel"
+  Background="#262728"
+  Width="1280"
+  Height="800"
+  MinWidth="1120"
+  MinHeight="720"
+  Icon="/Assets/appicon.ico"
+  Title="MissionPlanner Avalonia"
+>
+  <Design.DataContext>
+    <vm:MainWindowViewModel />
+  </Design.DataContext>
+
+  <Window.Resources>
+    <local:StringEqualsConverter x:Key="Eq" />
+  </Window.Resources>
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Background="#262728" Height="64">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <ScrollViewer
+          Grid.Column="0"
+          HorizontalScrollBarVisibility="Auto"
+          VerticalScrollBarVisibility="Disabled"
+        >
+          <StackPanel Orientation="Horizontal">
+            <Button
+              Classes="nav"
+              Classes.active="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=DATA}"
+              Command="{Binding NavigateCommand}"
+              CommandParameter="DATA"
+            >
+              <StackPanel>
+                <TextBlock Classes="navicon" Text="&#x1F4CA;" />
+                <TextBlock Classes="navtxt" Text="DATA" />
+              </StackPanel>
+            </Button>
+            <Button
+              Classes="nav"
+              Classes.active="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=PLAN}"
+              Command="{Binding NavigateCommand}"
+              CommandParameter="PLAN"
+            >
+              <StackPanel>
+                <TextBlock Classes="navicon" Text="&#x1F310;" />
+                <TextBlock Classes="navtxt" Text="PLAN" />
+              </StackPanel>
+            </Button>
+            <Button
+              Classes="nav"
+              Classes.active="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=SETUP}"
+              Command="{Binding NavigateCommand}"
+              CommandParameter="SETUP"
+            >
+              <StackPanel>
+                <TextBlock Classes="navicon" Text="&#x2699;" />
+                <TextBlock Classes="navtxt" Text="SETUP" />
+              </StackPanel>
+            </Button>
+            <Button
+              Classes="nav"
+              Classes.active="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=CONFIG}"
+              Command="{Binding NavigateCommand}"
+              CommandParameter="CONFIG"
+            >
+              <StackPanel>
+                <TextBlock Classes="navicon" Text="&#x1F527;" />
+                <TextBlock Classes="navtxt" Text="CONFIG" />
+              </StackPanel>
+            </Button>
+            <Button
+              Classes="nav"
+              Classes.active="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=SIMULATION}"
+              Command="{Binding NavigateCommand}"
+              CommandParameter="SIMULATION"
+            >
+              <StackPanel>
+                <TextBlock Classes="navicon" Text="&#x1F5A5;" />
+                <TextBlock Classes="navtxt" Text="SIMULATION" />
+              </StackPanel>
+            </Button>
+            <Button
+              Classes="nav"
+              Classes.active="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=HELP}"
+              Command="{Binding NavigateCommand}"
+              CommandParameter="HELP"
+            >
+              <StackPanel>
+                <TextBlock Classes="navicon" Text="&#x2753;" />
+                <TextBlock Classes="navtxt" Text="HELP" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock
+          Grid.Column="1"
+          Text="ARDUPILOT"
+          VerticalAlignment="Center"
+          Margin="16,0"
+          FontSize="26"
+          FontWeight="Bold"
+          FontStyle="Italic"
+          Foreground="#F2C200"
+        />
+
+        <StackPanel
+          Grid.Column="2"
+          Orientation="Horizontal"
+          VerticalAlignment="Center"
+          Spacing="6"
+          Margin="8,0,12,0"
+          DataContext="{Binding Connection}"
+        >
+          <ComboBox
+            Width="180"
+            ItemsSource="{Binding Ports}"
+            SelectedItem="{Binding SelectedPort}"
+            PlaceholderText="serial port"
+          />
+          <ComboBox Width="90" ItemsSource="{Binding Bauds}" SelectedItem="{Binding SelectedBaud}" />
+          <Button Content="⟳" Command="{Binding RefreshPortsCommand}" ToolTip.Tip="Refresh ports" />
+          <Button Content="{Binding ConnectText}" Command="{Binding ToggleConnectCommand}" MinWidth="110" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border DockPanel.Dock="Top" Background="#1F1F20" Height="22">
+      <TextBlock
+        VerticalAlignment="Center"
+        Margin="8,0"
+        FontSize="11"
+        Foreground="#AAAAAA"
+        Text="{Binding Connection.Status}"
+      />
+    </Border>
+
+    <ContentControl Content="{Binding CurrentScreen}" />
+  </DockPanel>
+</Window>

@@ -1,0 +1,227 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  xmlns:views="using:MissionPlannerAvalonia.Views"
+  xmlns:ctl="using:MissionPlannerAvalonia.Controls"
+  mc:Ignorable="d"
+  d:DesignWidth="1100"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.FlightDataView"
+  x:DataType="vm:FlightDataViewModel"
+  Background="#434445"
+>
+  <Grid ColumnDefinitions="2*,4,3*">
+    <Grid Grid.Column="0" RowDefinitions="*,4,*">
+      <Border Grid.Row="0" Background="Black">
+        <ctl:HudControl
+          Roll="{Binding Roll}"
+          Pitch="{Binding Pitch}"
+          Yaw="{Binding Yaw}"
+          Alt="{Binding Alt}"
+          AirSpeed="{Binding AirSpeed}"
+          GroundSpeed="{Binding GroundSpeed}"
+          VerticalSpeed="{Binding VerticalSpeed}"
+          SatCount="{Binding SatCount}"
+          Armed="{Binding Armed}"
+          Mode="{Binding Mode}"
+          BatteryVoltage="{Binding BatteryVoltage}"
+          BatteryRemaining="{Binding BatteryRemaining}"
+        />
+      </Border>
+
+      <GridSplitter Grid.Row="1" Background="#262728" ResizeDirection="Rows" />
+
+      <TabControl Grid.Row="2" Background="#434445">
+        <TabItem Header="Quick">
+          <UniformGrid Columns="2" Rows="3" Margin="2">
+            <Border Classes="qv">
+              <StackPanel>
+                <TextBlock
+                  Text="{Binding Alt, StringFormat={}{0:0.00}}"
+                  Foreground="#D197F8"
+                  Classes="qval"
+                />
+                <TextBlock Text="Altitude (m)" Classes="qlbl" />
+              </StackPanel>
+            </Border>
+            <Border Classes="qv">
+              <StackPanel>
+                <TextBlock
+                  Text="{Binding GroundSpeed, StringFormat={}{0:0.00}}"
+                  Foreground="#FE842E"
+                  Classes="qval"
+                />
+                <TextBlock Text="GroundSpeed (m/s)" Classes="qlbl" />
+              </StackPanel>
+            </Border>
+            <Border Classes="qv">
+              <StackPanel>
+                <TextBlock
+                  Text="{Binding WpDist, StringFormat={}{0:0.00}}"
+                  Foreground="#FF605B"
+                  Classes="qval"
+                />
+                <TextBlock Text="Dist to WP (m)" Classes="qlbl" />
+              </StackPanel>
+            </Border>
+            <Border Classes="qv">
+              <StackPanel>
+                <TextBlock
+                  Text="{Binding Yaw, StringFormat={}{0:0.00}}"
+                  Foreground="#00FF53"
+                  Classes="qval"
+                />
+                <TextBlock Text="Yaw (deg)" Classes="qlbl" />
+              </StackPanel>
+            </Border>
+            <Border Classes="qv">
+              <StackPanel>
+                <TextBlock
+                  Text="{Binding VerticalSpeed, StringFormat={}{0:0.00}}"
+                  Foreground="#FEFE56"
+                  Classes="qval"
+                />
+                <TextBlock Text="Vertical Speed (m/s)" Classes="qlbl" />
+              </StackPanel>
+            </Border>
+            <Border Classes="qv">
+              <StackPanel>
+                <TextBlock
+                  Text="{Binding DistToHome, StringFormat={}{0:0.00}}"
+                  Foreground="#00FFFC"
+                  Classes="qval"
+                />
+                <TextBlock Text="DistToMAV" Classes="qlbl" />
+              </StackPanel>
+            </Border>
+          </UniformGrid>
+        </TabItem>
+
+        <TabItem Header="Actions">
+          <ScrollViewer>
+            <StackPanel Margin="6" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ComboBox Width="160" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" />
+                <Button Content="Set Mode" Command="{Binding SetModeCommand}" />
+                <Button Content="{Binding ArmText}" Command="{Binding ToggleArmCommand}" MinWidth="90" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="Auto" Command="{Binding QuickAutoCommand}" MinWidth="80" />
+                <Button Content="Loiter" Command="{Binding QuickLoiterCommand}" MinWidth="80" />
+                <Button Content="RTL" Command="{Binding QuickRtlCommand}" MinWidth="80" />
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Messages">
+          <TextBox
+            Text="{Binding Messages}"
+            AcceptsReturn="True"
+            IsReadOnly="True"
+            TextWrapping="Wrap"
+            Background="#1F1F20"
+            Foreground="WhiteSmoke"
+          />
+        </TabItem>
+
+        <TabItem Header="PreFlight">
+          <StackPanel Margin="10" Spacing="6">
+            <Panel>
+              <TextBlock
+                Text="{Binding PrearmText}"
+                FontWeight="Bold"
+                FontSize="16"
+                Foreground="#E03030"
+                IsVisible="{Binding !PrearmOk}"
+              />
+              <TextBlock
+                Text="{Binding PrearmText}"
+                FontWeight="Bold"
+                FontSize="16"
+                Foreground="#94C11F"
+                IsVisible="{Binding PrearmOk}"
+              />
+            </Panel>
+            <TextBlock Text="{Binding Mode, StringFormat=Mode: {0}}" />
+            <TextBlock Text="{Binding Armed, StringFormat=Armed: {0}}" />
+            <TextBlock Text="{Binding SatCount, StringFormat=GPS Satellites: {0}}" />
+            <TextBlock Text="{Binding GpsHdop, StringFormat=HDOP: {0:0.00}}" />
+            <TextBlock Text="{Binding BatteryVoltage, StringFormat=Battery: {0:0.00} V}" />
+            <TextBlock Text="{Binding EkfStatus, StringFormat=EKF status: {0:0.00}}" />
+          </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Gauges">
+          <TextBlock Margin="8" Text="Gauges" />
+        </TabItem>
+
+        <TabItem Header="Transponder">
+          <TextBlock Margin="8" Text="Transponder" />
+        </TabItem>
+
+        <TabItem Header="Status">
+          <ScrollViewer>
+            <StackPanel Margin="8" Spacing="3">
+              <TextBlock Text="{Binding Mode, StringFormat=Mode: {0}}" />
+              <TextBlock Text="{Binding Armed, StringFormat=Armed: {0}}" />
+              <TextBlock Text="{Binding BatteryVoltage, StringFormat=Battery: {0:0.00} V}" />
+              <TextBlock Text="{Binding BatteryRemaining, StringFormat=Battery remaining: {0}%}" />
+              <TextBlock Text="{Binding SatCount, StringFormat=Satellites: {0}}" />
+              <TextBlock Text="{Binding GpsHdop, StringFormat=HDOP: {0:0.00}}" />
+              <TextBlock Text="{Binding Roll, StringFormat=Roll: {0:0.0}}" />
+              <TextBlock Text="{Binding Pitch, StringFormat=Pitch: {0:0.0}}" />
+              <TextBlock Text="{Binding Yaw, StringFormat=Yaw: {0:0}}" />
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Servo">
+          <ItemsControl Margin="8" ItemsSource="{Binding Servos}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ServoOut">
+                <Grid ColumnDefinitions="70,*,60" Margin="0,3">
+                  <TextBlock
+                    Grid.Column="0"
+                    Text="{Binding Number, StringFormat='Servo \{0\}'}"
+                    VerticalAlignment="Center"
+                  />
+                  <ProgressBar
+                    Grid.Column="1"
+                    Minimum="1000"
+                    Maximum="2000"
+                    Value="{Binding Value}"
+                    Height="20"
+                    Foreground="#94C11F"
+                  />
+                  <TextBlock
+                    Grid.Column="2"
+                    Text="{Binding Value}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                  />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </TabItem>
+        <TabItem Header="Telemetry Logs">
+          <views:LogBrowseView DataContext="{Binding TelemetryLogs}" />
+        </TabItem>
+        <TabItem Header="DataFlash Logs">
+          <views:LogBrowseView DataContext="{Binding DataFlashLogs}" />
+        </TabItem>
+        <TabItem Header="Scripts">
+          <TextBlock Margin="8" Text="Scripts (Lua / Python) — deferred subsystem." />
+        </TabItem>
+      </TabControl>
+    </Grid>
+
+    <GridSplitter Grid.Column="1" Background="#262728" ResizeDirection="Columns" />
+
+    <ctl:MapView Grid.Column="2" />
+  </Grid>
+</UserControl>

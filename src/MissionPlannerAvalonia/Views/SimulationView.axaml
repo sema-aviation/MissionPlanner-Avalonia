@@ -1,0 +1,40 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  xmlns:ctl="using:MissionPlannerAvalonia.Controls"
+  mc:Ignorable="d"
+  d:DesignWidth="1100"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.SimulationView"
+  x:DataType="vm:SimulationViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="*,Auto">
+    <ctl:MapView Grid.Row="0" />
+    <StackPanel Grid.Row="1" Margin="12" Spacing="10">
+      <TextBlock Text="Please select a firmware to run" Foreground="#E0E0E0" />
+      <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
+        <StackPanel>
+          <TextBlock Text="&#x2708;" FontSize="44" HorizontalAlignment="Center" />
+          <TextBlock Text="Plane" HorizontalAlignment="Center" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Text="&#x1F697;" FontSize="44" HorizontalAlignment="Center" />
+          <TextBlock Text="Rover" HorizontalAlignment="Center" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Text="&#x1F681;" FontSize="44" HorizontalAlignment="Center" />
+          <TextBlock Text="Multirotor" HorizontalAlignment="Center" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Text="&#x1F681;" FontSize="44" HorizontalAlignment="Center" />
+          <TextBlock Text="Helicopter" HorizontalAlignment="Center" />
+        </StackPanel>
+      </StackPanel>
+      <TextBlock Text="{Binding Status}" Foreground="#888888" HorizontalAlignment="Center" />
+    </StackPanel>
+  </Grid>
+</UserControl>

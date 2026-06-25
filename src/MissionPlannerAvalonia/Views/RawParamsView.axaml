@@ -1,0 +1,40 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="500"
+  x:Class="MissionPlannerAvalonia.Views.RawParamsView"
+  x:DataType="vm:RawParamsViewModel"
+>
+  <Grid RowDefinitions="Auto,*,Auto" Margin="8">
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+      <Button Content="Refresh from vehicle" Command="{Binding RefreshCommand}" />
+      <Button Content="Write changes" Command="{Binding WriteCommand}" />
+      <Button Content="Load Demo" Command="{Binding LoadDemoCommand}" />
+      <TextBox Width="220" Watermark="Filter by name…" Text="{Binding SearchText}" />
+    </StackPanel>
+
+    <DataGrid
+      Grid.Row="1"
+      ItemsSource="{Binding Params}"
+      AutoGenerateColumns="False"
+      IsReadOnly="False"
+      GridLinesVisibility="All"
+      CanUserResizeColumns="True"
+    >
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="240" />
+        <DataGridTextColumn Header="Current" Binding="{Binding CurrentValue}" IsReadOnly="True" Width="120" />
+        <DataGridTextColumn Header="New value" Binding="{Binding EditValue}" Width="120" />
+        <DataGridTextColumn Header="Default" Binding="{Binding DefaultValue}" IsReadOnly="True" Width="120" />
+        <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="80" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <TextBlock Grid.Row="2" Margin="2,8,0,0" Text="{Binding Status}" Foreground="#888" />
+  </Grid>
+</UserControl>

@@ -1,0 +1,42 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  mc:Ignorable="d"
+  d:DesignWidth="1100"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.HelpView"
+  x:DataType="vm:HelpViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="40" Spacing="8" MaxWidth="900" HorizontalAlignment="Left">
+      <TextBlock TextWrapping="Wrap">
+        <Run FontWeight="Bold">
+          Welcome to the Mission Planner
+        </Run>, mission planning for Unmanned Aerial Vehicles (UAV).
+      </TextBlock>
+      <TextBlock Margin="0,10,0,0" FontWeight="Bold" Text="Help:" />
+      <TextBlock Text="ArduPlane: http://ardupilot.org/plane" Foreground="#7FB3E0" />
+      <TextBlock Text="ArduCopter: http://ardupilot.org/copter" Foreground="#7FB3E0" />
+      <TextBlock Text="ArduRover: http://ardupilot.org/rover" Foreground="#7FB3E0" />
+      <TextBlock
+        Margin="0,10,0,0"
+        Text="Libraries: Gmap.net, SharpKml, SharpZipLib, IronPython, KMLib, OpenTK, ZedGraph, alglib, DotSpatial, LibVLC, netDXF"
+        TextWrapping="Wrap"
+        Foreground="#BBBBBB"
+      />
+      <TextBlock Margin="0,16,0,0" FontWeight="Bold" Text="ShortCuts" />
+      <TextBlock Text="F2 - FlightData" />
+      <TextBlock Text="F3 - FlightPlanner" />
+      <TextBlock Text="F4 - Tuning" />
+      <TextBlock Text="F5 - Refresh full param list" />
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,16,0,0">
+        <Button Content="Check for Updates" />
+        <Button Content="Check for BETA Updates" />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

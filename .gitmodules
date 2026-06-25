@@ -1,0 +1,3 @@
+[submodule "upstream"]
+	path = external/MissionPlanner
+	url = https://github.com/ArduPilot/MissionPlanner.git

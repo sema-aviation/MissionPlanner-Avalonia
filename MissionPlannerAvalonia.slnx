@@ -1,0 +1,47 @@
+<Solution>
+  <Folder Name="/external/" />
+  <Folder Name="/external/MissionPlanner/" />
+  <Folder Name="/external/MissionPlanner/ExtLibs/">
+    <Project Path="external/MissionPlanner/ExtLibs/alglibnet/alglibnet.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/Core/Core.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/GeoUtility/GeoUtility.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/GMap.NET.Core/GMap.NET.Core.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/ICSharpCode.SharpZipLib/ICSharpCode.SharpZipLib.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/Interfaces/Interfaces.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/KMLib/KMLib.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/LibVLC.NET/LibVLC.NET.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/MissionPlanner.Drawing/MissionPlanner.Drawing.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/netDxf/netDxf.csproj" />
+    <Project Path="external/MissionPlanner/ExtLibs/SharpKml/SharpKml.csproj" />
+  </Folder>
+  <Folder Name="/external/MissionPlanner/ExtLibs/ArduPilot/">
+    <Project Path="external/MissionPlanner/ExtLibs/ArduPilot/MissionPlanner.ArduPilot.csproj" />
+  </Folder>
+  <Folder Name="/external/MissionPlanner/ExtLibs/Comms/">
+    <Project Path="external/MissionPlanner/ExtLibs/Comms/MissionPlanner.Comms.csproj" />
+  </Folder>
+  <Folder Name="/external/MissionPlanner/ExtLibs/Mavlink/">
+    <Project Path="external/MissionPlanner/ExtLibs/Mavlink/MAVLink.csproj" />
+  </Folder>
+  <Folder Name="/external/MissionPlanner/ExtLibs/MetaDataExtractorCSharp240d/">
+    <Project Path="external/MissionPlanner/ExtLibs/MetaDataExtractorCSharp240d/MetaDataExtractor.csproj" />
+  </Folder>
+  <Folder Name="/external/MissionPlanner/ExtLibs/ProjNet/">
+    <Project Path="external/MissionPlanner/ExtLibs/ProjNet/ProjNET.csproj" />
+  </Folder>
+  <Folder Name="/external/MissionPlanner/ExtLibs/Strings/">
+    <Project Path="external/MissionPlanner/ExtLibs/Strings/MissionPlanner.Strings.csproj" />
+  </Folder>
+  <Folder Name="/external/MissionPlanner/ExtLibs/Utilities/">
+    <Project Path="external/MissionPlanner/ExtLibs/Utilities/MissionPlanner.Utilities.csproj" />
+  </Folder>
+  <Folder Name="/external/MissionPlanner/ExtLibs/Zeroconf/">
+    <Project Path="external/MissionPlanner/ExtLibs/Zeroconf/Zeroconf/Zeroconf.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/MissionPlannerAvalonia/MissionPlannerAvalonia.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MissionPlannerAvalonia.Tests/MissionPlannerAvalonia.Tests.csproj" />
+  </Folder>
+</Solution>

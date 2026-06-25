@@ -1,0 +1,111 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  xmlns:ctl="using:MissionPlannerAvalonia.Controls"
+  mc:Ignorable="d"
+  d:DesignWidth="1100"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.FlightPlannerView"
+  x:DataType="vm:FlightPlannerViewModel"
+  Background="#434445"
+>
+  <Grid ColumnDefinitions="*,168">
+    <Grid Grid.Column="0" RowDefinitions="*,4,210">
+      <ctl:MapView Grid.Row="0" />
+      <GridSplitter Grid.Row="1" Background="#262728" ResizeDirection="Rows" />
+
+      <Grid Grid.Row="2" RowDefinitions="Auto,*">
+        <WrapPanel Grid.Row="0" Margin="6,4" VerticalAlignment="Center">
+          <TextBlock Text="WP Radius" Classes="fieldlbl" Margin="0,0,4,0" />
+          <NumericUpDown Width="92" Value="{Binding WpRadius}" Margin="0,0,10,0" />
+          <TextBlock Text="Loiter Radius" Classes="fieldlbl" Margin="0,0,4,0" />
+          <NumericUpDown Width="92" Value="{Binding LoiterRadius}" Margin="0,0,10,0" />
+          <TextBlock Text="Default Alt" Classes="fieldlbl" Margin="0,0,4,0" />
+          <NumericUpDown Width="92" Value="{Binding DefaultAlt}" Margin="0,0,10,0" />
+          <Button Content="Add WP" Command="{Binding AddWaypointCommand}" Margin="0,0,8,0" />
+          <TextBlock Text="{Binding Status}" Classes="fieldlbl" VerticalAlignment="Center" />
+        </WrapPanel>
+
+        <DataGrid
+          Grid.Row="1"
+          ItemsSource="{Binding Waypoints}"
+          AutoGenerateColumns="False"
+          CanUserReorderColumns="True"
+          GridLinesVisibility="All"
+        >
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="#" Binding="{Binding Seq}" IsReadOnly="True" Width="40" />
+            <DataGridTextColumn
+              Header="Command"
+              Binding="{Binding CommandName}"
+              IsReadOnly="True"
+              Width="150"
+            />
+            <DataGridTextColumn Header="P1" Binding="{Binding P1}" Width="70" />
+            <DataGridTextColumn Header="P2" Binding="{Binding P2}" Width="70" />
+            <DataGridTextColumn Header="P3" Binding="{Binding P3}" Width="70" />
+            <DataGridTextColumn Header="P4" Binding="{Binding P4}" Width="70" />
+            <DataGridTextColumn Header="Lat" Binding="{Binding Lat}" Width="120" />
+            <DataGridTextColumn Header="Lon" Binding="{Binding Lng}" Width="120" />
+            <DataGridTextColumn Header="Alt" Binding="{Binding Alt}" Width="80" />
+            <DataGridTemplateColumn Header="Delete" Width="70">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:WpRow">
+                  <Button
+                    Content="X"
+                    Padding="6,0"
+                    Command="{Binding $parent[DataGrid].((vm:FlightPlannerViewModel)DataContext).DeleteWaypointCommand}"
+                    CommandParameter="{Binding}"
+                  />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+          </DataGrid.Columns>
+        </DataGrid>
+      </Grid>
+    </Grid>
+
+    <Border Grid.Column="1" Background="#3A3B3C" Padding="6">
+      <ScrollViewer>
+        <StackPanel Spacing="6">
+          <CheckBox Content="Grid" IsChecked="{Binding ShowGrid}" Foreground="#E0E0E0" />
+          <Button Content="View KML" HorizontalAlignment="Stretch" />
+          <ComboBox
+            HorizontalAlignment="Stretch"
+            ItemsSource="{Binding MapTypes}"
+            SelectedItem="{Binding MapType}"
+          />
+          <TextBlock Text="Status: ready" Foreground="#BBBBBB" FontSize="11" />
+          <Button Content="Inject Custom Map" HorizontalAlignment="Stretch" />
+          <Separator />
+          <Button Content="Load File" HorizontalAlignment="Stretch" Click="OnLoadFile" />
+          <Button Content="Save File" HorizontalAlignment="Stretch" Click="OnSaveFile" />
+          <Separator />
+          <Button Content="Read" HorizontalAlignment="Stretch" Command="{Binding ReadWaypointsCommand}" />
+          <Button Content="Write" HorizontalAlignment="Stretch" Command="{Binding WriteWaypointsCommand}" />
+          <Button
+            Content="Write Fast"
+            HorizontalAlignment="Stretch"
+            Command="{Binding WriteWaypointsCommand}"
+          />
+          <Separator />
+          <TextBlock Text="Home Location" Foreground="#94C11F" FontWeight="Bold" FontSize="12" />
+          <TextBlock Text="Lat" Foreground="#BBBBBB" FontSize="11" />
+          <TextBox Text="{Binding HomeLat}" />
+          <TextBlock Text="Long" Foreground="#BBBBBB" FontSize="11" />
+          <TextBox Text="{Binding HomeLng}" />
+          <TextBlock Text="ASL" Foreground="#BBBBBB" FontSize="11" />
+          <TextBox Text="{Binding HomeAlt}" />
+          <Button
+            Content="Set from Vehicle"
+            HorizontalAlignment="Stretch"
+            Command="{Binding SetHomeFromVehicleCommand}"
+          />
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</UserControl>

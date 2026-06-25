@@ -1,0 +1,18 @@
+# Normalize line endings (LF in repo); avoids CRLF/LF churn across macOS/Linux/Windows.
+* text=auto eol=lf
+
+*.cs    text eol=lf
+*.axaml text eol=lf
+*.csproj text eol=lf
+*.props text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.md    text eol=lf
+
+# Binaries
+*.ico   binary
+*.icns  binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.dll   binary
