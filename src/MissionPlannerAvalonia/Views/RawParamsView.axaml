@@ -5,36 +5,55 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
   mc:Ignorable="d"
-  d:DesignWidth="800"
-  d:DesignHeight="500"
+  d:DesignWidth="900"
+  d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.RawParamsView"
   x:DataType="vm:RawParamsViewModel"
 >
   <Grid RowDefinitions="Auto,*,Auto" Margin="8">
-    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-      <Button Content="Refresh from vehicle" Command="{Binding RefreshCommand}" />
-      <Button Content="Write changes" Command="{Binding WriteCommand}" />
-      <Button Content="Load Demo" Command="{Binding LoadDemoCommand}" />
-      <TextBox Width="220" Watermark="Filter by name…" Text="{Binding SearchText}" />
-    </StackPanel>
+    <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+      <Button Content="Load from file" Name="LoadBtn" Margin="0,0,6,4" />
+      <Button Content="Save to file" Name="SaveBtn" Margin="0,0,6,4" />
+      <Button Content="Compare" Name="CompareBtn" Margin="0,0,6,4" />
+      <Button Content="Write Params" Command="{Binding WriteCommand}" Margin="0,0,6,4" />
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
+      <Button Content="Commit to Flash" Command="{Binding CommitCommand}" Margin="0,0,6,4" />
+      <Button Content="Load Demo" Command="{Binding LoadDemoCommand}" Margin="0,0,12,4" />
+      <TextBox Width="200" Watermark="Search (≥2 chars)…" Text="{Binding SearchText}" Margin="0,0,6,4" />
+      <CheckBox Content="Modified" IsChecked="{Binding ShowModifiedOnly, Mode=TwoWay}" Margin="0,0,6,4" />
+      <CheckBox Content="Non-Default" IsChecked="{Binding ShowNonDefaultOnly, Mode=TwoWay}"
+                IsVisible="{Binding HasDefaults}" Margin="0,0,6,4" />
+    </WrapPanel>
 
-    <DataGrid
-      Grid.Row="1"
-      ItemsSource="{Binding Params}"
-      AutoGenerateColumns="False"
-      IsReadOnly="False"
-      GridLinesVisibility="All"
-      CanUserResizeColumns="True"
-    >
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="240" />
-        <DataGridTextColumn Header="Current" Binding="{Binding CurrentValue}" IsReadOnly="True" Width="120" />
-        <DataGridTextColumn Header="New value" Binding="{Binding EditValue}" Width="120" />
-        <DataGridTextColumn Header="Default" Binding="{Binding DefaultValue}" IsReadOnly="True" Width="120" />
-        <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="80" />
-      </DataGrid.Columns>
-    </DataGrid>
+    <Grid Grid.Row="1" ColumnDefinitions="180,4,*">
+      <ListBox
+        Grid.Column="0"
+        ItemsSource="{Binding Categories}"
+        SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+      />
+      <GridSplitter Grid.Column="1" Background="#333" />
+      <DataGrid
+        Grid.Column="2"
+        Name="ParamsGrid"
+        ItemsSource="{Binding Params}"
+        AutoGenerateColumns="False"
+        IsReadOnly="False"
+        GridLinesVisibility="All"
+        CanUserResizeColumns="True"
+        CanUserSortColumns="True"
+      >
+        <DataGrid.Columns>
+          <DataGridCheckBoxColumn Header="Fav" Binding="{Binding Fav, Mode=TwoWay}" Width="40" />
+          <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="200" />
+          <DataGridTextColumn Header="Value" Binding="{Binding ValueText}" Width="120" />
+          <DataGridTextColumn Header="Default" Binding="{Binding DefaultText}" IsReadOnly="True" Width="90" />
+          <DataGridTextColumn Header="Units" Binding="{Binding Units}" IsReadOnly="True" Width="80" />
+          <DataGridTextColumn Header="Options" Binding="{Binding Options}" IsReadOnly="True" Width="200" />
+          <DataGridTextColumn Header="Desc" Binding="{Binding Description}" IsReadOnly="True" Width="*" />
+        </DataGrid.Columns>
+      </DataGrid>
+    </Grid>
 
-    <TextBlock Grid.Row="2" Margin="2,8,0,0" Text="{Binding Status}" Foreground="#888" />
+    <TextBlock Grid.Row="2" Margin="2,8,0,0" Text="{Binding Status}" Foreground="#888" TextWrapping="Wrap" />
   </Grid>
 </UserControl>
