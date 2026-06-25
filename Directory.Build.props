@@ -10,7 +10,7 @@
 
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
-    <Product>MissionPlanner Avalonia</Product>
+    <Product>Mission Planner</Product>
     <Company>Sema Aviation</Company>
     <Authors>Sema Aviation</Authors>
     <Description>Native cross-platform (macOS/Linux/Windows) Avalonia port of the ArduPilot Mission Planner UI. Independent community project, not affiliated with ArduPilot. GPLv3.</Description>

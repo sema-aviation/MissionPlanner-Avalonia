@@ -16,7 +16,7 @@
   MinWidth="1120"
   MinHeight="720"
   Icon="/Assets/appicon.ico"
-  Title="MissionPlanner Avalonia"
+  Title="Mission Planner"
 >
   <Design.DataContext>
     <vm:MainWindowViewModel />

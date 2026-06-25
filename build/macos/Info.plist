@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleName</key>
-  <string>MissionPlanner Avalonia</string>
+  <string>Mission Planner</string>
   <key>CFBundleDisplayName</key>
-  <string>MissionPlanner Avalonia</string>
+  <string>Mission Planner</string>
   <key>CFBundleIdentifier</key>
   <string>com.semaaviation.missionplanneravalonia</string>
   <key>CFBundleVersion</key>

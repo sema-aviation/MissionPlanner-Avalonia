@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=MissionPlanner Avalonia
+Name=Mission Planner
 Comment=Ground control station for ArduPilot vehicles
 Exec=MissionPlannerAvalonia
 Icon=missionplanner-avalonia
