@@ -94,10 +94,15 @@ jobs:
         with:
           files: artifacts/**/*
           generate_release_notes: true
+          prerelease: true
           body: |
-            Self-contained macOS (arm64 .app) and Windows (single-file) builds, plus a
-            framework-dependent Linux build (needs the .NET 10 runtime installed).
+            **Preview / early-access.** Native Avalonia port of the ArduPilot Mission Planner UI.
+            Many screens are wired to the real MAVLink API; several pages are still stubs and the app
+            has not yet been verified end-to-end against a real vehicle or SITL. Expect rough edges.
 
-            macOS is unsigned: right-click -> Open, or `xattr -dr com.apple.quarantine "MissionPlanner Avalonia.app"`.
+            Downloads: macOS (arm64 `.app`) and Windows (single-file) are self-contained; the Linux
+            build is framework-dependent and needs the **.NET 10 runtime** installed.
 
-            Independent Avalonia port of ArduPilot Mission Planner. GPLv3. Not affiliated with ArduPilot.
+            macOS is unsigned: right-click -> Open, or `xattr -dr com.apple.quarantine "Mission Planner.app"`.
+
+            Independent project, GPLv3, not affiliated with ArduPilot.
