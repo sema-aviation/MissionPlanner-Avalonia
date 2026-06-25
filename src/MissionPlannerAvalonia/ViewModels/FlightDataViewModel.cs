@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
+using MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
@@ -109,6 +110,10 @@ public partial class FlightDataViewModel : ViewModelBase {
     // MP tabServo = servoOptions for output channels 5..16
     for (int ch = 5; ch <= 16; ch++) {
       ServoChannels.Add(new ServoChannel(ch));
+    }
+    // MP tabAuxFunction = 7 auxOptions (RCx_OPTION combos)
+    for (int ch = 7; ch <= 13; ch++) {
+      AuxOptions.Add(new AuxRow(ch, new ParamField($"RC{ch}_OPTION")));
     }
 
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
@@ -218,6 +223,9 @@ public partial class FlightDataViewModel : ViewModelBase {
 
   // ---- Servo/Relay tab (per-channel Low/Mid/High/Toggle) ----
   public ObservableCollection<ServoChannel> ServoChannels { get; } = new();
+
+  // ---- Aux Function tab (RCx_OPTION combos) ----
+  public ObservableCollection<AuxRow> AuxOptions { get; } = new();
 
   [RelayCommand]
   [Obsolete]
@@ -682,6 +690,8 @@ public partial class FlightDataViewModel : ViewModelBase {
 
   private void Log(string m) => Messages += m + "\n";
 }
+
+public record AuxRow(int Channel, ParamField Field);
 
 public partial class ServoOut : ObservableObject {
   public ServoOut(int number) {

@@ -6,6 +6,7 @@
   xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
   xmlns:views="using:MissionPlannerAvalonia.Views"
   xmlns:ctl="using:MissionPlannerAvalonia.Controls"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
   mc:Ignorable="d"
   d:DesignWidth="1100"
   d:DesignHeight="640"
@@ -276,6 +277,30 @@
                              Text="{Binding Min}" />
                     <TextBox Width="44" FontSize="11" Padding="2,1"
                              Text="{Binding Max}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Aux Function">
+          <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding AuxOptions}" Margin="6">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AuxRow">
+                  <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2">
+                    <Border Background="#C00000" Width="40">
+                      <TextBlock Text="{Binding Channel}" Foreground="White" FontSize="11"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ComboBox Width="240" IsVisible="{Binding Field.IsCombo}"
+                              ItemsSource="{Binding Field.Options}"
+                              SelectedItem="{Binding Field.SelectedOption}" />
+                    <NumericUpDown Width="240" IsVisible="{Binding Field.IsNumeric}"
+                                   Value="{Binding Field.Value}" FormatString="0" />
+                    <TextBlock Text="{Binding Field.Status}" VerticalAlignment="Center"
+                               Foreground="#94C11F" />
                   </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
