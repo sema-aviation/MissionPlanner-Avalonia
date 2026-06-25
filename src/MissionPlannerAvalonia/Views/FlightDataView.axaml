@@ -170,17 +170,6 @@
           </ScrollViewer>
         </TabItem>
 
-        <TabItem Header="Actions">
-          <StackPanel Margin="10" Spacing="8">
-            <Button Content="Loiter" HorizontalAlignment="Stretch" Height="44" FontSize="15"
-                    Command="{Binding QuickLoiterCommand}" />
-            <Button Content="RTL" HorizontalAlignment="Stretch" Height="44" FontSize="15"
-                    Command="{Binding QuickRtlCommand}" />
-            <Button Content="Auto" HorizontalAlignment="Stretch" Height="44" FontSize="15"
-                    Command="{Binding QuickAutoCommand}" />
-          </StackPanel>
-        </TabItem>
-
         <TabItem Header="Messages">
           <TextBox
             Text="{Binding Messages}"
@@ -190,6 +179,17 @@
             Background="#1F1F20"
             Foreground="WhiteSmoke"
           />
+        </TabItem>
+
+        <TabItem Header="Actions">
+          <StackPanel Margin="10" Spacing="8">
+            <Button Content="Loiter" HorizontalAlignment="Stretch" Height="44" FontSize="15"
+                    Command="{Binding QuickLoiterCommand}" />
+            <Button Content="RTL" HorizontalAlignment="Stretch" Height="44" FontSize="15"
+                    Command="{Binding QuickRtlCommand}" />
+            <Button Content="Auto" HorizontalAlignment="Stretch" Height="44" FontSize="15"
+                    Command="{Binding QuickAutoCommand}" />
+          </StackPanel>
         </TabItem>
 
         <TabItem Header="PreFlight">
@@ -344,6 +344,22 @@
           </ScrollViewer>
         </TabItem>
 
+        <TabItem Header="Scripts">
+          <StackPanel Margin="8" Spacing="6">
+            <Button Content="Select Script" Width="160" HorizontalAlignment="Left"
+                    Command="{Binding SelectScriptCommand}" />
+            <Button Content="Edit Selected Script" Width="160" HorizontalAlignment="Left"
+                    Command="{Binding EditScriptCommand}" />
+            <Button Content="Run Script" Width="160" HorizontalAlignment="Left"
+                    Command="{Binding RunScriptCommand}" />
+            <Button Content="Abort Running Script" Width="160" HorizontalAlignment="Left"
+                    Command="{Binding AbortScriptCommand}" />
+            <CheckBox Content="Redirect Program Output" IsChecked="{Binding RedirectOutput}" />
+            <TextBlock Text="{Binding SelectedScript, StringFormat=Selected Script: {0}}" />
+            <TextBlock Text="{Binding ScriptStatus, StringFormat=Script Status: {0}}" TextWrapping="Wrap" />
+          </StackPanel>
+        </TabItem>
+
         <TabItem Header="Payload Control">
           <StackPanel Margin="8" Spacing="8">
             <HeaderedContentControl Header="Tilt">
@@ -373,52 +389,49 @@
             </StackPanel>
           </StackPanel>
         </TabItem>
-        <TabItem Header="Scripts">
-          <StackPanel Margin="8" Spacing="6">
-            <Button Content="Select Script" Width="160" HorizontalAlignment="Left"
-                    Command="{Binding SelectScriptCommand}" />
-            <Button Content="Edit Selected Script" Width="160" HorizontalAlignment="Left"
-                    Command="{Binding EditScriptCommand}" />
-            <Button Content="Run Script" Width="160" HorizontalAlignment="Left"
-                    Command="{Binding RunScriptCommand}" />
-            <Button Content="Abort Running Script" Width="160" HorizontalAlignment="Left"
-                    Command="{Binding AbortScriptCommand}" />
-            <CheckBox Content="Redirect Program Output" IsChecked="{Binding RedirectOutput}" />
-            <TextBlock Text="{Binding SelectedScript, StringFormat=Selected Script: {0}}" />
-            <TextBlock Text="{Binding ScriptStatus, StringFormat=Script Status: {0}}" TextWrapping="Wrap" />
-          </StackPanel>
-        </TabItem>
 
         <TabItem Header="Telemetry Logs">
-          <StackPanel Margin="8" Spacing="8">
-            <Button Content="Load Log" HorizontalAlignment="Left" Command="{Binding DownloadDataflashLogCommand}" />
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Button Content="Play" />
-              <Slider Width="240" Minimum="0" Maximum="100" />
-              <TextBlock Text="0.00 %" VerticalAlignment="Center" />
-            </StackPanel>
-            <Button Content="Tlog > Kml or Graph" HorizontalAlignment="Left" />
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="Speed" VerticalAlignment="Center" />
-              <TextBlock Text="x 1.0" VerticalAlignment="Center" />
-            </StackPanel>
-            <TextBlock Text="{Binding LogStatus}" Foreground="#C8A03C" TextWrapping="Wrap" />
-          </StackPanel>
+          <Grid Margin="8" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto"
+                ColumnSpacing="6" RowSpacing="6">
+            <Button Grid.Row="0" Grid.Column="0" Content="Load Log" HorizontalAlignment="Stretch" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding LogStatus}" Foreground="#C8A03C"
+                       VerticalAlignment="Center" TextWrapping="Wrap" />
+
+            <Button Grid.Row="1" Grid.Column="0" Content="Play/Pause" HorizontalAlignment="Stretch" />
+            <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" />
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="0.00 %" VerticalAlignment="Center" />
+
+            <Button Grid.Row="2" Grid.Column="0" Content="Tlog > Kml or Graph"
+                    HorizontalAlignment="Stretch" />
+            <WrapPanel Grid.Row="2" Grid.Column="1">
+              <Button Content="10x" Margin="1" MinWidth="36" />
+              <Button Content="5x" Margin="1" MinWidth="36" />
+              <Button Content="2x" Margin="1" MinWidth="36" />
+              <Button Content="1x" Margin="1" MinWidth="36" />
+              <Button Content="0.5" Margin="1" MinWidth="36" />
+              <Button Content="0.25" Margin="1" MinWidth="36" />
+              <Button Content="0.1" Margin="1" MinWidth="36" />
+            </WrapPanel>
+            <TextBlock Grid.Row="2" Grid.Column="2" Text="x 1.0" VerticalAlignment="Center" />
+          </Grid>
         </TabItem>
 
         <TabItem Header="DataFlash Logs">
-          <WrapPanel Margin="8">
-            <Button Content="Download DataFlash Log Via Mavlink" Margin="3"
-                    Command="{Binding DownloadDataflashLogCommand}" />
-            <Button Content="Review a Log" Margin="3" />
-            <Button Content="Auto Analysis" Margin="3" />
-            <Button Content="Create KML + gpx" Margin="3" />
-            <Button Content="Convert Bin to Log" Margin="3" />
-            <Button Content="Create Matlab File" Margin="3" />
-            <Button Content="Geo Reference Images" Margin="3" />
-            <TextBlock Text="{Binding LogStatus}" Foreground="#C8A03C" TextWrapping="Wrap"
-                       Width="320" Margin="3" />
-          </WrapPanel>
+          <Grid Margin="8" ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto"
+                ColumnSpacing="4" RowSpacing="4">
+            <Button Grid.Row="0" Grid.Column="0" Content="Download DataFlash Log Via Mavlink"
+                    HorizontalAlignment="Stretch" Command="{Binding DownloadDataflashLogCommand}" />
+            <Button Grid.Row="0" Grid.Column="1" Content="Review a Log" HorizontalAlignment="Stretch" />
+            <Button Grid.Row="0" Grid.Column="2" Content="Auto Analysis" HorizontalAlignment="Stretch" />
+
+            <Button Grid.Row="1" Grid.Column="0" Content="Create KML + gpx" HorizontalAlignment="Stretch" />
+            <Button Grid.Row="1" Grid.Column="1" Content="Convert .Bin to .Log" HorizontalAlignment="Stretch" />
+            <Button Grid.Row="1" Grid.Column="2" Content="Create Matlab File" HorizontalAlignment="Stretch" />
+
+            <Button Grid.Row="2" Grid.Column="0" Content="Geo Reference Images" HorizontalAlignment="Stretch" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding LogStatus}"
+                       Foreground="#C8A03C" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </Grid>
         </TabItem>
       </TabControl>
     </Grid>
