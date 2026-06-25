@@ -394,6 +394,59 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private double _homeAlt;
 
+  // ModifyandSet controls (Change Speed / Change Alt / Set Loiter Rad)
+  [ObservableProperty]
+  private double _changeSpeedValue;
+
+  [ObservableProperty]
+  private double _changeAltValue = 100;
+
+  [ObservableProperty]
+  private double _loiterRadValue;
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task ChangeSpeed() {
+    if (!Connected) {
+      Messages += "Not connected.\n";
+      return;
+    }
+    double v = ChangeSpeedValue;
+    await Task.Run(() =>
+        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.DO_CHANGE_SPEED,
+            0, (float)v, 0, 0, 0, 0, 0));
+    Log($"Change speed {v}");
+  }
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task ChangeAlt() {
+    if (!Connected) {
+      Messages += "Not connected.\n";
+      return;
+    }
+    int newalt = (int)ChangeAltValue;
+    await Task.Run(() =>
+        _comPort.setNewWPAlt(new MissionPlanner.Utilities.Locationwp {
+          alt = newalt / MissionPlanner.CurrentState.multiplieralt,
+        }));
+    Log($"Change alt {newalt}");
+  }
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task SetLoiterRad() {
+    if (!Connected) {
+      Messages += "Not connected.\n";
+      return;
+    }
+    int newrad = (int)LoiterRadValue;
+    await Task.Run(() =>
+        _comPort.setParam(new[] { "LOITER_RAD", "WP_LOITER_RAD" },
+            newrad / MissionPlanner.CurrentState.multiplierdist));
+    Log($"Set loiter rad {newrad}");
+  }
+
   public ObservableCollection<string> MountModes { get; } =
       new() { "Retract", "Neutral", "MavLink Targeting", "RC Targeting", "GPS Point" };
 

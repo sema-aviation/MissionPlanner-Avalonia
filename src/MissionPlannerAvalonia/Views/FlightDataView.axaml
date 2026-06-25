@@ -102,55 +102,82 @@
 
         <TabItem Header="Actions">
           <ScrollViewer>
-            <Grid Margin="6" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto"
-                  RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="4" RowSpacing="4">
-              <ComboBox Grid.Row="0" Grid.Column="0" Width="130" ItemsSource="{Binding Actions}"
-                        SelectedItem="{Binding SelectedAction}" />
+            <Grid Margin="6" ColumnDefinitions="*,*,*,*,Auto"
+                  RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="3" RowSpacing="3">
+              <!-- Row 0 -->
+              <ComboBox Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding Actions}" SelectedItem="{Binding SelectedAction}" />
               <Button Grid.Row="0" Grid.Column="1" Content="Do Action" HorizontalAlignment="Stretch"
                       Command="{Binding DoActionCommand}" />
               <Button Grid.Row="0" Grid.Column="2" Content="Auto" HorizontalAlignment="Stretch"
                       Command="{Binding QuickAutoCommand}" />
               <Button Grid.Row="0" Grid.Column="3" Content="Set Home Alt" HorizontalAlignment="Stretch"
                       Command="{Binding SetHomeCommand}" />
-              <NumericUpDown Grid.Row="0" Grid.Column="4" Width="90" Value="{Binding HomeAlt}" />
+              <StackPanel Grid.Row="0" Grid.Column="4" Orientation="Horizontal" Spacing="2">
+                <Button Content="Change Speed" Command="{Binding ChangeSpeedCommand}" />
+                <NumericUpDown Width="86" FormatString="0.0" Value="{Binding ChangeSpeedValue}" />
+              </StackPanel>
 
-              <ComboBox Grid.Row="1" Grid.Column="0" Width="130" ItemsSource="{Binding WpNumbers}"
-                        SelectedItem="{Binding SetWpIndex}" />
+              <!-- Row 1 -->
+              <ComboBox Grid.Row="1" Grid.Column="0" HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding WpNumbers}" SelectedItem="{Binding SetWpIndex}" />
               <Button Grid.Row="1" Grid.Column="1" Content="Set WP" HorizontalAlignment="Stretch"
                       Command="{Binding SetWpCommand}" />
               <Button Grid.Row="1" Grid.Column="2" Content="Loiter" HorizontalAlignment="Stretch"
                       Command="{Binding QuickLoiterCommand}" />
               <Button Grid.Row="1" Grid.Column="3" Content="Restart Mission" HorizontalAlignment="Stretch"
                       Command="{Binding RestartMissionCommand}" />
+              <StackPanel Grid.Row="1" Grid.Column="4" Orientation="Horizontal" Spacing="2">
+                <Button Content="Change Alt" Command="{Binding ChangeAltCommand}" />
+                <NumericUpDown Width="86" FormatString="0.0" Value="{Binding ChangeAltValue}" />
+              </StackPanel>
 
-              <ComboBox Grid.Row="2" Grid.Column="0" Width="130" ItemsSource="{Binding Modes}"
-                        SelectedItem="{Binding SelectedMode}" />
+              <!-- Row 2 -->
+              <ComboBox Grid.Row="2" Grid.Column="0" HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" />
               <Button Grid.Row="2" Grid.Column="1" Content="Set Mode" HorizontalAlignment="Stretch"
                       Command="{Binding SetModeCommand}" />
               <Button Grid.Row="2" Grid.Column="2" Content="RTL" HorizontalAlignment="Stretch"
                       Command="{Binding QuickRtlCommand}" />
               <Button Grid.Row="2" Grid.Column="3" Content="Raw Sensor View" HorizontalAlignment="Stretch"
                       Command="{Binding RawSensorViewCommand}" />
+              <StackPanel Grid.Row="2" Grid.Column="4" Orientation="Horizontal" Spacing="2">
+                <Button Content="Set Loiter Rad" Command="{Binding SetLoiterRadCommand}" />
+                <NumericUpDown Width="86" FormatString="0" Value="{Binding LoiterRadValue}" />
+              </StackPanel>
 
-              <ComboBox Grid.Row="3" Grid.Column="0" Width="130" ItemsSource="{Binding MountModes}"
-                        SelectedItem="{Binding SelectedMountMode}" />
+              <!-- Row 3 -->
+              <ComboBox Grid.Row="3" Grid.Column="0" HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding MountModes}" SelectedItem="{Binding SelectedMountMode}" />
               <Button Grid.Row="3" Grid.Column="1" Content="Set Mount" HorizontalAlignment="Stretch"
                       Command="{Binding SetMountCommand}" />
               <Button Grid.Row="3" Grid.Column="2" Content="Joystick" HorizontalAlignment="Stretch"
                       Command="{Binding JoystickCommand}" />
-              <Button Grid.Row="3" Grid.Column="3" Content="{Binding ArmText}" HorizontalAlignment="Stretch"
+              <Button Grid.Row="3" Grid.Column="3" Content="Arm/ Disarm" HorizontalAlignment="Stretch"
                       Command="{Binding ToggleArmCommand}" />
               <Button Grid.Row="3" Grid.Column="4" Content="Clear Track" HorizontalAlignment="Stretch"
                       Command="{Binding ClearTrackCommand}" />
 
-              <Button Grid.Row="4" Grid.Column="1" Content="Message" HorizontalAlignment="Stretch"
+              <!-- Row 4 -->
+              <Button Grid.Row="4" Grid.Column="2" Content="Message" HorizontalAlignment="Stretch"
                       Command="{Binding ShowMessageCommand}" />
-              <Button Grid.Row="4" Grid.Column="2" Content="Resume Mission" HorizontalAlignment="Stretch"
+              <Button Grid.Row="4" Grid.Column="3" Content="Resume Mission" HorizontalAlignment="Stretch"
                       Command="{Binding ResumeMissionCommand}" />
-              <Button Grid.Row="4" Grid.Column="3" Content="Abort Landing" HorizontalAlignment="Stretch"
+              <Button Grid.Row="4" Grid.Column="4" Content="Abort Landing" HorizontalAlignment="Stretch"
                       Command="{Binding AbortLandCommand}" />
             </Grid>
           </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Actions">
+          <StackPanel Margin="10" Spacing="8">
+            <Button Content="Loiter" HorizontalAlignment="Stretch" Height="44" FontSize="15"
+                    Command="{Binding QuickLoiterCommand}" />
+            <Button Content="RTL" HorizontalAlignment="Stretch" Height="44" FontSize="15"
+                    Command="{Binding QuickRtlCommand}" />
+            <Button Content="Auto" HorizontalAlignment="Stretch" Height="44" FontSize="15"
+                    Command="{Binding QuickAutoCommand}" />
+          </StackPanel>
         </TabItem>
 
         <TabItem Header="Messages">
