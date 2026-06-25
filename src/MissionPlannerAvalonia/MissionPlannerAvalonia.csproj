@@ -26,6 +26,8 @@
     <PackageReference Include="Avalonia.Controls.DataGrid" />
     <PackageReference Include="Mapsui.Avalonia" />
     <PackageReference Include="Mapsui.Tiling" />
+    <PackageReference Include="System.IO.Ports" />
+    <PackageReference Include="Tmds.DBus.Protocol" />
   </ItemGroup>
 
   <ItemGroup>
