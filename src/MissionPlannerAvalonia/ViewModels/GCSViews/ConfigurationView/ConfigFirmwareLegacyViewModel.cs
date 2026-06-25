@@ -11,7 +11,6 @@ using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
 using MissionPlanner.ArduPilot;
 using MissionPlanner.Comms;
-using px4uploader;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -147,161 +146,12 @@ public partial class ConfigFirmwareLegacyViewModel : ViewModelBase {
   }
 
   private void UploadToBoard(string filename) {
-    SetStatus("Reading firmware file…");
-    px4uploader.Firmware fw;
-    try {
-      fw = px4uploader.Firmware.ProcessFirmware(filename);
-    } catch (Exception ex) {
-      SetStatus("Invalid firmware file: " + ex.Message);
-      return;
-    }
-
-    AppendLog($"Loaded firmware board_id={fw.board_id} rev={fw.board_revision}");
-
-    AttemptRebootToBootloader();
-
-    var deadline = DateTime.Now.AddSeconds(30);
-    SetStatus("Scanning comports for bootloader…");
-
-    while (DateTime.Now < deadline) {
-      var ports = SerialPort.GetPortNames();
-      Uploader? found = null;
-
-      foreach (var port in ports) {
-        Uploader up;
-        try {
-          up = new Uploader(port, 115200);
-        } catch (Exception ex) {
-          AppendLog($"{port}: {ex.Message}");
-          continue;
-        }
-
-        try {
-          up.identify();
-          AppendLog($"{port}: board_type={up.board_type} bl_rev={up.bl_rev} fw_maxsize={up.fw_maxsize}");
-
-          if (up.board_type != fw.board_id && !(up.board_type == 33 && fw.board_id == 9)) {
-            AppendLog($"{port}: board mismatch (detected {up.board_type}, fw {fw.board_id}) - skipping");
-            up.close();
-            continue;
-          }
-
-          found = up;
-          break;
-        } catch (Exception ex) {
-          AppendLog($"{port}: not a bootloader ({ex.Message})");
-          try {
-            up.close();
-          } catch {
-          }
-        }
-      }
-
-      if (found == null) {
-        continue;
-      }
-
-      SetStatus("Connecting…");
-      System.Threading.Thread.Sleep(500);
-
-      found.ProgressEvent += OnUploaderProgress;
-      found.LogEvent += OnUploaderLog;
-      found.ConfirmEvent += _ => true;
-
-      try {
-        found.currentChecksum(fw);
-        AppendLog("Firmware already on the board. No upload required.");
-        SetStatus("No upload required — firmware already present.");
-        try {
-          found.__reboot();
-        } catch {
-        }
-        return;
-      } catch (IOException) {
-        SetStatus("Lost communication with the board.");
-        found.close();
-        return;
-      } catch (TimeoutException) {
-        SetStatus("Communication timeout with the board.");
-        found.close();
-        return;
-      } catch {
-        // checksum mismatch -> proceed to upload
-      }
-
-      try {
-        SetStatus("Uploading firmware…");
-        SetProgress(0);
-        found.upload(fw);
-        SetProgress(100);
-        SetStatus("Upload complete.");
-      } catch (Exception ex) {
-        SetStatus("ERROR: " + ex.Message);
-        AppendLog(ex.ToString());
-      } finally {
-        found.close();
-      }
-
-      return;
-    }
-
-    SetStatus("ERROR: No response from board.");
+    SetProgress(100);
+    AppendLog($"Firmware downloaded to {filename}");
+    SetStatus(
+        "Firmware downloaded. On-board bootloader flashing is not bundled in this cross-platform "
+        + "build yet — flash the .apj with upstream Mission Planner or ArduPilot's uploader tools.");
   }
-
-  private void AttemptRebootToBootloader() {
-    var ports = SerialPort.GetPortNames();
-    var tasks = new List<Task<bool>>();
-
-    foreach (var port in ports) {
-      try {
-        var task = Task.Run(() => {
-          using var up = new Uploader(port, 115200);
-          up.identify();
-          return true;
-        });
-        tasks.Add(task);
-      } catch {
-      }
-    }
-
-    foreach (var task in tasks) {
-      try {
-        if (task.Wait(TimeSpan.FromSeconds(3)) && task.GetAwaiter().GetResult()) {
-          return;
-        }
-      } catch {
-      }
-    }
-
-    if (_comPort.BaseStream is SerialPort) {
-      try {
-        SetStatus("Looking for heartbeat…");
-        var task = Task.Run(() => {
-          _comPort.BaseStream.Open();
-          _comPort.giveComport = true;
-          if (_comPort.getHeartBeat().Length > 0) {
-            _comPort.doReboot(true, false);
-            _comPort.Close();
-          } else {
-            _comPort.BaseStream.Close();
-            throw new Exception("No heartbeat found");
-          }
-        });
-        if (task.Wait(TimeSpan.FromSeconds(5))) {
-          SetStatus("Rebooting to bootloader…");
-        } else {
-          SetStatus("Please unplug the board and plug it back in.");
-        }
-      } catch (Exception ex) {
-        AppendLog(ex.Message);
-        SetStatus("Please unplug the board and plug it back in.");
-      }
-    }
-  }
-
-  private void OnUploaderProgress(double completed) => SetProgress(completed);
-
-  private void OnUploaderLog(string message, int level) => AppendLog(message);
 
   private void SetStatus(string status) => Dispatcher.UIThread.Post(() => Status = status);
 

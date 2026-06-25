@@ -33,6 +33,5 @@
   <ItemGroup>
     <ProjectReference Include="../../external/MissionPlanner/ExtLibs/ArduPilot/MissionPlanner.ArduPilot.csproj" />
     <ProjectReference Include="../../external/MissionPlanner/ExtLibs/DroneCAN/DroneCAN.csproj" />
-    <ProjectReference Include="../../external/MissionPlanner/ExtLibs/px4uploader/px4uploader.csproj" />
   </ItemGroup>
 </Project>
