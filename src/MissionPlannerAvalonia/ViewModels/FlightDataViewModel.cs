@@ -278,6 +278,16 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
+  [RelayCommand]
+  private void RunScript() =>
+      ScriptStatus = "Python scripting engine is not bundled in this cross-platform build.";
+
+  [RelayCommand]
+  private void AbortScript() => ScriptStatus = "No Script Running";
+
+  [RelayCommand]
+  private void EditScript() => Log("Edit selected script: external editor not bundled.");
+
   // ---- Payload Control tab ----
   [ObservableProperty]
   private double _tilt;

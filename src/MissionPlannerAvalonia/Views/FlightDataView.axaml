@@ -309,36 +309,47 @@
         </TabItem>
 
         <TabItem Header="Payload Control">
-          <Grid Margin="10" ColumnDefinitions="Auto,*" RowDefinitions="*,Auto">
-            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" Margin="0,0,20,0">
-              <TextBlock Text="Tilt" HorizontalAlignment="Center" />
-              <Slider Orientation="Vertical" Height="180" Minimum="-90" Maximum="45"
-                      Value="{Binding Tilt}" HorizontalAlignment="Center" />
-            </StackPanel>
-            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="14" VerticalAlignment="Top">
-              <StackPanel Spacing="2">
-                <TextBlock Text="Pan" />
-                <Slider Minimum="-180" Maximum="180" Value="{Binding Pan}" />
+          <StackPanel Margin="8" Spacing="8">
+            <HeaderedContentControl Header="Tilt">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Slider Width="240" Minimum="-90" Maximum="45" Value="{Binding Tilt}" />
+                <TextBlock Text="{Binding Tilt, StringFormat={}{0:0}}" VerticalAlignment="Center"
+                           Width="40" />
               </StackPanel>
-              <StackPanel Spacing="2">
-                <TextBlock Text="Roll" />
-                <Slider Minimum="-90" Maximum="90" Value="{Binding Roll2}" />
+            </HeaderedContentControl>
+            <HeaderedContentControl Header="Roll">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Slider Width="240" Minimum="-90" Maximum="90" Value="{Binding Roll2}" />
+                <TextBlock Text="{Binding Roll2, StringFormat={}{0:0}}" VerticalAlignment="Center"
+                           Width="40" />
               </StackPanel>
-            </StackPanel>
-            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
-                        Spacing="6" Margin="0,12,0,0">
+            </HeaderedContentControl>
+            <HeaderedContentControl Header="Pan">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Slider Width="240" Minimum="-180" Maximum="180" Value="{Binding Pan}" />
+                <TextBlock Text="{Binding Pan, StringFormat={}{0:0}}" VerticalAlignment="Center"
+                           Width="40" />
+              </StackPanel>
+            </HeaderedContentControl>
+            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
               <Button Content="Reset Position" Command="{Binding ResetPositionCommand}" />
-              <Button Content="Point" Command="{Binding PointMountCommand}" />
               <Button Content="Video Control" Command="{Binding TriggerCameraCommand}" />
             </StackPanel>
-          </Grid>
+          </StackPanel>
         </TabItem>
         <TabItem Header="Scripts">
           <StackPanel Margin="8" Spacing="6">
-            <TextBlock Text="{Binding ScriptStatus, StringFormat=Script Status: {0}}" />
-            <TextBlock Text="{Binding SelectedScript, StringFormat=Selected Script: {0}}" />
+            <Button Content="Select Script" Width="160" HorizontalAlignment="Left"
+                    Command="{Binding SelectScriptCommand}" />
+            <Button Content="Edit Selected Script" Width="160" HorizontalAlignment="Left"
+                    Command="{Binding EditScriptCommand}" />
+            <Button Content="Run Script" Width="160" HorizontalAlignment="Left"
+                    Command="{Binding RunScriptCommand}" />
+            <Button Content="Abort Running Script" Width="160" HorizontalAlignment="Left"
+                    Command="{Binding AbortScriptCommand}" />
             <CheckBox Content="Redirect Program Output" IsChecked="{Binding RedirectOutput}" />
-            <Button Content="Select Script" Command="{Binding SelectScriptCommand}" HorizontalAlignment="Left" />
+            <TextBlock Text="{Binding SelectedScript, StringFormat=Selected Script: {0}}" />
+            <TextBlock Text="{Binding ScriptStatus, StringFormat=Script Status: {0}}" TextWrapping="Wrap" />
           </StackPanel>
         </TabItem>
 
