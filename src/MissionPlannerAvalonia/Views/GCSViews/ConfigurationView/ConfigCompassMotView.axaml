@@ -1,0 +1,54 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  xmlns:ctrl="using:MissionPlannerAvalonia.Controls"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigCompassMotView"
+  x:DataType="cv:ConfigCompassMotViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Compass/Motor Calibration" />
+
+    <TextBlock
+      Grid.Row="1"
+      Text="{Binding Instructions}"
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,8,0,12"
+    />
+
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*" RowSpacing="4" ColumnSpacing="24">
+      <StackPanel Grid.Column="0" Orientation="Vertical" Spacing="4">
+        <Button Content="{Binding ButtonLabel}" Command="{Binding ToggleCommand}" MinWidth="120" />
+      </StackPanel>
+
+      <Grid Grid.Column="1" ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto" RowSpacing="4" ColumnSpacing="8">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Throttle:" />
+        <TextBlock Grid.Row="0" Grid.Column="1" Classes="fieldlbl" Text="{Binding Throttle}" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Classes="fieldlbl" Text="Current:" />
+        <TextBlock Grid.Row="0" Grid.Column="3" Classes="fieldlbl" Text="{Binding Current}" />
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Interference:" />
+        <TextBlock Grid.Row="1" Grid.Column="1" Classes="fieldlbl" Text="{Binding Interference}" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="fieldlbl" Text="Comp X/Y/Z:" />
+        <TextBlock Grid.Row="1" Grid.Column="3" Classes="fieldlbl" Text="{Binding Compensation}" />
+      </Grid>
+    </Grid>
+
+    <ctrl:LivePlot Grid.Row="3" x:Name="Plot" Margin="0,12" MinHeight="280" />
+
+    <TextBox
+      Grid.Row="4"
+      Text="{Binding Log}"
+      IsReadOnly="True"
+      AcceptsReturn="True"
+      MaxHeight="120"
+      Margin="0,8,0,0"
+    />
+  </Grid>
+</UserControl>

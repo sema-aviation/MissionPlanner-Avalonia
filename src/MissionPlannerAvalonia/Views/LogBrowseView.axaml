@@ -4,15 +4,44 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  xmlns:ctrl="using:MissionPlannerAvalonia.Controls"
   mc:Ignorable="d"
-  d:DesignWidth="800"
-  d:DesignHeight="500"
+  d:DesignWidth="900"
+  d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.LogBrowseView"
   x:DataType="vm:LogBrowseViewModel"
   Background="#434445"
 >
-  <StackPanel Margin="12" Spacing="10">
-    <Button x:Name="OpenBtn" Content="Open log…" />
-    <TextBlock Text="{Binding Info}" Foreground="WhiteSmoke" />
-  </StackPanel>
+  <Grid Margin="10" RowDefinitions="Auto,*,Auto">
+    <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+      <Button x:Name="OpenBtn" Content="Open log…" />
+      <Button x:Name="GraphBtn" Content="Graph field" />
+      <Button x:Name="ClearBtn" Content="Clear graph" />
+      <Border Width="1" Background="#666" Margin="4,0" />
+      <Button x:Name="KmlBtn" Content="Create KML" />
+      <Button x:Name="GpxBtn" Content="Create GPX" />
+      <Button x:Name="MatlabBtn" Content="Create Matlab" />
+      <Button x:Name="BinLogBtn" Content="Convert Bin to Log" />
+    </WrapPanel>
+
+    <Grid Grid.Row="1" Margin="0,10,0,0" ColumnDefinitions="260,*">
+      <StackPanel Grid.Column="0" Spacing="8" Margin="0,0,10,0">
+        <TextBlock Text="{Binding Info}" Foreground="WhiteSmoke" TextWrapping="Wrap" />
+        <TextBlock Text="Message type" Foreground="#BBB" />
+        <ComboBox HorizontalAlignment="Stretch"
+                  ItemsSource="{Binding MessageTypes}"
+                  SelectedItem="{Binding SelectedType}" />
+        <TextBlock Text="Field" Foreground="#BBB" />
+        <ComboBox HorizontalAlignment="Stretch"
+                  ItemsSource="{Binding Fields}"
+                  SelectedItem="{Binding SelectedField}" />
+        <TextBlock Text="or type TYPE.FIELD (e.g. ATT.Roll)" Foreground="#BBB" />
+        <TextBox Text="{Binding FieldExpression}" Watermark="ATT.Roll" />
+      </StackPanel>
+
+      <ctrl:LivePlot x:Name="Plot" Grid.Column="1" />
+    </Grid>
+
+    <TextBlock Grid.Row="2" Margin="0,8,0,0" Text="{Binding Status}" Foreground="#9CDCFE" />
+  </Grid>
 </UserControl>

@@ -1,0 +1,88 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFlightModesView"
+  x:DataType="cv:ConfigFlightModesViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Flight Modes" />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,12">
+      <TextBlock Classes="fieldlbl" Text="Current Mode:" VerticalAlignment="Center" />
+      <TextBlock Classes="fieldlbl" Text="{Binding CurrentMode}" Foreground="#94C11F" VerticalAlignment="Center" MinWidth="120" />
+      <TextBlock Classes="fieldlbl" Text="Current PWM:" VerticalAlignment="Center" Margin="16,0,0,0" />
+      <TextBlock Classes="fieldlbl" Text="{Binding CurrentPwm}" Foreground="#94C11F" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <Grid Grid.Row="2" ColumnDefinitions="110,220,80,110,*" Margin="0,0,0,4">
+      <TextBlock Grid.Column="0" Classes="fieldlbl" Text="" />
+      <TextBlock Grid.Column="1" Classes="fieldlbl" Text="Mode" />
+      <TextBlock Grid.Column="2" Classes="fieldlbl" Text="Simple" IsVisible="{Binding ShowSimple}" />
+      <TextBlock Grid.Column="3" Classes="fieldlbl" Text="Super Simple" IsVisible="{Binding ShowSimple}" />
+      <TextBlock Grid.Column="4" Classes="fieldlbl" Text="PWM Range" />
+    </Grid>
+
+    <ScrollViewer Grid.Row="3">
+      <ItemsControl ItemsSource="{Binding Rows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="cv:FlightModeRow">
+            <Grid Margin="0,2">
+              <Border
+                Background="#3D5A1E"
+                CornerRadius="3"
+                IsVisible="{Binding Active}"
+              />
+              <Grid ColumnDefinitions="110,220,80,110,*" Margin="4,5">
+                <TextBlock
+                  Grid.Column="0"
+                  Classes="fieldlbl"
+                  Text="{Binding Number, StringFormat='Flight Mode {0}'}"
+                  VerticalAlignment="Center"
+                />
+                <ComboBox
+                  Grid.Column="1"
+                  MinWidth="200"
+                  ItemsSource="{Binding ModeOptions}"
+                  SelectedItem="{Binding SelectedMode}"
+                />
+                <CheckBox
+                  Grid.Column="2"
+                  IsVisible="{Binding ShowSimple}"
+                  IsChecked="{Binding Simple}"
+                  VerticalAlignment="Center"
+                />
+                <CheckBox
+                  Grid.Column="3"
+                  IsVisible="{Binding ShowSimple}"
+                  IsChecked="{Binding SuperSimple}"
+                  VerticalAlignment="Center"
+                />
+                <TextBlock
+                  Grid.Column="4"
+                  Classes="fieldlbl"
+                  Text="{Binding Band}"
+                  VerticalAlignment="Center"
+                />
+              </Grid>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <Button
+      Grid.Row="4"
+      Content="{Binding SaveModesText}"
+      Command="{Binding SaveModesCommand}"
+      HorizontalAlignment="Left"
+      Margin="0,12,0,0"
+    />
+  </Grid>
+</UserControl>

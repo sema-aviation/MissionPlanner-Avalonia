@@ -14,7 +14,7 @@
 >
   <Grid ColumnDefinitions="*,168">
     <Grid Grid.Column="0" RowDefinitions="*,4,210">
-      <ctl:MapView Grid.Row="0" />
+      <ctl:FlightPlannerMap Grid.Row="0" x:Name="Map" />
       <GridSplitter Grid.Row="1" Background="#262728" ResizeDirection="Rows" />
 
       <Grid Grid.Row="2" RowDefinitions="Auto,*">
@@ -51,6 +51,10 @@
             <DataGridTextColumn Header="Lat" Binding="{Binding Lat}" Width="120" />
             <DataGridTextColumn Header="Lon" Binding="{Binding Lng}" Width="120" />
             <DataGridTextColumn Header="Alt" Binding="{Binding Alt}" Width="80" />
+            <DataGridTextColumn Header="Grad %" Binding="{Binding Grad}" IsReadOnly="True" Width="64" />
+            <DataGridTextColumn Header="Angle" Binding="{Binding Angle}" IsReadOnly="True" Width="60" />
+            <DataGridTextColumn Header="Dist" Binding="{Binding Dist}" IsReadOnly="True" Width="64" />
+            <DataGridTextColumn Header="AZ" Binding="{Binding Az}" IsReadOnly="True" Width="50" />
             <DataGridTemplateColumn Header="Delete" Width="70">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate x:DataType="vm:WpRow">
@@ -72,14 +76,16 @@
       <ScrollViewer>
         <StackPanel Spacing="6">
           <CheckBox Content="Grid" IsChecked="{Binding ShowGrid}" Foreground="#E0E0E0" />
-          <Button Content="View KML" HorizontalAlignment="Stretch" />
+          <Button Content="View KML" HorizontalAlignment="Stretch" Click="OnViewKml" />
           <ComboBox
             HorizontalAlignment="Stretch"
             ItemsSource="{Binding MapTypes}"
             SelectedItem="{Binding MapType}"
+            SelectionChanged="OnMapTypeChanged"
           />
           <TextBlock Text="Status: ready" Foreground="#BBBBBB" FontSize="11" />
-          <Button Content="Inject Custom Map" HorizontalAlignment="Stretch" />
+          <Button Content="Inject Custom Map" HorizontalAlignment="Stretch" Click="OnInjectCustomMap" />
+          <Button Content="Survey (Grid)" HorizontalAlignment="Stretch" Click="OnSurveyGrid" />
           <Separator />
           <Button Content="Load File" HorizontalAlignment="Stretch" Click="OnLoadFile" />
           <Button Content="Save File" HorizontalAlignment="Stretch" Click="OnSaveFile" />

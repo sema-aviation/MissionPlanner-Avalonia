@@ -50,13 +50,17 @@
           <ctl:HudControl.ContextMenu>
             <ContextMenu>
               <MenuItem Header="Video">
-                <MenuItem Header="Record Hud to AVI" Command="{Binding HudVideoNotPortedCommand}" />
-                <MenuItem Header="Stop Record" Command="{Binding HudVideoNotPortedCommand}" />
-                <MenuItem Header="Set MJPEG source" Command="{Binding HudVideoNotPortedCommand}" />
-                <MenuItem Header="Start Camera" Command="{Binding HudVideoNotPortedCommand}" />
-                <MenuItem Header="Set GStreamer Source" Command="{Binding HudVideoNotPortedCommand}" />
-                <MenuItem Header="HereLink Video" Command="{Binding HudVideoNotPortedCommand}" />
-                <MenuItem Header="GStreamer Stop" Command="{Binding HudVideoNotPortedCommand}" />
+                <MenuItem Header="Record Hud to AVI" Command="{Binding RecordVideoCommand}" />
+                <MenuItem Header="Stop Record" Command="{Binding StopVideoCommand}" />
+                <MenuItem Header="Set MJPEG source" Command="{Binding SetVideoSourceCommand}"
+                          CommandParameter="mjpeg" />
+                <MenuItem Header="Start Camera" Command="{Binding SetVideoSourceCommand}"
+                          CommandParameter="camera" />
+                <MenuItem Header="Set GStreamer Source" Command="{Binding SetVideoSourceCommand}"
+                          CommandParameter="gstreamer" />
+                <MenuItem Header="HereLink Video" Command="{Binding SetVideoSourceCommand}"
+                          CommandParameter="herelink" />
+                <MenuItem Header="GStreamer Stop" Command="{Binding StopVideoCommand}" />
               </MenuItem>
               <MenuItem Header="Set Aspect Ratio" Command="{Binding SetAspectRatioCommand}" />
               <MenuItem Header="User Items" Command="{Binding HudUserItemsCommand}" />
@@ -66,7 +70,8 @@
               <MenuItem Header="Battery Cell Voltage" Command="{Binding SetBatteryCellsCommand}" />
               <MenuItem Header="Show icons" ToggleType="CheckBox" IsChecked="{Binding HudShowIcons, Mode=TwoWay}" />
               <MenuItem Header="Herelink Video">
-                <MenuItem Header="HereLink Video" Command="{Binding HudVideoNotPortedCommand}" />
+                <MenuItem Header="HereLink Video" Command="{Binding SetVideoSourceCommand}"
+                          CommandParameter="herelink" />
               </MenuItem>
               <MenuItem Header="HUD Items">
                 <MenuItem Header="Heading" ToggleType="CheckBox" IsChecked="{Binding HudHeading, Mode=TwoWay}" />
@@ -367,19 +372,26 @@
         </TabItem>
 
         <TabItem Header="Scripts">
-          <StackPanel Margin="8" Spacing="6">
-            <TextBlock Text="{Binding ScriptStatus, StringFormat=Script Status: {0}}" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding SelectedScript, StringFormat=Selected Script: {0}}" />
-            <CheckBox Content="Redirect Program Output" IsChecked="{Binding RedirectOutput}" />
-            <Button Content="Select Script" Width="180" HorizontalAlignment="Left"
-                    Command="{Binding SelectScriptCommand}" />
-            <Button Content="Edit Selected Script" Width="180" HorizontalAlignment="Left"
-                    IsVisible="{Binding ScriptSelected}" Command="{Binding EditScriptCommand}" />
-            <Button Content="Run Script" Width="180" HorizontalAlignment="Left"
-                    IsVisible="{Binding ScriptSelected}" Command="{Binding RunScriptCommand}" />
-            <Button Content="Abort Running Script" Width="180" HorizontalAlignment="Left"
-                    IsVisible="{Binding ScriptSelected}" Command="{Binding AbortScriptCommand}" />
-          </StackPanel>
+          <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,*,Auto,*">
+            <TextBlock Grid.Row="0" Text="{Binding ScriptStatus, StringFormat=Lua Script Status: {0}}"
+                       TextWrapping="Wrap" />
+            <TextBlock Grid.Row="1" Text="{Binding SelectedScript, StringFormat=Selected Lua Script: {0}}" />
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" Margin="0,4">
+              <Button Content="Select Lua Script" Command="{Binding SelectScriptCommand}" />
+              <Button Content="Edit Selected" Command="{Binding EditScriptCommand}"
+                      IsVisible="{Binding ScriptSelected}" />
+              <Button Content="Run" Command="{Binding RunScriptCommand}" />
+              <Button Content="Abort" Command="{Binding AbortScriptCommand}" />
+            </StackPanel>
+            <TextBox Grid.Row="3" Text="{Binding ScriptEditorText}" AcceptsReturn="True"
+                     AcceptsTab="True" FontFamily="Consolas,Menlo,monospace" FontSize="12"
+                     Background="#1F1F20" Foreground="WhiteSmoke"
+                     Watermark="Lua code (leave empty to run the selected file)" />
+            <TextBlock Grid.Row="4" Text="Output" Margin="0,6,0,2" />
+            <TextBox Grid.Row="5" Text="{Binding ScriptOutput}" AcceptsReturn="True" IsReadOnly="True"
+                     TextWrapping="Wrap" FontFamily="Consolas,Menlo,monospace" FontSize="12"
+                     Background="#1F1F20" Foreground="#9BD" />
+          </Grid>
         </TabItem>
 
         <TabItem Header="Payload Control">
@@ -387,18 +399,18 @@
             <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,20,0">
               <TextBlock Text="Tilt" HorizontalAlignment="Center" />
               <Slider Orientation="Vertical" Height="160" Minimum="-90" Maximum="45"
-                      Value="{Binding Tilt}" HorizontalAlignment="Center" />
+                      Value="{Binding Tilt, Mode=TwoWay}" HorizontalAlignment="Center" />
               <Button Content="Reset Position" FontSize="11" Command="{Binding ResetPositionCommand}" />
               <Button Content="Video Control" FontSize="11" Command="{Binding TriggerCameraCommand}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="14" VerticalAlignment="Top">
               <StackPanel Spacing="2">
                 <TextBlock Text="Pan" />
-                <Slider Minimum="-180" Maximum="180" Value="{Binding Pan}" />
+                <Slider Minimum="-180" Maximum="180" Value="{Binding Pan, Mode=TwoWay}" />
               </StackPanel>
               <StackPanel Spacing="2">
                 <TextBlock Text="Roll" />
-                <Slider Minimum="-90" Maximum="90" Value="{Binding Roll2}" />
+                <Slider Minimum="-90" Maximum="90" Value="{Binding Roll2, Mode=TwoWay}" />
               </StackPanel>
             </StackPanel>
           </Grid>
@@ -412,22 +424,33 @@
             <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding LogStatus}" Foreground="#C8A03C"
                        VerticalAlignment="Center" TextWrapping="Wrap" />
 
-            <Button Grid.Row="1" Grid.Column="0" Content="Play/Pause" HorizontalAlignment="Stretch" />
-            <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" />
-            <TextBlock Grid.Row="1" Grid.Column="2" Text="0.00 %" VerticalAlignment="Center" />
+            <Button Grid.Row="1" Grid.Column="0" Content="Play/Pause" HorizontalAlignment="Stretch"
+                    Command="{Binding PlayPauseTlogCommand}" />
+            <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100"
+                    Value="{Binding TlogProgress, Mode=TwoWay}" />
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding TlogPositionText}"
+                       VerticalAlignment="Center" />
 
             <Button Grid.Row="2" Grid.Column="0" Content="Tlog > Kml or Graph"
-                    HorizontalAlignment="Stretch" />
+                    HorizontalAlignment="Stretch" Command="{Binding TlogToKmlCommand}" />
             <WrapPanel Grid.Row="2" Grid.Column="1">
-              <Button Content="10x" Margin="1" MinWidth="36" />
-              <Button Content="5x" Margin="1" MinWidth="36" />
-              <Button Content="2x" Margin="1" MinWidth="36" />
-              <Button Content="1x" Margin="1" MinWidth="36" />
-              <Button Content="0.5" Margin="1" MinWidth="36" />
-              <Button Content="0.25" Margin="1" MinWidth="36" />
-              <Button Content="0.1" Margin="1" MinWidth="36" />
+              <Button Content="10x" Margin="1" MinWidth="36"
+                      Command="{Binding SetTlogSpeedCommand}" CommandParameter="10" />
+              <Button Content="5x" Margin="1" MinWidth="36"
+                      Command="{Binding SetTlogSpeedCommand}" CommandParameter="5" />
+              <Button Content="2x" Margin="1" MinWidth="36"
+                      Command="{Binding SetTlogSpeedCommand}" CommandParameter="2" />
+              <Button Content="1x" Margin="1" MinWidth="36"
+                      Command="{Binding SetTlogSpeedCommand}" CommandParameter="1" />
+              <Button Content="0.5" Margin="1" MinWidth="36"
+                      Command="{Binding SetTlogSpeedCommand}" CommandParameter="0.5" />
+              <Button Content="0.25" Margin="1" MinWidth="36"
+                      Command="{Binding SetTlogSpeedCommand}" CommandParameter="0.25" />
+              <Button Content="0.1" Margin="1" MinWidth="36"
+                      Command="{Binding SetTlogSpeedCommand}" CommandParameter="0.1" />
             </WrapPanel>
-            <TextBlock Grid.Row="2" Grid.Column="2" Text="x 1.0" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding PlaybackSpeedText}"
+                       VerticalAlignment="Center" />
           </Grid>
         </TabItem>
 
@@ -438,41 +461,48 @@
                     HorizontalAlignment="Stretch" Command="{Binding DownloadDataflashLogCommand}" />
             <Button Grid.Row="0" Grid.Column="1" Content="Review a Log" HorizontalAlignment="Stretch"
                     Command="{Binding ReviewLogCommand}" />
-            <Button Grid.Row="0" Grid.Column="2" Content="Auto Analysis" HorizontalAlignment="Stretch" />
+            <Button Grid.Row="0" Grid.Column="2" Content="Auto Analysis" HorizontalAlignment="Stretch"
+                    Command="{Binding AutoAnalysisCommand}" />
 
-            <Button Grid.Row="1" Grid.Column="0" Content="Create KML + gpx" HorizontalAlignment="Stretch" />
-            <Button Grid.Row="1" Grid.Column="1" Content="Convert Bin to Log" HorizontalAlignment="Stretch" />
-            <Button Grid.Row="1" Grid.Column="2" Content="Create Matlab File" HorizontalAlignment="Stretch" />
+            <Button Grid.Row="1" Grid.Column="0" Content="Create KML + gpx" HorizontalAlignment="Stretch"
+                    Command="{Binding CreateKmlGpxCommand}" />
+            <Button Grid.Row="1" Grid.Column="1" Content="Convert Bin to Log" HorizontalAlignment="Stretch"
+                    Command="{Binding ConvertBinToLogCommand}" />
+            <Button Grid.Row="1" Grid.Column="2" Content="Create Matlab File" HorizontalAlignment="Stretch"
+                    Command="{Binding CreateMatlabCommand}" />
 
-            <Button Grid.Row="2" Grid.Column="0" Content="Geo Reference Images" HorizontalAlignment="Stretch" />
+            <Button Grid.Row="2" Grid.Column="0" Content="Geo Reference Images" HorizontalAlignment="Stretch"
+                    Command="{Binding GeoReferenceImagesCommand}" />
             <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding LogStatus}"
                        Foreground="#C8A03C" TextWrapping="Wrap" VerticalAlignment="Center" />
           </Grid>
         </TabItem>
 
         <TabItem Header="Transponder">
-          <!-- ponytail: static layout from Designer; transponder MAVLink not ported, no wiring -->
           <StackPanel Margin="10" Spacing="8">
-            <Button Content="Connect to Transponder" HorizontalAlignment="Left" />
+            <Button Content="Connect to Transponder" HorizontalAlignment="Left"
+                    Command="{Binding ConnectTransponderCommand}" />
+            <TextBlock Text="{Binding TransponderStatus}" Foreground="#94C11F" />
             <Grid ColumnDefinitions="Auto,160" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="6">
               <TextBlock Grid.Row="0" Grid.Column="0" Text="Squawk" VerticalAlignment="Center" />
-              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="7777" Value="1200" />
+              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="7777"
+                             Value="{Binding Squawk, Mode=TwoWay}" />
               <TextBlock Grid.Row="1" Grid.Column="0" Text="FlightID" VerticalAlignment="Center" />
-              <TextBox Grid.Row="1" Grid.Column="1" />
+              <TextBox Grid.Row="1" Grid.Column="1" MaxLength="8" Text="{Binding FlightId, Mode=TwoWay}" />
             </Grid>
             <StackPanel Orientation="Horizontal" Spacing="6">
-              <Button Content="STBY" Width="60" />
-              <Button Content="ALT" Width="60" />
-              <Button Content="ON" Width="60" />
-              <Button Content="IDENT" Width="60" />
+              <Button Content="STBY" Width="60" Command="{Binding TransponderStandbyCommand}" />
+              <Button Content="ALT" Width="60" Command="{Binding TransponderAltCommand}" />
+              <Button Content="ON" Width="60" Command="{Binding TransponderOnCommand}" />
+              <Button Content="IDENT" Width="60" Command="{Binding TransponderIdentCommand}" />
             </StackPanel>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
               <StackPanel Grid.Column="0" Spacing="2">
                 <TextBlock Text="Mode" FontWeight="Bold" />
-                <CheckBox Content="Mode A" />
-                <CheckBox Content="Mode C" />
-                <CheckBox Content="Mode S" />
-                <CheckBox Content="1090ES ADS-B OUT" />
+                <CheckBox Content="Mode A" IsChecked="{Binding ModeA, Mode=TwoWay}" />
+                <CheckBox Content="Mode C" IsChecked="{Binding ModeC, Mode=TwoWay}" />
+                <CheckBox Content="Mode S" IsChecked="{Binding ModeS, Mode=TwoWay}" />
+                <CheckBox Content="1090ES ADS-B OUT" IsChecked="{Binding ModeEs, Mode=TwoWay}" />
               </StackPanel>
               <StackPanel Grid.Column="1" Spacing="2">
                 <TextBlock Text="Faults" FontWeight="Bold" />

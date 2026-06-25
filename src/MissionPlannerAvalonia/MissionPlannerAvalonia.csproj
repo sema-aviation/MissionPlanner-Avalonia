@@ -24,10 +24,15 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Avalonia.Controls.DataGrid" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" />
     <PackageReference Include="Mapsui.Avalonia" />
     <PackageReference Include="Mapsui.Tiling" />
     <PackageReference Include="System.IO.Ports" />
     <PackageReference Include="Tmds.DBus.Protocol" />
+    <PackageReference Include="ScottPlot.Avalonia" />
+    <PackageReference Include="MoonSharp" />
+    <PackageReference Include="LibVLCSharp.Avalonia" />
+    <PackageReference Include="BouncyCastle.Cryptography" />
   </ItemGroup>
 
   <ItemGroup>

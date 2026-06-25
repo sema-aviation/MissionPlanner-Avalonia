@@ -3,10 +3,12 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
+using MissionPlannerAvalonia.Services;
 using MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 namespace MissionPlannerAvalonia.ViewModels;
@@ -14,6 +16,8 @@ namespace MissionPlannerAvalonia.ViewModels;
 public partial class FlightDataViewModel : ViewModelBase {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private readonly DispatcherTimer _timer;
+  private readonly TlogPlayer _tlog = new();
+  private readonly LuaScriptHost _lua = new();
 
   [ObservableProperty]
   private double _roll;
@@ -123,6 +127,10 @@ public partial class FlightDataViewModel : ViewModelBase {
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
     _timer.Tick += (_, _) => Pump();
     _timer.Start();
+
+    _tlog.Packet += OnTlogPacket;
+    _tlog.Progress += OnTlogProgress;
+    _lua.Output += OnLuaOutput;
   }
 
   private void Pump() {
@@ -333,7 +341,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log($"Servo {ch} -> {pwm}");
   }
 
-  // ---- Scripts tab ----
+  // ---- Scripts tab (Lua via MoonSharp) ----
   [ObservableProperty]
   private string _scriptStatus = "No Script Running";
 
@@ -347,6 +355,23 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _scriptSelected;
 
+  [ObservableProperty]
+  private string _scriptEditorText = "";
+
+  [ObservableProperty]
+  private string _scriptOutput = "";
+
+  private string? _selectedScriptPath;
+
+  private void OnLuaOutput(string text) {
+    Dispatcher.UIThread.Post(() => {
+      ScriptOutput += text + "\n";
+      if (!_lua.IsRunning) {
+        ScriptStatus = "No Script Running";
+      }
+    });
+  }
+
   [RelayCommand]
   private async Task SelectScript() {
     var top = (Avalonia.Application.Current?.ApplicationLifetime
@@ -355,23 +380,54 @@ public partial class FlightDataViewModel : ViewModelBase {
       return;
     }
     var files = await top.StorageProvider.OpenFilePickerAsync(
-        new Avalonia.Platform.Storage.FilePickerOpenOptions { Title = "Select script", AllowMultiple = false });
+        new Avalonia.Platform.Storage.FilePickerOpenOptions {
+          Title = "Select Lua script",
+          AllowMultiple = false,
+          FileTypeFilter = new[] {
+            new Avalonia.Platform.Storage.FilePickerFileType("Lua script") { Patterns = new[] { "*.lua" } },
+          },
+        });
     if (files.Count > 0) {
+      _selectedScriptPath = files[0].TryGetLocalPath();
       SelectedScript = files[0].Name;
       ScriptSelected = true;
-      ScriptStatus = "Python scripting engine is not bundled in this cross-platform build.";
+      ScriptStatus = "Selected " + files[0].Name;
     }
   }
 
   [RelayCommand]
-  private void RunScript() =>
-      ScriptStatus = "Python scripting engine is not bundled in this cross-platform build.";
+  private async Task RunScript() {
+    if (_lua.IsRunning) {
+      ScriptStatus = "Script already running";
+      return;
+    }
+    ScriptOutput = "";
+    ScriptStatus = "Running";
+    var code = ScriptEditorText;
+    if (!string.IsNullOrWhiteSpace(code)) {
+      await _lua.RunAsync(code);
+    } else if (_selectedScriptPath != null) {
+      await _lua.RunFileAsync(_selectedScriptPath);
+    } else {
+      ScriptStatus = "No script selected";
+    }
+  }
 
   [RelayCommand]
-  private void AbortScript() => ScriptStatus = "No Script Running";
+  private void AbortScript() {
+    _lua.Abort();
+    ScriptStatus = "Aborting…";
+  }
 
   [RelayCommand]
-  private void EditScript() => Log("Edit selected script: external editor not bundled.");
+  private void EditScript() {
+    if (_selectedScriptPath != null && System.IO.File.Exists(_selectedScriptPath)) {
+      ScriptEditorText = System.IO.File.ReadAllText(_selectedScriptPath);
+      ScriptStatus = "Editing " + SelectedScript;
+    } else {
+      ScriptStatus = "No script file to edit";
+    }
+  }
 
   private static async Task<string?> PickFileAsync(string title, string ext, string desc) {
     var top = (Avalonia.Application.Current?.ApplicationLifetime
@@ -387,24 +443,248 @@ public partial class FlightDataViewModel : ViewModelBase {
             new Avalonia.Platform.Storage.FilePickerFileType(desc) { Patterns = new[] { ext } },
           },
         });
-    return files.Count > 0 ? files[0].Name : null;
+    return files.Count > 0 ? files[0].TryGetLocalPath() : null;
   }
+
+  private static async Task<string?> PickSaveAsync(string title, string ext) {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return null;
+    }
+    var file = await top.StorageProvider.SaveFilePickerAsync(
+        new Avalonia.Platform.Storage.FilePickerSaveOptions {
+          Title = title,
+          DefaultExtension = ext,
+        });
+    return file?.TryGetLocalPath();
+  }
+
+  // ---- Telemetry Logs tab (TlogPlayer) ----
+  private string? _tlogPath;
+
+  [ObservableProperty]
+  private double _tlogProgress;
+
+  [ObservableProperty]
+  private string _tlogPositionText = "0.00 %";
+
+  [ObservableProperty]
+  private string _playbackSpeedText = "x 1.0";
+
+  [ObservableProperty]
+  private bool _tlogPlaying;
+
+  private bool _seekFromUi = true;
 
   [RelayCommand]
   private async Task LoadTlog() {
-    var name = await PickFileAsync("Open telemetry log", "*.tlog", "Telemetry log");
-    if (name != null) {
-      LogStatus = $"Loaded {name}. Tlog playback is not yet implemented.";
+    var path = await PickFileAsync("Open telemetry log", "*.tlog", "Telemetry log");
+    if (path == null) {
+      return;
+    }
+    try {
+      await Task.Run(() => _tlog.Open(path));
+      _tlogPath = path;
+      LogStatus = $"Loaded {System.IO.Path.GetFileName(path)} ({_tlog.Duration:hh\\:mm\\:ss}).";
+    } catch (Exception ex) {
+      LogStatus = "Open failed: " + ex.Message;
     }
   }
 
   [RelayCommand]
-  private async Task ReviewLog() {
-    var name = await PickFileAsync("Open dataflash log", "*.bin", "DataFlash log");
-    if (name != null) {
-      LogStatus = $"Opened {name}. Log review/graphing is not yet implemented.";
+  private void PlayPauseTlog() {
+    if (!_tlog.IsOpen) {
+      LogStatus = "Load a telemetry log first.";
+      return;
+    }
+    if (_tlog.IsPlaying) {
+      _tlog.Pause();
+      TlogPlaying = false;
+    } else {
+      _tlog.Play();
+      TlogPlaying = true;
     }
   }
+
+  [RelayCommand]
+  private void SetTlogSpeed(string factor) {
+    if (double.TryParse(factor, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var s)) {
+      _tlog.Speed = s;
+      PlaybackSpeedText = $"x {_tlog.Speed:0.0##}";
+    }
+  }
+
+  // Slider drag -> seek (guarded so playback-driven Progress updates don't loop back).
+  partial void OnTlogProgressChanged(double value) {
+    if (_seekFromUi && _tlog.IsOpen) {
+      _tlog.Seek(value / 100.0);
+    }
+  }
+
+  private void OnTlogProgress(double fraction) {
+    Dispatcher.UIThread.Post(() => {
+      _seekFromUi = false;
+      TlogProgress = fraction * 100.0;
+      _seekFromUi = true;
+      TlogPositionText = $"{fraction * 100.0:0.00} %";
+      if (fraction >= 1.0) {
+        TlogPlaying = false;
+      }
+    });
+  }
+
+  // Apply tlog packets onto cs so the HUD + map replay the flight (mirrors the live path).
+  private void OnTlogPacket(MAVLink.MAVLinkMessage msg) {
+    var cs = _comPort.MAV?.cs;
+    if (cs == null) {
+      return;
+    }
+    switch (msg.msgid) {
+      case (uint)MAVLink.MAVLINK_MSG_ID.GLOBAL_POSITION_INT
+          when msg.data is MAVLink.mavlink_global_position_int_t gpi:
+        if (gpi.lat != 0 || gpi.lon != 0) {
+          cs.lat = gpi.lat / 1e7;
+          cs.lng = gpi.lon / 1e7;
+        }
+        cs.alt = gpi.alt / 1000.0f;
+        break;
+      case (uint)MAVLink.MAVLINK_MSG_ID.ATTITUDE
+          when msg.data is MAVLink.mavlink_attitude_t att:
+        cs.roll = att.roll * 180f / (float)Math.PI;
+        cs.pitch = att.pitch * 180f / (float)Math.PI;
+        cs.yaw = att.yaw * 180f / (float)Math.PI;
+        break;
+      case (uint)MAVLink.MAVLINK_MSG_ID.VFR_HUD
+          when msg.data is MAVLink.mavlink_vfr_hud_t hud:
+        cs.groundspeed = hud.groundspeed;
+        cs.airspeed = hud.airspeed;
+        break;
+    }
+  }
+
+  [RelayCommand]
+  private async Task TlogToKml() {
+    if (_tlogPath == null) {
+      LogStatus = "Load a telemetry log first.";
+      return;
+    }
+    var outPath = await PickSaveAsync("Save KML", "kml");
+    if (outPath == null) {
+      return;
+    }
+    try {
+      await Task.Run(() => TlogPlayer.ExportKml(_tlogPath, outPath));
+      LogStatus = "Wrote " + System.IO.Path.GetFileName(outPath);
+    } catch (Exception ex) {
+      LogStatus = "Export failed: " + ex.Message;
+    }
+  }
+
+  // ---- DataFlash Logs tab (DataFlashLog) ----
+  private string? _binPath;
+
+  [RelayCommand]
+  private async Task ReviewLog() {
+    var path = await PickFileAsync("Open dataflash log", "*.bin", "DataFlash log");
+    if (path == null) {
+      return;
+    }
+    _binPath = path;
+    try {
+      var track = await Task.Run(() => DataFlashLog.ReadTrack(path));
+      LogStatus = $"Opened {System.IO.Path.GetFileName(path)} — {track.Count} GPS points.";
+    } catch (Exception ex) {
+      LogStatus = "Open failed: " + ex.Message;
+    }
+  }
+
+  private async Task<string?> EnsureBinAsync() {
+    if (_binPath != null) {
+      return _binPath;
+    }
+    _binPath = await PickFileAsync("Open dataflash log", "*.bin", "DataFlash log");
+    return _binPath;
+  }
+
+  [RelayCommand]
+  private async Task CreateKmlGpx() {
+    var bin = await EnsureBinAsync();
+    if (bin == null) {
+      return;
+    }
+    try {
+      await Task.Run(() => {
+        var baseName = System.IO.Path.ChangeExtension(bin, null);
+        DataFlashLog.ExportKml(bin, baseName + ".kml");
+        DataFlashLog.ExportGpx(bin, baseName + ".gpx");
+      });
+      LogStatus = "Wrote KML + GPX next to the log.";
+    } catch (Exception ex) {
+      LogStatus = "Export failed: " + ex.Message;
+    }
+  }
+
+  [RelayCommand]
+  private async Task ConvertBinToLog() {
+    var bin = await EnsureBinAsync();
+    if (bin == null) {
+      return;
+    }
+    var outPath = await PickSaveAsync("Save text log", "log");
+    if (outPath == null) {
+      return;
+    }
+    try {
+      await Task.Run(() => DataFlashLog.ConvertBinToLog(bin, outPath));
+      LogStatus = "Wrote " + System.IO.Path.GetFileName(outPath);
+    } catch (Exception ex) {
+      LogStatus = "Convert failed: " + ex.Message;
+    }
+  }
+
+  [RelayCommand]
+  private async Task CreateMatlab() {
+    var bin = await EnsureBinAsync();
+    if (bin == null) {
+      return;
+    }
+    try {
+      await Task.Run(() => DataFlashLog.ExportMatlab(bin, s => Dispatcher.UIThread.Post(() => LogStatus = s)));
+      LogStatus = "Matlab export complete.";
+    } catch (Exception ex) {
+      LogStatus = "Matlab export failed: " + ex.Message;
+    }
+  }
+
+  [RelayCommand]
+  private async Task AutoAnalysis() {
+    var bin = await EnsureBinAsync();
+    if (bin == null) {
+      return;
+    }
+    LogStatus = "Analyzing…";
+    try {
+      var summary = await Task.Run(() => {
+        var batt = DataFlashLog.ReadField(bin, "BAT", "Volt");
+        var vibe = DataFlashLog.ReadField(bin, "VIBE", "VibeZ");
+        var gps = DataFlashLog.ReadField(bin, "GPS", "NSats");
+        double minBat = batt.Count > 0 ? batt.Min(v => v.value) : double.NaN;
+        double maxVibe = vibe.Count > 0 ? vibe.Max(v => v.value) : double.NaN;
+        int gpsLoss = gps.Count(v => v.value < 6);
+        return $"Min battery: {minBat:0.00} V | Max vibe Z: {maxVibe:0.0} | GPS <6 sats: {gpsLoss} samples";
+      });
+      LogStatus = summary;
+    } catch (Exception ex) {
+      LogStatus = "Analysis failed: " + ex.Message;
+    }
+  }
+
+  [RelayCommand]
+  private void GeoReferenceImages() =>
+      // Minimal stub: full EXIF-based geotagging needs an imaging lib not bundled here.
+      LogStatus = "Geo Reference: match images to GPS by timestamp (EXIF tooling not bundled).";
 
   // ---- Payload Control tab ----
   [ObservableProperty]
@@ -455,10 +735,19 @@ public partial class FlightDataViewModel : ViewModelBase {
   }
 
   [RelayCommand]
-  private void ResetPosition() {
+  [Obsolete]
+  private async Task ResetPosition() {
     Tilt = 0;
     Pan = 0;
     Roll2 = 0;
+    if (!Connected) {
+      return;
+    }
+    // Mount-neutral: explicitly command (0,0,0) rather than only zeroing local fields.
+    await Task.Run(() =>
+        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.DO_MOUNT_CONTROL,
+            0, 0, 0, 0, 0, 0, 2));
+    Log("Mount reset to neutral");
   }
 
   // ---- Log tabs ----
@@ -660,14 +949,34 @@ public partial class FlightDataViewModel : ViewModelBase {
   }
 
   [RelayCommand]
-  private void RawSensorView() => Log("Raw sensor view toggled.");
+  private void RawSensorView() {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    var win = new Views.RawSensorWindow();
+    if (top != null) {
+      win.Show(top);
+    } else {
+      win.Show();
+    }
+  }
 
   [RelayCommand]
   private void Joystick() => Log("Joystick mapping is under Setup > Joystick.");
 
   [RelayCommand]
-  private void ShowMessage() => Log("Message");
+  private void ShowMessage() {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    var win = new Views.MessagesWindow();
+    if (top != null) {
+      win.Show(top);
+    } else {
+      win.Show();
+    }
+  }
 
+  // MapView renders only the live vehicle marker (no historical polyline in this port),
+  // so there is no persisted track collection to clear here.
   [RelayCommand]
   private void ClearTrack() => Log("Track cleared.");
 
@@ -958,13 +1267,109 @@ public partial class FlightDataViewModel : ViewModelBase {
   [RelayCommand]
   private void SwapHudMap() => (HudColumn, MapColumn) = (MapColumn, HudColumn);
 
-  [RelayCommand]
-  private void SetAspectRatio() =>
-      Log("Set Aspect Ratio: HUD video aspect (used with video overlay; video not ported).");
+  // ---- HUD video (VideoControl in a popup) ----
+  private MissionPlannerAvalonia.Controls.VideoControl? _video;
+  private Views.VideoPopupWindow? _videoWindow;
+
+  private Views.VideoPopupWindow EnsureVideoWindow() {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (_videoWindow == null) {
+      // Fresh control per window: an Avalonia control can't be re-parented after the
+      // previous popup closed, so we don't cache it across windows.
+      _video = new MissionPlannerAvalonia.Controls.VideoControl();
+      _videoWindow = new Views.VideoPopupWindow(_video);
+      _videoWindow.Closed += (_, _) => { _video?.Stop(); _videoWindow = null; };
+      if (top != null) {
+        _videoWindow.Show(top);
+      } else {
+        _videoWindow.Show();
+      }
+    } else {
+      _videoWindow.Activate();
+    }
+    return _videoWindow;
+  }
+
+  private static async Task<string?> PromptTextAsync(string title, string label, string initial) {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return null;
+    }
+    var box = new Avalonia.Controls.TextBox { Text = initial, MinWidth = 360 };
+    var ok = new Avalonia.Controls.Button {
+      Content = "OK",
+      HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+    };
+    var dlg = new Avalonia.Controls.Window {
+      Title = title,
+      Width = 420,
+      Height = 150,
+      WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
+      Content = new Avalonia.Controls.StackPanel {
+        Margin = new Avalonia.Thickness(10),
+        Spacing = 8,
+        Children = {
+          new Avalonia.Controls.TextBlock { Text = label },
+          box,
+          ok,
+        },
+      },
+    };
+    ok.Click += (_, _) => dlg.Close(box.Text);
+    return await dlg.ShowDialog<string?>(top);
+  }
 
   [RelayCommand]
-  private void HudVideoNotPorted() =>
-      Log("HUD video/GStreamer capture is not ported in this cross-platform build.");
+  private async Task SetVideoSource(string preset) {
+    var win = EnsureVideoWindow();
+    if (!win.Video.IsAvailable) {
+      Log(win.Video.Status);
+      win.UpdateStatus();
+      return;
+    }
+    string initial = preset switch {
+      "mjpeg" => "http://192.168.0.1:8080/?action=stream",
+      "gstreamer" => "rtsp://192.168.144.25:8554/main.264",
+      "herelink" => "rtsp://192.168.43.1:8554/fpv_stream",
+      "camera" => "v4l2:///dev/video0",
+      _ => "",
+    };
+    var mrl = await PromptTextAsync("Video source", "Stream URL / MRL:", initial);
+    if (string.IsNullOrWhiteSpace(mrl)) {
+      return;
+    }
+    win.Video.Play(mrl);
+    win.UpdateStatus();
+    Log(win.Video.Status);
+  }
+
+  [RelayCommand]
+  private async Task RecordVideo() {
+    var win = EnsureVideoWindow();
+    var outPath = await PickSaveAsync("Record video to", "ts");
+    if (outPath == null) {
+      return;
+    }
+    win.Video.TryRecord(outPath);
+    win.UpdateStatus();
+    Log(win.Video.Status);
+  }
+
+  [RelayCommand]
+  private void StopVideo() {
+    if (_videoWindow == null) {
+      return;
+    }
+    _videoWindow.Video.Stop();
+    _videoWindow.UpdateStatus();
+    Log(_videoWindow.Video.Status);
+  }
+
+  [RelayCommand]
+  private void SetAspectRatio() =>
+      Log("Set Aspect Ratio: VideoControl stretches to fit the popup; no fixed aspect override.");
 
   // MP "User Items": checkbox per numeric CurrentState field; checked ones render on the HUD.
   [RelayCommand]
@@ -1056,6 +1461,90 @@ public partial class FlightDataViewModel : ViewModelBase {
       HudBatteryCells = (int)(box.Value ?? 0);
     }
   }
+
+  // ---- Transponder tab (uAvionix ADS-B out) ----
+  // Upstream MP drives this through MAVLinkInterface.uAvionixADSBControl (squawk + mode
+  // state bits + flight id + ident), not individual params, so we mirror that here.
+  [ObservableProperty]
+  private int _squawk = 1200;
+
+  [ObservableProperty]
+  private string _flightId = "";
+
+  [ObservableProperty]
+  private bool _modeA;
+
+  [ObservableProperty]
+  private bool _modeC;
+
+  [ObservableProperty]
+  private bool _modeS;
+
+  [ObservableProperty]
+  private bool _modeEs;
+
+  [ObservableProperty]
+  private string _transponderStatus = "Not connected";
+
+  // UAVIONIX_ADSB_OUT_CONTROL_STATE bits: 8=IDENT, 16=ModeA, 32=ModeC, 64=ModeS, 128=1090ES.
+  private void SendTransponder(byte extraState) {
+    if (!Connected) {
+      TransponderStatus = "Not connected";
+      return;
+    }
+    byte state = (byte)(extraState
+        | (ModeA ? 16 : 0)
+        | (ModeC ? 32 : 0)
+        | (ModeS ? 64 : 0)
+        | (ModeEs ? 128 : 0));
+    var id = System.Text.Encoding.ASCII.GetBytes((FlightId ?? "").PadRight(8).Substring(0, 8));
+    _comPort.uAvionixADSBControl(int.MaxValue, (ushort)Squawk, state, 0, id, 0);
+  }
+
+  [RelayCommand]
+  private async Task ConnectTransponder() {
+    if (!Connected) {
+      TransponderStatus = "Not connected";
+      return;
+    }
+    TransponderStatus = "Connecting…";
+    await Task.Run(() =>
+        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.SET_MESSAGE_INTERVAL,
+            (float)MAVLink.MAVLINK_MSG_ID.UAVIONIX_ADSB_OUT_STATUS, 1000000.0f, 0, 0, 0, 0, 0));
+    TransponderStatus = "Requested transponder status stream";
+  }
+
+  [RelayCommand]
+  private void TransponderStandby() {
+    ModeA = ModeC = ModeS = ModeEs = false;
+    SendTransponder(0);
+    TransponderStatus = "STBY";
+  }
+
+  [RelayCommand]
+  private void TransponderOn() {
+    ModeA = true;
+    ModeC = false;
+    ModeS = true;
+    ModeEs = true;
+    SendTransponder(0);
+    TransponderStatus = "ON";
+  }
+
+  [RelayCommand]
+  private void TransponderAlt() {
+    ModeA = ModeC = ModeS = ModeEs = true;
+    SendTransponder(0);
+    TransponderStatus = "ALT";
+  }
+
+  [RelayCommand]
+  private void TransponderIdent() {
+    SendTransponder(8);
+    TransponderStatus = "IDENT";
+  }
+
+  partial void OnSquawkChanged(int value) => SendTransponder(0);
 
 }
 

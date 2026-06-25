@@ -8,6 +8,7 @@ public class SetupViewModel : BackstageViewModel {
     Add("Install Firmware", () => new InstallFirmwareViewModel());
     Add("Install Firmware Legacy", () => new ConfigFirmwareLegacyViewModel());
     Add("Secure", () => new ConfigSecureViewModel());
+    Add("Secure (Sign Firmware)", () => new ConfigSecureApViewModel());
 
     Add(
         ">> Mandatory Hardware",
@@ -15,6 +16,7 @@ public class SetupViewModel : BackstageViewModel {
             new InfoPageViewModel("Mandatory Hardware", "Required setup before flight. Pick a sub-page.")
     );
     Add("Frame Type", () => new ConfigFrameClassTypeViewModel(), sub: true);
+    Add("Frame Type (Legacy)", () => new ConfigFrameTypeViewModel(), sub: true);
     Add("Accel Calibration", () => new ConfigAccelCalibrationViewModel(), sub: true);
     Add("Compass", () => new ConfigCompassViewModel(), sub: true);
     Add("Radio Calibration", () => new ConfigRadioInputViewModel(), sub: true);
@@ -34,7 +36,9 @@ public class SetupViewModel : BackstageViewModel {
     Add("CAN GPS Order", () => new ConfigGPSOrderViewModel(), sub: true);
     Add("Battery Monitor", () => new ConfigBatteryMonitoringViewModel(), sub: true);
     Add("Battery Monitor 2", () => new ConfigBatteryMonitoring2ViewModel(), sub: true);
+    Add("HW CAN", () => new ConfigHWCANViewModel(), sub: true);
     Add("DroneCAN/UAVCAN", () => new ConfigDroneCanViewModel(), sub: true);
+    Add("Serial Ports", () => new ConfigSerialViewModel(), sub: true);
     Add("Joystick", () => new ConfigJoystickViewModel(), sub: true);
     Add("Compass/Motor Calib", () => new ConfigCompassMotViewModel(), sub: true);
     Add("RangeFinder", () => new ConfigRangeFinderViewModel(), sub: true);

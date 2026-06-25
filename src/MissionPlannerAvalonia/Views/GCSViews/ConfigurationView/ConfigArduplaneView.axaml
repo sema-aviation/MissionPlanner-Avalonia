@@ -1,0 +1,115 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="900"
+  d:DesignHeight="700"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigArduplaneView"
+  x:DataType="cv:ConfigArduplaneViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+      <Button Content="Write Params" Command="{Binding WriteCommand}" />
+      <Button Content="Refresh Params" Command="{Binding RefreshParamsCommand}" />
+      <Button Content="Refresh Screen" Command="{Binding RefreshScreenCommand}" />
+      <TextBlock
+        Text="{Binding Intro}"
+        Classes="fieldlbl"
+        TextWrapping="Wrap"
+        VerticalAlignment="Center"
+        IsVisible="{Binding Intro, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+      />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="2">
+      <ItemsControl ItemsSource="{Binding Groups}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="cv:TuningGroup">
+            <Border
+              IsVisible="{Binding IsVisible}"
+              BorderBrush="#5A5A5A"
+              BorderThickness="1"
+              CornerRadius="4"
+              Margin="6"
+              Padding="8"
+              Width="360"
+              VerticalAlignment="Top"
+            >
+              <StackPanel Spacing="2">
+                <TextBlock
+                  Text="{Binding Title}"
+                  FontWeight="Bold"
+                  Foreground="#D8D8D8"
+                  Margin="0,0,0,6"
+                />
+                <ItemsControl ItemsSource="{Binding Rows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="cv:TuningRow">
+                      <Grid ColumnDefinitions="140,150,Auto,Auto" Margin="0,2">
+                        <TextBlock
+                          Grid.Column="0"
+                          Text="{Binding Label}"
+                          Classes="fieldlbl"
+                          ToolTip.Tip="{Binding Description}"
+                          TextWrapping="Wrap"
+                          VerticalAlignment="Center"
+                          Margin="0,0,6,0"
+                        />
+                        <ComboBox
+                          Grid.Column="1"
+                          IsVisible="{Binding IsCombo}"
+                          MinWidth="140"
+                          ItemsSource="{Binding Options}"
+                          SelectedItem="{Binding SelectedOption}"
+                        />
+                        <CheckBox
+                          Grid.Column="1"
+                          IsVisible="{Binding IsBool}"
+                          IsChecked="{Binding Checked}"
+                        />
+                        <NumericUpDown
+                          Grid.Column="1"
+                          IsVisible="{Binding IsNumeric}"
+                          MinWidth="140"
+                          Value="{Binding Value}"
+                          Minimum="{Binding Min}"
+                          Maximum="{Binding Max}"
+                          Increment="{Binding Increment}"
+                          FormatString="0.######"
+                        />
+                        <TextBlock
+                          Grid.Column="2"
+                          Text="{Binding Units}"
+                          Classes="fieldlbl"
+                          VerticalAlignment="Center"
+                          Margin="6,0"
+                        />
+                        <TextBlock
+                          Grid.Column="3"
+                          Text="{Binding Status}"
+                          Foreground="#94C11F"
+                          VerticalAlignment="Center"
+                        />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

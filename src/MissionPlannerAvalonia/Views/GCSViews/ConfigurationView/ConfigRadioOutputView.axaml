@@ -1,0 +1,101 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="900"
+  d:DesignHeight="700"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigRadioOutputView"
+  x:DataType="cv:ConfigRadioOutputViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Servo Output" />
+
+    <Grid Grid.Row="1" ColumnDefinitions="40,*,70,170,70,70,70" Margin="0,10,0,4">
+      <TextBlock Grid.Column="0" Text="#" Classes="fieldlbl" />
+      <TextBlock Grid.Column="1" Text="Output (PWM)" Classes="fieldlbl" />
+      <TextBlock Grid.Column="2" Text="Reverse" Classes="fieldlbl" />
+      <TextBlock Grid.Column="3" Text="Function" Classes="fieldlbl" />
+      <TextBlock Grid.Column="4" Text="Min" Classes="fieldlbl" HorizontalAlignment="Center" />
+      <TextBlock Grid.Column="5" Text="Trim" Classes="fieldlbl" HorizontalAlignment="Center" />
+      <TextBlock Grid.Column="6" Text="Max" Classes="fieldlbl" HorizontalAlignment="Center" />
+    </Grid>
+
+    <ScrollViewer Grid.Row="2">
+      <ItemsControl ItemsSource="{Binding Rows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="cv:ServoOutputRow">
+            <Grid ColumnDefinitions="40,*,70,170,70,70,70" Margin="0,3">
+              <TextBlock
+                Grid.Column="0"
+                Text="{Binding Number}"
+                Classes="fieldlbl"
+                VerticalAlignment="Center"
+              />
+              <Grid Grid.Column="1" Margin="0,0,8,0">
+                <ProgressBar
+                  Minimum="800"
+                  Maximum="2200"
+                  Value="{Binding Pwm}"
+                  Height="22"
+                  Foreground="#94C11F"
+                />
+                <TextBlock
+                  Text="{Binding Pwm, StringFormat='0'}"
+                  Foreground="#FFFFFF"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                />
+              </Grid>
+              <CheckBox
+                Grid.Column="2"
+                IsChecked="{Binding Reversed.Checked}"
+                VerticalAlignment="Center"
+              />
+              <ComboBox
+                Grid.Column="3"
+                MinWidth="160"
+                ItemsSource="{Binding Function.Options}"
+                SelectedItem="{Binding Function.SelectedOption}"
+                VerticalAlignment="Center"
+              />
+              <NumericUpDown
+                Grid.Column="4"
+                Width="66"
+                ShowButtonSpinner="False"
+                Minimum="800"
+                Maximum="2200"
+                Increment="1"
+                FormatString="0"
+                Value="{Binding Min.Value}"
+              />
+              <NumericUpDown
+                Grid.Column="5"
+                Width="66"
+                ShowButtonSpinner="False"
+                Minimum="800"
+                Maximum="2200"
+                Increment="1"
+                FormatString="0"
+                Value="{Binding Trim.Value}"
+              />
+              <NumericUpDown
+                Grid.Column="6"
+                Width="66"
+                ShowButtonSpinner="False"
+                Minimum="800"
+                Maximum="2200"
+                Increment="1"
+                FormatString="0"
+                Value="{Binding Max.Value}"
+              />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

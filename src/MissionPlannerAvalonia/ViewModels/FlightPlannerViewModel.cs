@@ -15,8 +15,15 @@ namespace MissionPlannerAvalonia.ViewModels;
 
 public partial class FlightPlannerViewModel : ViewModelBase {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
+  private bool _recomputing;
+
+  public event Action? WaypointsChanged;
 
   public ObservableCollection<WpRow> Waypoints { get; } = new();
+
+  public FlightPlannerViewModel() {
+    Waypoints.CollectionChanged += OnWaypointsCollectionChanged;
+  }
 
   public ObservableCollection<string> MapTypes { get; } =
       new()
@@ -215,6 +222,127 @@ public partial class FlightPlannerViewModel : ViewModelBase {
     Status = "Home set from vehicle position.";
   }
 
+  public void MoveWaypoint(int seq, double lat, double lng) {
+    var row = Waypoints.FirstOrDefault(r => r.Seq == seq);
+    if (row == null) {
+      return;
+    }
+
+    row.Lat = lat;
+    row.Lng = lng;
+  }
+
+  public string GenerateSurveyGrid(double altitude, double spacing, double angle) {
+    var polygon = Waypoints.Where(w => !(w.Lat == 0 && w.Lng == 0))
+                      .Select(w => new PointLatLngAlt(w.Lat, w.Lng, altitude))
+                      .ToList();
+    if (polygon.Count < 3) {
+      return "Need at least 3 waypoints to outline the survey area.";
+    }
+
+    var home = (HomeLat == 0 && HomeLng == 0)
+                   ? polygon[0]
+                   : new PointLatLngAlt(HomeLat, HomeLng, HomeAlt);
+    try {
+      var grid = Grid.CreateGrid(polygon, altitude, spacing, 0, angle, 0, 0,
+          Grid.StartPosition.Home, false, 0, 0, 0, home);
+      if (grid.Count == 0) {
+        return "Grid generation produced no waypoints.";
+      }
+
+      foreach (var p in grid) {
+        Waypoints.Add(new WpRow {
+          Seq = Waypoints.Count,
+          Command = (ushort)MAVLink.MAV_CMD.WAYPOINT,
+          Lat = p.Lat,
+          Lng = p.Lng,
+          Alt = p.Alt,
+        });
+      }
+
+      Renumber();
+      RecomputeGrid();
+      WaypointsChanged?.Invoke();
+      return $"Survey grid added {grid.Count} waypoint(s).";
+    } catch (Exception ex) {
+      return "Survey failed: " + ex.Message;
+    }
+  }
+
+  private void OnWaypointsCollectionChanged(object? sender,
+      System.Collections.Specialized.NotifyCollectionChangedEventArgs e) {
+    if (e.OldItems != null) {
+      foreach (WpRow r in e.OldItems) {
+        r.PropertyChanged -= OnRowChanged;
+      }
+    }
+
+    if (e.NewItems != null) {
+      foreach (WpRow r in e.NewItems) {
+        r.PropertyChanged -= OnRowChanged;
+        r.PropertyChanged += OnRowChanged;
+      }
+    }
+
+    RecomputeGrid();
+    WaypointsChanged?.Invoke();
+  }
+
+  private void OnRowChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
+    if (_recomputing) {
+      return;
+    }
+
+    if (e.PropertyName is nameof(WpRow.Lat) or nameof(WpRow.Lng) or nameof(WpRow.Alt)) {
+      RecomputeGrid();
+      WaypointsChanged?.Invoke();
+    }
+  }
+
+  private void RecomputeGrid() {
+    if (_recomputing) {
+      return;
+    }
+
+    _recomputing = true;
+    try {
+      PointLatLngAlt? last = (HomeLat == 0 && HomeLng == 0)
+                                 ? null
+                                 : new PointLatLngAlt(HomeLat, HomeLng, HomeAlt);
+      foreach (var w in Waypoints) {
+        if (w.Lat == 0 && w.Lng == 0) {
+          w.Grad = w.Angle = w.Dist = w.Az = "";
+          continue;
+        }
+
+        var cur = new PointLatLngAlt(w.Lat, w.Lng, w.Alt);
+        if (last == null) {
+          w.Grad = w.Angle = w.Dist = w.Az = "";
+        } else {
+          double height = w.Alt - last.Alt;
+          double distance = cur.GetDistance(last);
+          double grad = distance > 0 ? height / distance : 0;
+          w.Grad = (grad * 100).ToString("0.0", CultureInfo.InvariantCulture);
+          w.Angle = ((180.0 / Math.PI) * Math.Atan(grad)).ToString("0.0",
+              CultureInfo.InvariantCulture);
+          w.Dist = Math.Sqrt(distance * distance + height * height)
+                       .ToString("0.0", CultureInfo.InvariantCulture);
+          w.Az = ((cur.GetBearing(last) + 180) % 360).ToString("0", CultureInfo.InvariantCulture);
+        }
+
+        last = cur;
+      }
+    } finally {
+      _recomputing = false;
+    }
+  }
+
+  partial void OnHomeLatChanged(double value) => RecomputeGrid();
+
+  partial void OnHomeLngChanged(double value) => RecomputeGrid();
+
+  partial void OnHomeAltChanged(double value) => RecomputeGrid();
+
   private void Replace(IEnumerable<WpRow> rows) {
     void Apply() {
       Waypoints.Clear();
@@ -270,6 +398,18 @@ public partial class WpRow : ObservableObject {
 
   [ObservableProperty]
   private double _alt;
+
+  [ObservableProperty]
+  private string _grad = "";
+
+  [ObservableProperty]
+  private string _angle = "";
+
+  [ObservableProperty]
+  private string _dist = "";
+
+  [ObservableProperty]
+  private string _az = "";
 
   public string CommandName => ((MAVLink.MAV_CMD)Command).ToString();
 

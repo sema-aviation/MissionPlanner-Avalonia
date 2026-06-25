@@ -12,29 +12,69 @@
   x:DataType="vm:SimulationViewModel"
   Background="#434445"
 >
+  <UserControl.Styles>
+    <Style Selector="RadioButton.firmware">
+      <Setter Property="Foreground" Value="#E0E0E0" />
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+  </UserControl.Styles>
   <Grid RowDefinitions="*,Auto">
     <ctl:MapView Grid.Row="0" />
     <StackPanel Grid.Row="1" Margin="12" Spacing="10">
       <TextBlock Text="Please select a firmware to run" Foreground="#E0E0E0" />
-      <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
-        <StackPanel>
-          <TextBlock Text="&#x2708;" FontSize="44" HorizontalAlignment="Center" />
-          <TextBlock Text="Plane" HorizontalAlignment="Center" />
-        </StackPanel>
-        <StackPanel>
-          <TextBlock Text="&#x1F697;" FontSize="44" HorizontalAlignment="Center" />
-          <TextBlock Text="Rover" HorizontalAlignment="Center" />
-        </StackPanel>
-        <StackPanel>
-          <TextBlock Text="&#x1F681;" FontSize="44" HorizontalAlignment="Center" />
-          <TextBlock Text="Multirotor" HorizontalAlignment="Center" />
-        </StackPanel>
-        <StackPanel>
-          <TextBlock Text="&#x1F681;" FontSize="44" HorizontalAlignment="Center" />
-          <TextBlock Text="Helicopter" HorizontalAlignment="Center" />
-        </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+        <RadioButton Classes="firmware" GroupName="firmware" IsChecked="{Binding IsPlane}">
+          <StackPanel>
+            <TextBlock Text="&#x2708;" FontSize="44" HorizontalAlignment="Center" />
+            <TextBlock Text="Plane" HorizontalAlignment="Center" />
+          </StackPanel>
+        </RadioButton>
+        <RadioButton Classes="firmware" GroupName="firmware" IsChecked="{Binding IsRover}">
+          <StackPanel>
+            <TextBlock Text="&#x1F697;" FontSize="44" HorizontalAlignment="Center" />
+            <TextBlock Text="Rover" HorizontalAlignment="Center" />
+          </StackPanel>
+        </RadioButton>
+        <RadioButton Classes="firmware" GroupName="firmware" IsChecked="{Binding IsCopter}">
+          <StackPanel>
+            <TextBlock Text="&#x1F681;" FontSize="44" HorizontalAlignment="Center" />
+            <TextBlock Text="Multirotor" HorizontalAlignment="Center" />
+          </StackPanel>
+        </RadioButton>
+        <RadioButton Classes="firmware" GroupName="firmware" IsChecked="{Binding IsHeli}">
+          <StackPanel>
+            <TextBlock Text="&#x1F681;" FontSize="44" HorizontalAlignment="Center" />
+            <TextBlock Text="Helicopter" HorizontalAlignment="Center" />
+          </StackPanel>
+        </RadioButton>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+        <Button
+          Content="{Binding StartStopText}"
+          Command="{Binding StartStopCommand}"
+          MinWidth="120"
+          HorizontalContentAlignment="Center"
+        />
       </StackPanel>
       <TextBlock Text="{Binding Status}" Foreground="#888888" HorizontalAlignment="Center" />
+      <Border
+        Background="#2C2D2E"
+        CornerRadius="3"
+        Padding="6"
+        IsVisible="{Binding Log, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+      >
+        <ScrollViewer MaxHeight="120">
+          <TextBox
+            Text="{Binding Log}"
+            IsReadOnly="True"
+            FontFamily="Consolas,Menlo,monospace"
+            FontSize="11"
+            Background="Transparent"
+            BorderThickness="0"
+            Foreground="#C8C8C8"
+          />
+        </ScrollViewer>
+      </Border>
     </StackPanel>
   </Grid>
 </UserControl>

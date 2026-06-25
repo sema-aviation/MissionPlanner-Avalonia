@@ -1,0 +1,124 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="700"
+  d:DesignHeight="560"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigBatteryMonitoring2View"
+  x:DataType="cv:ConfigBatteryMonitoring2ViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="8" MaxWidth="560" HorizontalAlignment="Left">
+      <TextBlock Classes="pagetitle" Text="Battery Monitor 2" />
+
+      <Grid ColumnDefinitions="180,*">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Monitor" VerticalAlignment="Center" />
+        <ComboBox
+          Grid.Column="1"
+          MinWidth="280"
+          ItemsSource="{Binding Monitor.Options}"
+          SelectedItem="{Binding Monitor.SelectedOption}"
+        />
+      </Grid>
+
+      <Grid ColumnDefinitions="180,*">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Capacity (mAh)" VerticalAlignment="Center" />
+        <NumericUpDown
+          Grid.Column="1"
+          MinWidth="160"
+          HorizontalAlignment="Left"
+          Minimum="{Binding Capacity.Min}"
+          Maximum="{Binding Capacity.Max}"
+          Increment="{Binding Capacity.Increment}"
+          FormatString="0"
+          Value="{Binding Capacity.Value}"
+        />
+      </Grid>
+
+      <Grid ColumnDefinitions="180,*">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Voltage pin" VerticalAlignment="Center" />
+        <ComboBox
+          Grid.Column="1"
+          MinWidth="280"
+          ItemsSource="{Binding VoltPin.Options}"
+          SelectedItem="{Binding VoltPin.SelectedOption}"
+        />
+      </Grid>
+
+      <Grid ColumnDefinitions="180,*">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Current pin" VerticalAlignment="Center" />
+        <ComboBox
+          Grid.Column="1"
+          MinWidth="280"
+          ItemsSource="{Binding CurrPin.Options}"
+          SelectedItem="{Binding CurrPin.SelectedOption}"
+        />
+      </Grid>
+
+      <Grid ColumnDefinitions="180,*">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Volt mult (BATT2_VOLT_MULT)" VerticalAlignment="Center" TextWrapping="Wrap" />
+        <NumericUpDown
+          Grid.Column="1"
+          MinWidth="160"
+          HorizontalAlignment="Left"
+          Increment="0.001"
+          FormatString="0.######"
+          Value="{Binding VoltMult.Value}"
+        />
+      </Grid>
+
+      <Grid ColumnDefinitions="180,*">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Amp per volt (BATT2_AMP_PERVLT)" VerticalAlignment="Center" TextWrapping="Wrap" />
+        <NumericUpDown
+          Grid.Column="1"
+          MinWidth="160"
+          HorizontalAlignment="Left"
+          Increment="0.001"
+          FormatString="0.######"
+          Value="{Binding AmpPerVolt.Value}"
+        />
+      </Grid>
+
+      <Grid ColumnDefinitions="180,*">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Amp offset (BATT2_AMP_OFFSET)" VerticalAlignment="Center" TextWrapping="Wrap" />
+        <NumericUpDown
+          Grid.Column="1"
+          MinWidth="160"
+          HorizontalAlignment="Left"
+          Increment="0.001"
+          FormatString="0.######"
+          Value="{Binding AmpOffset.Value}"
+        />
+      </Grid>
+
+      <Border BorderBrush="#5A5A5A" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,8,0,0">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Live measurement" FontWeight="Bold" Foreground="#D8D8D8" />
+          <StackPanel Orientation="Horizontal" Spacing="16">
+            <TextBlock Classes="fieldlbl" Text="{Binding LiveVoltage, StringFormat='Measured voltage: \{0\} V'}" />
+            <TextBlock Classes="fieldlbl" Text="{Binding LiveCurrent, StringFormat='Measured current: \{0\} A'}" />
+          </StackPanel>
+          <TextBlock
+            Classes="fieldlbl"
+            Text="Calibrate: measure the pack with a multimeter, type the value, then Apply."
+            TextWrapping="Wrap"
+          />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <NumericUpDown
+              Width="140"
+              Increment="0.1"
+              FormatString="0.##"
+              Value="{Binding MeasuredVoltage}"
+            />
+            <Button Content="Apply Calibration" Command="{Binding ApplyCalibrationCommand}" />
+          </StackPanel>
+          <TextBlock Foreground="#94C11F" Text="{Binding CalibrationStatus}" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

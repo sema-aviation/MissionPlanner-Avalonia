@@ -1,0 +1,58 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="640"
+  d:DesignHeight="480"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigSecureApView"
+  x:DataType="cv:ConfigSecureApViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Secure (Signed Firmware)" />
+
+    <TextBlock
+      Grid.Row="1"
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Text="Generate an Ed25519 key, then sign a bootloader (.bin) or firmware (.apj). A '-signed' file is written next to the source."
+      Margin="0,0,0,12"
+    />
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+      <Button Name="GenerateKeyBtn" Content="Generate Key…" />
+      <Button Name="LoadKeyBtn" Content="Load Private Key…" />
+    </StackPanel>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+      <TextBlock Text="Public key:" Classes="fieldlbl" VerticalAlignment="Center" Width="80" />
+      <TextBox
+        Text="{Binding PublicKeyText}"
+        IsReadOnly="True"
+        MinWidth="420"
+        FontFamily="Consolas,monospace"
+        Background="#262728"
+        Foreground="#DDDDDD"
+      />
+    </StackPanel>
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+      <Button Name="SignBootloaderBtn" Content="Sign Bootloader (.bin)…" />
+      <Button Name="SignFirmwareBtn" Content="Sign Firmware (.apj)…" />
+    </StackPanel>
+
+    <TextBox
+      Grid.Row="5"
+      Text="{Binding Log}"
+      IsReadOnly="True"
+      AcceptsReturn="True"
+      TextWrapping="Wrap"
+      Background="#262728"
+      Foreground="#DDDDDD"
+      FontFamily="Consolas,monospace"
+    />
+  </Grid>
+</UserControl>

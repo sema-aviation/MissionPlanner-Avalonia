@@ -1,0 +1,80 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="760"
+  d:DesignHeight="480"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigSerialView"
+  x:DataType="cv:ConfigSerialViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="8">
+      <TextBlock Classes="pagetitle" Text="Serial Ports" />
+
+      <Grid ColumnDefinitions="160,180,180,*" Margin="0,8,0,4">
+        <TextBlock Grid.Column="0" Text="Port" Classes="fieldlbl" FontWeight="Bold" />
+        <TextBlock Grid.Column="1" Text="Baud" Classes="fieldlbl" FontWeight="Bold" />
+        <TextBlock Grid.Column="2" Text="Protocol" Classes="fieldlbl" FontWeight="Bold" />
+        <TextBlock Grid.Column="3" Text="Options (bitmask)" Classes="fieldlbl" FontWeight="Bold" />
+      </Grid>
+
+      <ItemsControl ItemsSource="{Binding Ports}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="cv:SerialPortRow">
+            <Border BorderBrush="#262728" BorderThickness="0,1,0,0" Padding="0,6">
+              <Grid ColumnDefinitions="160,180,180,*" RowDefinitions="Auto,Auto">
+                <TextBlock
+                  Grid.Column="0"
+                  Grid.Row="0"
+                  Text="{Binding Label}"
+                  Classes="fieldlbl"
+                  FontWeight="Bold"
+                  VerticalAlignment="Center"
+                  TextWrapping="Wrap"
+                />
+                <ComboBox
+                  Grid.Column="1"
+                  Grid.Row="0"
+                  MinWidth="160"
+                  ItemsSource="{Binding BaudOptions}"
+                  SelectedItem="{Binding SelectedBaud}"
+                />
+                <ComboBox
+                  Grid.Column="2"
+                  Grid.Row="0"
+                  MinWidth="160"
+                  ItemsSource="{Binding ProtocolOptions}"
+                  SelectedItem="{Binding SelectedProtocol}"
+                />
+                <StackPanel Grid.Column="3" Grid.Row="0" Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasOptions}">
+                  <NumericUpDown
+                    Width="120"
+                    Minimum="0"
+                    Increment="1"
+                    FormatString="0"
+                    Value="{Binding OptionsValue}"
+                  />
+                  <TextBlock Text="{Binding OptionsText}" Classes="fieldlbl" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
+                <TextBlock
+                  Grid.Column="1"
+                  Grid.Row="1"
+                  Grid.ColumnSpan="3"
+                  Text="{Binding Status}"
+                  Classes="fieldlbl"
+                  FontSize="11"
+                />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TextBlock Text="{Binding Note}" Classes="fieldlbl" TextWrapping="Wrap" Margin="0,8,0,0" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

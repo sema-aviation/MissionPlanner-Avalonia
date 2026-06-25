@@ -37,6 +37,13 @@
         <Button Content="Check for Updates" Command="{Binding CheckForUpdatesCommand}" />
         <Button Content="Check for BETA Updates" Command="{Binding CheckForBetaUpdatesCommand}" />
       </StackPanel>
+      <TextBlock
+        Text="{Binding UpdateStatus}"
+        Margin="0,6,0,0"
+        Foreground="#BBBBBB"
+        TextWrapping="Wrap"
+        IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+      />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

@@ -1,0 +1,107 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="900"
+  d:DesignHeight="720"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigMountView"
+  x:DataType="cv:ConfigMountViewModel"
+  Background="#434445"
+>
+  <UserControl.Resources>
+    <DataTemplate x:Key="AxisTemplate" x:DataType="cv:MountAxisViewModel">
+      <Border BorderBrush="#5A5A5A" BorderThickness="1" Padding="10" Margin="0,0,8,0">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding Header}" Classes="fieldlbl" FontWeight="Bold" />
+
+          <TextBlock Text="Function" Classes="fieldlbl" />
+          <ComboBox
+            ItemsSource="{Binding Functions}"
+            SelectedItem="{Binding SelectedFunction}"
+            HorizontalAlignment="Stretch"
+          />
+
+          <TextBlock Text="Servo Min / Max" Classes="fieldlbl" Margin="0,6,0,0" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+            <NumericUpDown Grid.Column="0" Value="{Binding ServoMin}" Minimum="800" Maximum="2200" Increment="1" FormatString="0" />
+            <NumericUpDown Grid.Column="1" Value="{Binding ServoMax}" Minimum="800" Maximum="2200" Increment="1" FormatString="0" />
+          </Grid>
+
+          <TextBlock Text="Angle Min / Max" Classes="fieldlbl" Margin="0,6,0,0" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+            <NumericUpDown Grid.Column="0" Value="{Binding AngleMin}" Minimum="{Binding AngleMinLowerBound}" Maximum="{Binding AngleMinUpperBound}" Increment="1" FormatString="0" />
+            <NumericUpDown Grid.Column="1" Value="{Binding AngleMax}" Minimum="{Binding AngleMaxLowerBound}" Maximum="{Binding AngleMaxUpperBound}" Increment="1" FormatString="0" />
+          </Grid>
+
+          <CheckBox Content="Reverse" IsChecked="{Binding Reverse}" Margin="0,6,0,0" />
+
+          <TextBlock Text="Input RC Channel" Classes="fieldlbl" Margin="0,6,0,0" />
+          <ComboBox
+            ItemsSource="{Binding InputChannels}"
+            SelectedItem="{Binding SelectedInput}"
+            HorizontalAlignment="Stretch"
+          />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="12">
+      <TextBlock Classes="pagetitle" Text="Camera Gimbal" />
+
+      <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="6" ColumnSpacing="12">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Mount Type" VerticalAlignment="Center" />
+        <ComboBox
+          Grid.Row="0" Grid.Column="1"
+          MinWidth="200"
+          HorizontalAlignment="Left"
+          ItemsSource="{Binding MountTypes}"
+          SelectedItem="{Binding SelectedMountType}"
+        />
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Shutter" VerticalAlignment="Center" />
+        <ComboBox
+          Grid.Row="1" Grid.Column="1"
+          MinWidth="200"
+          HorizontalAlignment="Left"
+          ItemsSource="{Binding ShutterChannels}"
+          SelectedItem="{Binding SelectedShutter}"
+        />
+      </Grid>
+
+      <Grid ColumnDefinitions="*,*,*">
+        <ContentControl Grid.Column="0" Content="{Binding Tilt}" ContentTemplate="{StaticResource AxisTemplate}" />
+        <ContentControl Grid.Column="1" Content="{Binding Roll}" ContentTemplate="{StaticResource AxisTemplate}" />
+        <ContentControl Grid.Column="2" Content="{Binding Pan}" ContentTemplate="{StaticResource AxisTemplate}" />
+      </Grid>
+
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+        <Border Grid.Column="0" BorderBrush="#5A5A5A" BorderThickness="1" Padding="10">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Retract Angles (X / Y / Z)" Classes="fieldlbl" FontWeight="Bold" />
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+              <NumericUpDown Grid.Column="0" Value="{Binding RetractX}" Minimum="-180" Maximum="180" Increment="1" FormatString="0" />
+              <NumericUpDown Grid.Column="1" Value="{Binding RetractY}" Minimum="-180" Maximum="180" Increment="1" FormatString="0" />
+              <NumericUpDown Grid.Column="2" Value="{Binding RetractZ}" Minimum="-180" Maximum="180" Increment="1" FormatString="0" />
+            </Grid>
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" BorderBrush="#5A5A5A" BorderThickness="1" Padding="10">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Neutral Angles (X / Y / Z)" Classes="fieldlbl" FontWeight="Bold" />
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+              <NumericUpDown Grid.Column="0" Value="{Binding NeutralX}" Minimum="-180" Maximum="180" Increment="1" FormatString="0" />
+              <NumericUpDown Grid.Column="1" Value="{Binding NeutralY}" Minimum="-180" Maximum="180" Increment="1" FormatString="0" />
+              <NumericUpDown Grid.Column="2" Value="{Binding NeutralZ}" Minimum="-180" Maximum="180" Increment="1" FormatString="0" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <TextBlock Text="{Binding Status}" Foreground="#94C11F" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

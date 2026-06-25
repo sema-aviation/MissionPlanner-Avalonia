@@ -1,0 +1,38 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="520"
+  d:DesignHeight="480"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFrameTypeView"
+  x:DataType="cv:ConfigFrameTypeViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="8" IsEnabled="{Binding IsAvailable}">
+      <TextBlock Classes="pagetitle" Text="Frame Type" />
+      <TextBlock
+        Classes="fieldlbl"
+        TextWrapping="Wrap"
+        Text="Select the airframe configuration. The selection is written to the FRAME parameter."
+        Margin="0,0,0,8"
+      />
+
+      <Border BorderBrush="#262728" BorderThickness="1" Padding="12">
+        <StackPanel Spacing="10">
+          <RadioButton GroupName="frame" IsChecked="{Binding IsPlus}" Content="'+' Plus" Foreground="#DDDDDD" />
+          <RadioButton GroupName="frame" IsChecked="{Binding IsX}" Content="'X' , 'Y6A'" Foreground="#DDDDDD" />
+          <RadioButton GroupName="frame" IsChecked="{Binding IsV}" Content="'V'" Foreground="#DDDDDD" />
+          <RadioButton GroupName="frame" IsChecked="{Binding IsH}" Content="'H'" Foreground="#DDDDDD" />
+          <RadioButton GroupName="frame" IsChecked="{Binding IsY}" Content="'Y6B'" Foreground="#DDDDDD" />
+          <RadioButton GroupName="frame" IsChecked="{Binding IsVTail}" Content="'V-Tail'" Foreground="#DDDDDD" />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="{Binding Status}" Classes="fieldlbl" Margin="0,4,0,0" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
