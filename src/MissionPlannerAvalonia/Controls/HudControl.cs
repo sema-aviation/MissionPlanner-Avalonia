@@ -326,7 +326,7 @@ public class HudControl : Control {
           }
 
           double y = (Pitch - a) * perDeg;
-          if (Math.Abs(y) > h * 0.55) {
+          if (Math.Abs(y) > h * 0.38) {
             continue;
           }
 
@@ -396,24 +396,28 @@ public class HudControl : Control {
       DrawText(context, batt, new Point(2, h - fontsize - 4), fontsize, bb);
     }
 
-    // ---- bottom-right cluster: GPS (bottom), EKF/Vibe (mid), Prearm (top) ----
-    double ry0 = h - fontsize - 4;
-    double ry1 = h - 2 * fontsize - 8;
-    double ry2 = h - 3 * fontsize - 12;
+    // ---- bottom cluster (matches MP tempref): GPS bottom-right; EKF/Vibe + prearm
+    //      centred at the bottom; AS/GS + battery bottom-left ----
+    double byline = h - fontsize - 4;
     if (DisplayGps) {
       bool gps = SatCount >= 3;
       string g = gps ? $"GPS: 3D Fix ({SatCount:0})" : "GPS: No Fix";
-      DrawTextRight(context, g, w - 6, ry0, fontsize, gps ? Brushes.LimeGreen : Brushes.Red);
+      DrawTextRight(context, g, w - 6, byline, fontsize, gps ? Brushes.LimeGreen : Brushes.Red);
     }
-    double rightX = w - 6;
-    if (DisplayVibe) {
-      rightX -= DrawTextRight(context, "Vibe", rightX, ry1, fontsize, Brushes.White) + 12;
-    }
-    if (DisplayEkf) {
-      DrawTextRight(context, "EKF", rightX, ry1, fontsize, Brushes.White);
+    if (DisplayEkf || DisplayVibe) {
+      double ekfW = DisplayEkf ? MakeText("EKF", fontsize, null).Width : 0;
+      double vibeW = DisplayVibe ? MakeText("Vibe", fontsize, null).Width : 0;
+      double gap = DisplayEkf && DisplayVibe ? 16 : 0;
+      double startX = cx - (ekfW + gap + vibeW) / 2;
+      if (DisplayEkf) {
+        DrawText(context, "EKF", new Point(startX, byline), fontsize, Brushes.White);
+      }
+      if (DisplayVibe) {
+        DrawText(context, "Vibe", new Point(startX + ekfW + gap, byline), fontsize, Brushes.White);
+      }
     }
     if (DisplayPrearm && !Armed) {
-      DrawTextRight(context, "Not Ready to Arm", w - 6, ry2, fontsize, Brushes.Red);
+      DrawTextCenter(context, "Not Ready to Arm", cx, byline - fontsize - 6, fontsize, Brushes.Red);
     }
 
     // ---- custom user items (left) ----
@@ -426,8 +430,7 @@ public class HudControl : Control {
     }
 
     // ---- centre armed / disarmed ----
-    var arm = Armed ? "ARMED" : "DISARMED";
-    DrawText(context, arm, new Point(cx - fontsize * 2.5, h / 3.0), fontsize + 10, Brushes.Red);
+    DrawTextCenter(context, Armed ? "ARMED" : "DISARMED", cx, h / 3.0, fontsize + 10, Brushes.Red);
   }
 
   private void DrawHeadingTape(DrawingContext ctx, double w, double headH, double fontsize,
@@ -577,6 +580,12 @@ public class HudControl : Control {
     var ft = MakeText(text, size, brush);
     ctx.DrawText(ft, new Point(rightX - ft.Width, y));
     return ft.Width;
+  }
+
+  private void DrawTextCenter(DrawingContext ctx, string text, double centerX, double y, double size,
+      IBrush? brush = null) {
+    var ft = MakeText(text, size, brush);
+    ctx.DrawText(ft, new Point(centerX - ft.Width / 2, y));
   }
 
   private static FormattedText MakeText(string text, double size, IBrush? brush) {

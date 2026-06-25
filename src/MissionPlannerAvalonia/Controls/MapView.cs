@@ -18,9 +18,7 @@ public class MapView : MapControl {
   private bool _centered;
 
   public MapView() {
-    // dark backgrounds so no white shows around/behind tiles during resize
-    Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(0x26, 0x27, 0x28));
-    ClipToBounds = true;
+    // dark map background so no white shows behind tiles during resize
     var map = new Map { BackColor = new Color(0x26, 0x27, 0x28) };
     var esri = new HttpTileSource(
         new GlobalSphericalMercator(),

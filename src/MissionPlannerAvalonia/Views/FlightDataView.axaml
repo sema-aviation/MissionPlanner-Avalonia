@@ -189,7 +189,7 @@
               <Button Grid.Row="0" Grid.Column="2" Content="Auto" Command="{Binding QuickAutoCommand}" />
               <Button Grid.Row="0" Grid.Column="3" Content="Set Home Alt" Command="{Binding SetHomeCommand}" />
               <DockPanel Grid.Row="0" Grid.Column="4">
-                <NumericUpDown DockPanel.Dock="Right" Width="62" FormatString="0.0"
+                <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False" FormatString="0.0"
                                Value="{Binding ChangeSpeedValue}" />
                 <Button Content="Speed" Command="{Binding ChangeSpeedCommand}" />
               </DockPanel>
@@ -202,7 +202,7 @@
               <Button Grid.Row="1" Grid.Column="3" Content="Restart Mission"
                       Command="{Binding RestartMissionCommand}" />
               <DockPanel Grid.Row="1" Grid.Column="4">
-                <NumericUpDown DockPanel.Dock="Right" Width="62" FormatString="0.0"
+                <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False" FormatString="0.0"
                                Value="{Binding ChangeAltValue}" />
                 <Button Content="Alt" Command="{Binding ChangeAltCommand}" />
               </DockPanel>
@@ -215,7 +215,7 @@
               <Button Grid.Row="2" Grid.Column="3" Content="Raw Sensor View"
                       Command="{Binding RawSensorViewCommand}" />
               <DockPanel Grid.Row="2" Grid.Column="4">
-                <NumericUpDown DockPanel.Dock="Right" Width="62" FormatString="0"
+                <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False" FormatString="0"
                                Value="{Binding LoiterRadValue}" />
                 <Button Content="Loiter Rad" Command="{Binding SetLoiterRadCommand}" />
               </DockPanel>
@@ -267,7 +267,7 @@
                                    IsVisible="{Binding !Ok}" />
                       </Panel>
                       <!-- manual items are user-checkable; auto items reflect telemetry read-only -->
-                      <CheckBox Grid.Column="2" IsChecked="{Binding Ok}"
+                      <CheckBox Grid.Column="2" IsChecked="{Binding Ok, Mode=TwoWay}"
                                 IsHitTestVisible="{Binding Manual}" />
                     </Grid>
                   </DataTemplate>
@@ -516,6 +516,8 @@
 
     <GridSplitter Grid.Column="1" Background="#262728" ResizeDirection="Columns" />
 
-    <ctl:MapView Grid.Column="{Binding MapColumn}" />
+    <Border Grid.Column="{Binding MapColumn}" Background="#262728" ClipToBounds="True">
+      <ctl:MapView />
+    </Border>
   </Grid>
 </UserControl>
