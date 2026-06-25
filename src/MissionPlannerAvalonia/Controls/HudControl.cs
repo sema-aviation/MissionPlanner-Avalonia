@@ -84,6 +84,12 @@ public class HudControl : Control {
       AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayPrearm), true);
   public static readonly StyledProperty<double> NavBearingProperty =
       AvaloniaProperty.Register<HudControl, double>(nameof(NavBearing));
+  public static readonly StyledProperty<double> CurrentAmpsProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(CurrentAmps));
+  public static readonly StyledProperty<double> TargetAltProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(TargetAlt));
+  public static readonly StyledProperty<double> TargetSpeedProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(TargetSpeed));
   public static readonly StyledProperty<string> CustomItemsTextProperty =
       AvaloniaProperty.Register<HudControl, string>(nameof(CustomItemsText), "");
 
@@ -191,6 +197,18 @@ public class HudControl : Control {
     get => GetValue(NavBearingProperty);
     set => SetValue(NavBearingProperty, value);
   }
+  public double CurrentAmps {
+    get => GetValue(CurrentAmpsProperty);
+    set => SetValue(CurrentAmpsProperty, value);
+  }
+  public double TargetAlt {
+    get => GetValue(TargetAltProperty);
+    set => SetValue(TargetAltProperty, value);
+  }
+  public double TargetSpeed {
+    get => GetValue(TargetSpeedProperty);
+    set => SetValue(TargetSpeedProperty, value);
+  }
   public string CustomItemsText {
     get => GetValue(CustomItemsTextProperty);
     set => SetValue(CustomItemsTextProperty, value);
@@ -248,6 +266,9 @@ public class HudControl : Control {
         DisplayVibeProperty,
         DisplayPrearmProperty,
         NavBearingProperty,
+        CurrentAmpsProperty,
+        TargetAltProperty,
+        TargetSpeedProperty,
         CustomItemsTextProperty
     );
   }
@@ -269,6 +290,7 @@ public class HudControl : Control {
     }
   }
 
+  // Faithful port of MissionPlanner HUD.cs OnPaint (ExtLibs/Controls/HUD.cs).
   public override void Render(DrawingContext context) {
     var b = Bounds;
     double w = b.Width,
@@ -279,177 +301,271 @@ public class HudControl : Control {
 
     context.FillRectangle(Brushes.Black, new Rect(0, 0, w, h));
 
+    double fontsize = Math.Max(8, h / 30.0);
     double cx = w / 2,
-        cy = h / 2 + 14;
-    double pxPerDeg = h / 60.0;
+        cy = h / 2;
+    double perDeg = h / 65.0; // MP every5deg (per-degree) = -Height/65
+    double headH = h / 14.0;
+    var ground = GroundFill();
 
-    // Russian-style HUD: horizon stays level, aircraft symbol banks instead.
-    double horizonRoll = Russian ? 0 : Roll;
-    var groundFill = GroundFill();
-    using (context.PushClip(new Rect(0, 28, w, h - 28))) {
-      var m =
-          Matrix.CreateTranslation(-cx, -cy)
-          * Matrix.CreateRotation(-horizonRoll * Math.PI / 180.0)
-          * Matrix.CreateTranslation(cx, cy + Pitch * pxPerDeg);
-      using (context.PushTransform(m)) {
-        double big = Math.Max(w, h) * 2;
-        double hor = cy;
-        context.FillRectangle(SkyBrush, new Rect(cx - big, hor - big, big * 2, big));
-        context.FillRectangle(groundFill, new Rect(cx - big, hor, big * 2, big));
-        context.DrawLine(WhitePen, new Point(cx - big, hor), new Point(cx + big, hor));
+    // ---- attitude (sky/ground + pitch ladder), rotated by roll about centre ----
+    double rollRad = (Russian ? 0 : Roll) * Math.PI / 180.0;
+    using (context.PushClip(new Rect(0, headH, w, h - headH)))
+    using (context.PushTransform(Matrix.CreateTranslation(cx, cy)))
+    using (context.PushTransform(Matrix.CreateRotation(-rollRad))) {
+      double big = Math.Max(w, h) * 2;
+      double pitchoffset = Pitch * perDeg;
+      context.FillRectangle(SkyBrush, new Rect(-big, -big, big * 2, big + pitchoffset));
+      context.FillRectangle(ground, new Rect(-big, pitchoffset, big * 2, big * 2 - pitchoffset));
+      context.DrawLine(WhitePen, new Point(-big, pitchoffset), new Point(big, pitchoffset));
 
-        if (DisplayRollPitch) {
-          for (int p = -40; p <= 40; p += 10) {
-            if (p == 0) {
-              continue;
-            }
+      if (DisplayRollPitch) {
+        for (int a = -90; a <= 90; a += 5) {
+          if (a == 0) {
+            continue;
+          }
 
-            double y = hor - p * pxPerDeg;
-            double half = 44;
-            context.DrawLine(ThinPen, new Point(cx - half, y), new Point(cx + half, y));
-            DrawText(context, Math.Abs(p).ToString(), new Point(cx + half + 4, y - 7), 11);
-            DrawText(context, Math.Abs(p).ToString(), new Point(cx - half - 22, y - 7), 11);
+          double y = (Pitch - a) * perDeg;
+          if (Math.Abs(y) > h * 0.55) {
+            continue;
+          }
+
+          bool major = a % 10 == 0;
+          double len = major ? w / 10.0 : w / 14.0;
+          context.DrawLine(ThinPen, new Point(-len / 2, y), new Point(len / 2, y));
+          if (major) {
+            var br = TextBrush;
+            DrawText(context, Math.Abs(a).ToString(), new Point(len / 2 + 3, y - fontsize), fontsize,
+                br);
+            DrawText(context, Math.Abs(a).ToString(), new Point(-len / 2 - fontsize * 1.6,
+                y - fontsize), fontsize, br);
           }
         }
       }
     }
 
-    if (ShowIcons && DisplayRollPitch) {
-      DrawRollArc(context, cx, cy, Math.Min(w, h) * 0.42);
+    // ---- roll/bank arc + pointer (ticks rotate with roll, pointer fixed at top) ----
+    if (DisplayRollPitch) {
+      DrawRollArc(context, cx, cy, Math.Min(w, h) * 0.46);
     }
 
-    // center aircraft marker (banks with Roll in Russian mode)
-    using (Russian
-        ? context.PushTransform(Matrix.CreateRotation(-Roll * Math.PI / 180.0, new Point(cx, cy)))
-        : context.PushTransform(Matrix.Identity)) {
-      context.DrawLine(RedPen, new Point(cx - 45, cy), new Point(cx - 15, cy));
-      context.DrawLine(RedPen, new Point(cx + 15, cy), new Point(cx + 45, cy));
-      context.DrawLine(RedPen, new Point(cx - 15, cy), new Point(cx, cy + 12));
-      context.DrawLine(RedPen, new Point(cx, cy + 12), new Point(cx + 15, cy));
+    // ---- centre aircraft reticle (fixed; banks only in Russian mode) ----
+    var reticle = new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 0, 0)), 4);
+    using (context.PushTransform(Russian
+        ? Matrix.CreateRotation(-Roll * Math.PI / 180.0, new Point(cx, cy))
+        : Matrix.Identity)) {
+      double wing = w / 10.0;
+      context.DrawLine(reticle, new Point(cx - wing - wing, cy), new Point(cx - wing, cy));
+      context.DrawLine(reticle, new Point(cx + wing, cy), new Point(cx + wing + wing, cy));
+      context.DrawLine(reticle, new Point(cx - wing, cy), new Point(cx, cy + h / 18.0));
+      context.DrawLine(reticle, new Point(cx, cy + h / 18.0), new Point(cx + wing, cy));
     }
 
+    // ---- heading ribbon (top) ----
     if (DisplayHeading) {
-      DrawCompassTape(context, w, Yaw, NavBearing);
+      DrawHeadingTape(context, w, headH, fontsize, Yaw, NavBearing);
     }
 
+    // ---- speed tape (left) + altitude tape (right) ----
+    double tapeW = Math.Max(34, w / 10.0);
+    var speedRect = new Rect(0, cy - h / 4.0, tapeW, h / 2.0);
+    var altRect = new Rect(w - tapeW, cy - h / 4.0, tapeW, h / 2.0);
+    double spd = AirSpeed > 0 ? AirSpeed : GroundSpeed;
     if (DisplaySpeed) {
-      DrawTape(context, AirSpeed, new Point(4, cy), "AS");
-      DrawText(context, $"AS {AirSpeed:0.0}", new Point(6, h - 52), 12);
-      DrawText(context, $"GS {GroundSpeed:0.0}", new Point(6, h - 38), 12);
+      DrawScrollTape(context, speedRect, spd, TargetSpeed, false, fontsize, "");
+      DrawText(context, $"AS {AirSpeed:0.0}", new Point(2, speedRect.Bottom + 4), fontsize);
+      DrawText(context, $"GS {GroundSpeed:0.0}", new Point(2, speedRect.Bottom + fontsize + 8),
+          fontsize);
     }
     if (DisplayAlt) {
-      DrawTape(context, Alt, new Point(w - 70, cy), "ALT");
+      DrawScrollTape(context, altRect, Alt, TargetAlt, true, fontsize, "");
+      DrawVsi(context, altRect, VerticalSpeed);
+      var modeBrush = TextBrush;
+      DrawText(context, Mode, new Point(altRect.Left - 4, altRect.Bottom + 4), fontsize, modeBrush);
     }
 
+    // ---- bottom-left battery ----
     if (DisplayBattery) {
-      string batt = BatteryCells > 0
-          ? $"Batt {BatteryVoltage:0.00}v {BatteryVoltage / BatteryCells:0.00}v/cell {BatteryRemaining}%"
-          : $"Batt {BatteryVoltage:0.00}v {BatteryRemaining}%";
-      DrawText(
-          context,
-          batt,
-          new Point(6, h - 22),
-          12,
-          BatteryRemaining > 0 && BatteryRemaining < 20 ? Brushes.Red : TextBrush
-      );
+      string cell = (DisplayBattery && BatteryCells > 0)
+          ? $"Cell {BatteryVoltage / BatteryCells:0.00}v  "
+          : "";
+      string batt = $"{cell}Bat {BatteryVoltage:0.00}v {CurrentAmps:0.0} A {BatteryRemaining}%";
+      var bb = BatteryRemaining > 0 && BatteryRemaining < 20 ? Brushes.Red
+          : BatteryRemaining > 0 && BatteryRemaining < 30 ? Brushes.Orange
+          : TextBrush;
+      DrawText(context, batt, new Point(2, h - fontsize - 4), fontsize, bb);
     }
 
-    DrawText(context, $"{VerticalSpeed:+0.0;-0.0;0.0}", new Point(w - 64, h - 38), 12);
-    DrawText(context, Mode, new Point(w - 90, h - 22), 13);
-
-    var arm = Armed ? "ARMED" : "DISARMED";
-    var armBrush = Armed ? Brushes.LimeGreen : Brushes.Red;
-    DrawText(context, arm, new Point(cx - 36, cy + 40), 16, armBrush);
-    if (!Armed && DisplayPrearm) {
-      DrawText(context, "Not Ready to Arm", new Point(cx - 52, cy + 60), 12, Brushes.Yellow);
-    }
-
-    // EKF/Vibe status indicators (MP draws these centered under the attitude)
-    if (DisplayEkf) {
-      DrawText(context, "EKF", new Point(cx - 30, cy + 78), 11, Brushes.LightGray);
-    }
-    if (DisplayVibe) {
-      DrawText(context, "Vibe", new Point(cx + 10, cy + 78), 11, Brushes.LightGray);
-    }
-
+    // ---- bottom-right GPS / EKF / Vibe / Prearm ----
+    double rx = w - tapeW - 6;
     if (DisplayGps) {
       bool gps = SatCount >= 3;
-      DrawText(
-          context,
-          gps ? $"GPS: 3D ({SatCount:0})" : "GPS: No GPS",
-          new Point(cx - 50, h - 18),
-          12,
-          gps ? Brushes.LimeGreen : Brushes.Red
-      );
+      string g = SatCount >= 3 ? $"GPS: 3D Fix ({SatCount:0})" : "GPS: No Fix";
+      DrawText(context, g, new Point(w - 13 * fontsize, h - fontsize - 4), fontsize,
+          gps ? Brushes.LimeGreen : Brushes.Red);
+    }
+    if (DisplayEkf) {
+      DrawText(context, "EKF", new Point(w - 21 * fontsize, h - 2 * fontsize - 8), fontsize,
+          Brushes.White);
+    }
+    if (DisplayVibe) {
+      DrawText(context, "Vibe", new Point(w - 17 * fontsize, h - 2 * fontsize - 8), fontsize,
+          Brushes.White);
+    }
+    if (DisplayPrearm && !Armed) {
+      DrawText(context, "Not Ready to Arm", new Point(w - 24 * fontsize, h - 3 * fontsize - 12),
+          fontsize, Brushes.Red);
     }
 
+    // ---- custom user items (left) ----
     if (!string.IsNullOrEmpty(CustomItemsText)) {
-      double yy = 30;
+      double yy = headH + 4;
       foreach (var line in CustomItemsText.Split('\n')) {
-        DrawText(context, line, new Point(w - 150, yy), 11, Brushes.White);
-        yy += 14;
+        DrawText(context, line, new Point(4, yy), fontsize, Brushes.White);
+        yy += fontsize + 3;
       }
     }
+
+    // ---- centre armed / disarmed ----
+    var arm = Armed ? "ARMED" : "DISARMED";
+    DrawText(context, arm, new Point(cx - fontsize * 2.5, h / 3.0), fontsize + 10, Brushes.Red);
   }
 
-  private void DrawCompassTape(DrawingContext ctx, double w, double yaw, double navBearing) {
-    double cx = w / 2;
-    ctx.FillRectangle(Tape, new Rect(0, 0, w, 24));
-    double pxPerDeg = 4;
-    for (int d = -60; d <= 60; d += 5) {
-      int hdg = ((int)Math.Round(yaw) + d + 360) % 360;
-      double x = cx + d * pxPerDeg;
-      if (x < 0 || x > w) {
-        continue;
-      }
-
+  private void DrawHeadingTape(DrawingContext ctx, double w, double headH, double fontsize,
+      double yaw, double navBearing) {
+    var bg = new Rect(0, 0, w, headH);
+    ctx.FillRectangle(Tape, bg);
+    ctx.DrawRectangle(null, new Pen(Brushes.Black, 2), bg);
+    double space = (w - 10) / 120.0;
+    int yawi = (int)Math.Round(yaw);
+    for (int d = -60; d <= 60; d++) {
+      int hdg = ((yawi + d) % 360 + 360) % 360;
+      double x = w / 2 + d * space;
       bool major = hdg % 15 == 0;
-      ctx.DrawLine(ThinPen, new Point(x, major ? 4 : 10), new Point(x, 16));
+      if (hdg % 5 == 0) {
+        ctx.DrawLine(WhitePen, new Point(x, headH - 5), new Point(x, headH - 10));
+      }
       if (major) {
         string lbl = hdg switch {
           0 => "N",
+          45 => "NE",
           90 => "E",
+          135 => "SE",
           180 => "S",
+          225 => "SW",
           270 => "W",
-          _ => hdg.ToString(),
+          315 => "NW",
+          _ => hdg.ToString("000"),
         };
-        DrawText(ctx, lbl, new Point(x - 7, 2), 10);
+        DrawText(ctx, lbl, new Point(x - fontsize, 1), fontsize, Brushes.White);
       }
     }
-    // nav bearing (target heading) marker — distinct color, like MP's map heading vectors
+    // target heading (nav bearing) — green marker, like MP
     if (navBearing != 0) {
       double delta = ((navBearing - yaw + 540) % 360) - 180;
-      if (Math.Abs(delta) <= 60) {
-        double nx = cx + delta * pxPerDeg;
-        ctx.DrawLine(new Pen(Brushes.Magenta, 2), new Point(nx, 0), new Point(nx, 22));
+      if (Math.Abs(delta) >= 4 && Math.Abs(delta) <= 60) {
+        double nx = w / 2 + delta * space;
+        ctx.DrawLine(new Pen(Brushes.Green, 6), new Point(nx, 0), new Point(nx, headH));
       }
     }
-    // current heading marker (yellow)
-    ctx.DrawLine(new Pen(Brushes.Yellow, 2), new Point(cx, 0), new Point(cx, 22));
+    // current heading box + value (yellow centre line)
+    double bw = fontsize * 2.6;
+    var box = new Rect(w / 2 - bw / 2, 0, bw, headH);
+    ctx.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), box);
+    DrawText(ctx, yawi.ToString("000"), new Point(w / 2 - fontsize, headH / 2 - fontsize / 2),
+        fontsize, Brushes.Black);
   }
 
   private void DrawRollArc(DrawingContext ctx, double cx, double cy, double r) {
-    using (ctx.PushTransform(Matrix.CreateRotation(-Roll * Math.PI / 180.0, new Point(cx, cy)))) {
-      foreach (int a in new[] { -45, -30, -20, -10, 0, 10, 20, 30, 45 }) {
+    var c = new Point(cx, cy);
+    using (ctx.PushTransform(Matrix.CreateRotation(-Roll * Math.PI / 180.0, c))) {
+      foreach (int a in new[] { -60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60 }) {
         double rad = (a - 90) * Math.PI / 180.0;
-        double x1 = cx + r * Math.Cos(rad),
-            y1 = cy + r * Math.Sin(rad);
         double len = a == 0 ? 12 : 7;
-        double x2 = cx + (r - len) * Math.Cos(rad),
-            y2 = cy + (r - len) * Math.Sin(rad);
-        ctx.DrawLine(ThinPen, new Point(x1, y1), new Point(x2, y2));
+        ctx.DrawLine(WhitePen,
+            new Point(cx + r * Math.Cos(rad), cy + r * Math.Sin(rad)),
+            new Point(cx + (r - len) * Math.Cos(rad), cy + (r - len) * Math.Sin(rad)));
       }
+      // arc curve
+      var geo = new StreamGeometry();
+      using (var g = geo.Open()) {
+        double a0 = -150 * Math.PI / 180.0;
+        g.BeginFigure(new Point(cx + r * Math.Cos(a0), cy + r * Math.Sin(a0)), false);
+        for (int a = -60; a <= 60; a += 4) {
+          double rad = (a - 90) * Math.PI / 180.0;
+          g.LineTo(new Point(cx + r * Math.Cos(rad), cy + r * Math.Sin(rad)));
+        }
+        g.EndFigure(false);
+      }
+      ctx.DrawGeometry(null, WhitePen, geo);
     }
-    ctx.DrawLine(new Pen(Brushes.Yellow, 2), new Point(cx, cy - r), new Point(cx - 6, cy - r + 10));
-    ctx.DrawLine(new Pen(Brushes.Yellow, 2), new Point(cx, cy - r), new Point(cx + 6, cy - r + 10));
+    // fixed bank pointer (red triangle) at top
+    var pen = new Pen(Brushes.Red, Math.Abs(Roll) > 45 ? 4 : 2);
+    ctx.DrawLine(pen, new Point(cx, cy - r), new Point(cx - 8, cy - r + 12));
+    ctx.DrawLine(pen, new Point(cx, cy - r), new Point(cx + 8, cy - r + 12));
   }
 
-  private void DrawTape(DrawingContext ctx, double value, Point at, string label) {
-    var rect = new Rect(at.X, at.Y - 16, 64, 32);
+  private void DrawScrollTape(DrawingContext ctx, Rect rect, double value, double target,
+      bool leftSide, double fontsize, string suffix) {
     ctx.FillRectangle(Tape, rect);
-    ctx.DrawRectangle(WhitePen, rect);
-    DrawText(ctx, value.ToString("0.0", CultureInfo.InvariantCulture), new Point(at.X + 6, at.Y - 8), 13);
-    DrawText(ctx, label, new Point(at.X + 6, at.Y - 30), 10);
+    ctx.DrawRectangle(null, WhitePen, rect);
+    const double viewrange = 26;
+    double space = rect.Height / viewrange;
+    double midY = rect.Center.Y;
+    using (ctx.PushClip(rect)) {
+      int start = (int)Math.Floor(value - viewrange / 2);
+      int end = (int)Math.Ceiling(value + viewrange / 2);
+      for (int iv = start; iv <= end; iv++) {
+        double y = midY - (iv - value) * space;
+        if (iv % 5 == 0) {
+          if (leftSide) {
+            ctx.DrawLine(WhitePen, new Point(rect.Left, y), new Point(rect.Left + 8, y));
+            DrawText(ctx, iv.ToString(), new Point(rect.Left + 10, y - fontsize / 2), fontsize - 1,
+                Brushes.White);
+          } else {
+            ctx.DrawLine(WhitePen, new Point(rect.Right - 8, y), new Point(rect.Right, y));
+            DrawText(ctx, iv.ToString(), new Point(rect.Left + 2, y - fontsize / 2), fontsize - 1,
+                Brushes.White);
+          }
+        }
+      }
+      // target marker (green)
+      if (target != 0 && Math.Abs(target - value) < viewrange / 2) {
+        double ty = midY - (target - value) * space;
+        ctx.DrawLine(new Pen(Brushes.Green, 4), new Point(rect.Left, ty), new Point(rect.Right, ty));
+      }
+    }
+    // centre value box
+    double bh = fontsize + 6;
+    var box = new Rect(rect.Left, midY - bh / 2, rect.Width, bh);
+    ctx.FillRectangle(new SolidColorBrush(Color.FromArgb(210, 0, 0, 0)), box);
+    ctx.DrawRectangle(null, WhitePen, box);
+    DrawText(ctx, ((int)Math.Round(value)).ToString(), new Point(rect.Left + 3, midY - fontsize / 2),
+        fontsize, Brushes.AliceBlue);
+  }
+
+  private void DrawVsi(DrawingContext ctx, Rect altRect, double vspeed) {
+    double vw = altRect.Width / 4.0;
+    double left = altRect.Left - vw;
+    var box = new StreamGeometry();
+    using (var g = box.Open()) {
+      g.BeginFigure(new Point(altRect.Left, altRect.Top), false);
+      g.LineTo(new Point(left, altRect.Top + vw));
+      g.LineTo(new Point(left, altRect.Bottom - vw));
+      g.LineTo(new Point(altRect.Left, altRect.Bottom));
+      g.EndFigure(false);
+    }
+    ctx.DrawGeometry(null, WhitePen, box);
+    double mid = altRect.Center.Y;
+    double scaled = Math.Clamp(vspeed / 12.0, -1, 1) * (altRect.Height / 2 - 4);
+    var tri = new StreamGeometry();
+    using (var g = tri.Open()) {
+      g.BeginFigure(new Point(altRect.Left, mid), true);
+      g.LineTo(new Point(left + 2, mid - scaled));
+      g.LineTo(new Point(altRect.Left, mid - scaled));
+      g.EndFigure(true);
+    }
+    ctx.DrawGeometry(Brushes.Blue, null, tri);
   }
 
   private void DrawText(DrawingContext ctx, string text, Point at, double size, IBrush? brush = null) {

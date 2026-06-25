@@ -35,6 +35,7 @@
           BatteryCells="{Binding HudBatteryCells}"
           GroundColorHex="{Binding HudGroundColor}"
           NavBearing="{Binding NavBearing}"
+          CurrentAmps="{Binding BatCurrent}"
           CustomItemsText="{Binding HudCustomText}"
           DisplayHeading="{Binding HudHeading}"
           DisplaySpeed="{Binding HudSpeed}"
@@ -59,28 +60,28 @@
               </MenuItem>
               <MenuItem Header="Set Aspect Ratio" Command="{Binding SetAspectRatioCommand}" />
               <MenuItem Header="User Items" Command="{Binding HudUserItemsCommand}" />
-              <MenuItem Header="Russian Hud" ToggleType="CheckBox" IsChecked="{Binding HudRussian}" />
+              <MenuItem Header="Russian Hud" ToggleType="CheckBox" IsChecked="{Binding HudRussian, Mode=TwoWay}" />
               <MenuItem Header="Swap With Map" Command="{Binding SwapHudMapCommand}" />
               <MenuItem Header="Ground Color" Command="{Binding SetGroundColorCommand}" />
               <MenuItem Header="Battery Cell Voltage" Command="{Binding SetBatteryCellsCommand}" />
-              <MenuItem Header="Show icons" ToggleType="CheckBox" IsChecked="{Binding HudShowIcons}" />
+              <MenuItem Header="Show icons" ToggleType="CheckBox" IsChecked="{Binding HudShowIcons, Mode=TwoWay}" />
               <MenuItem Header="Herelink Video">
                 <MenuItem Header="HereLink Video" Command="{Binding HudVideoNotPortedCommand}" />
               </MenuItem>
               <MenuItem Header="HUD Items">
-                <MenuItem Header="Heading" ToggleType="CheckBox" IsChecked="{Binding HudHeading}" />
-                <MenuItem Header="Speed" ToggleType="CheckBox" IsChecked="{Binding HudSpeed}" />
-                <MenuItem Header="Alt" ToggleType="CheckBox" IsChecked="{Binding HudAlt}" />
-                <MenuItem Header="Connection" ToggleType="CheckBox" IsChecked="{Binding HudConnection}" />
-                <MenuItem Header="X-Track" ToggleType="CheckBox" IsChecked="{Binding HudXTrack}" />
-                <MenuItem Header="Roll/Pitch" ToggleType="CheckBox" IsChecked="{Binding HudRollPitch}" />
-                <MenuItem Header="GPS" ToggleType="CheckBox" IsChecked="{Binding HudGps}" />
-                <MenuItem Header="Battery" ToggleType="CheckBox" IsChecked="{Binding HudBattery}" />
-                <MenuItem Header="Battery2" ToggleType="CheckBox" IsChecked="{Binding HudBattery2}" />
-                <MenuItem Header="EKF" ToggleType="CheckBox" IsChecked="{Binding HudEkf}" />
-                <MenuItem Header="Vibe" ToggleType="CheckBox" IsChecked="{Binding HudVibe}" />
-                <MenuItem Header="Prearm Status" ToggleType="CheckBox" IsChecked="{Binding HudPrearm}" />
-                <MenuItem Header="AOA" ToggleType="CheckBox" IsChecked="{Binding HudAoa}" />
+                <MenuItem Header="Heading" ToggleType="CheckBox" IsChecked="{Binding HudHeading, Mode=TwoWay}" />
+                <MenuItem Header="Speed" ToggleType="CheckBox" IsChecked="{Binding HudSpeed, Mode=TwoWay}" />
+                <MenuItem Header="Alt" ToggleType="CheckBox" IsChecked="{Binding HudAlt, Mode=TwoWay}" />
+                <MenuItem Header="Connection" ToggleType="CheckBox" IsChecked="{Binding HudConnection, Mode=TwoWay}" />
+                <MenuItem Header="X-Track" ToggleType="CheckBox" IsChecked="{Binding HudXTrack, Mode=TwoWay}" />
+                <MenuItem Header="Roll/Pitch" ToggleType="CheckBox" IsChecked="{Binding HudRollPitch, Mode=TwoWay}" />
+                <MenuItem Header="GPS" ToggleType="CheckBox" IsChecked="{Binding HudGps, Mode=TwoWay}" />
+                <MenuItem Header="Battery" ToggleType="CheckBox" IsChecked="{Binding HudBattery, Mode=TwoWay}" />
+                <MenuItem Header="Battery2" ToggleType="CheckBox" IsChecked="{Binding HudBattery2, Mode=TwoWay}" />
+                <MenuItem Header="EKF" ToggleType="CheckBox" IsChecked="{Binding HudEkf, Mode=TwoWay}" />
+                <MenuItem Header="Vibe" ToggleType="CheckBox" IsChecked="{Binding HudVibe, Mode=TwoWay}" />
+                <MenuItem Header="Prearm Status" ToggleType="CheckBox" IsChecked="{Binding HudPrearm, Mode=TwoWay}" />
+                <MenuItem Header="AOA" ToggleType="CheckBox" IsChecked="{Binding HudAoa, Mode=TwoWay}" />
               </MenuItem>
             </ContextMenu>
           </ctl:HudControl.ContextMenu>
