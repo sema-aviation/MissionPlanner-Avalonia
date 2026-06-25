@@ -107,9 +107,13 @@ public partial class FlightDataViewModel : ViewModelBase {
     for (int i = 1; i <= 8; i++) {
       Servos.Add(new ServoOut(i));
     }
-    // MP tabServo = servoOptions for output channels 5..16
+    // MP flowLayoutPanelServos = servoOptions ch5..16 then relayOptions 0..3,
+    // wrapped into 2 columns (8 rows each). Single list + vertical wrap reproduces it.
     for (int ch = 5; ch <= 16; ch++) {
-      ServoChannels.Add(new ServoChannel(ch));
+      ServoRelayItems.Add(new ServoChannel(ch));
+    }
+    for (int r = 0; r < 4; r++) {
+      ServoRelayItems.Add(new RelayChannel(r));
     }
     // MP tabAuxFunction = 7 auxOptions (RCx_OPTION combos)
     for (int ch = 7; ch <= 13; ch++) {
@@ -204,6 +208,9 @@ public partial class FlightDataViewModel : ViewModelBase {
   // ---- PreFlight tab (checklist with live status) ----
   public ObservableCollection<CheckItem> PreflightChecks { get; } = new();
 
+  // first N are auto (telemetry-driven); the rest are manual user items the Edit dialog manages.
+  private const int AutoCheckCount = 6;
+
   private void RefreshPreflight(MissionPlanner.CurrentState cs) {
     if (PreflightChecks.Count == 0) {
       PreflightChecks.Add(new CheckItem("Ready GPS"));
@@ -212,6 +219,8 @@ public partial class FlightDataViewModel : ViewModelBase {
       PreflightChecks.Add(new CheckItem("Battery Level"));
       PreflightChecks.Add(new CheckItem("Mode"));
       PreflightChecks.Add(new CheckItem("Check Altitude"));
+      PreflightChecks.Add(new CheckItem("Tail and wings secured?", manual: true));
+      PreflightChecks.Add(new CheckItem("All servos respond to input?", manual: true));
     }
     PreflightChecks[0].Set($"{cs.satcount} >= 3", cs.satcount >= 3);
     PreflightChecks[1].Set($"{cs.satcount} Sats", cs.satcount >= 3);
@@ -221,8 +230,59 @@ public partial class FlightDataViewModel : ViewModelBase {
     PreflightChecks[5].Set($"{cs.alt:0.0} m", cs.alt < 5);
   }
 
-  // ---- Servo/Relay tab (per-channel Low/Mid/High/Toggle) ----
-  public ObservableCollection<ServoChannel> ServoChannels { get; } = new();
+  [RelayCommand]
+  private async Task EditPreflight() {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return;
+    }
+    var current = string.Join(
+        Environment.NewLine,
+        PreflightChecks.Skip(AutoCheckCount).Select(c => c.Name));
+    var box = new Avalonia.Controls.TextBox {
+      Text = current,
+      AcceptsReturn = true,
+      MinWidth = 360,
+      MinHeight = 180,
+    };
+    var ok = new Avalonia.Controls.Button {
+      Content = "Save",
+      HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+    };
+    var dlg = new Avalonia.Controls.Window {
+      Title = "Edit Checklist Items",
+      Width = 400,
+      Height = 280,
+      WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
+      Content = new Avalonia.Controls.StackPanel {
+        Margin = new Avalonia.Thickness(10),
+        Spacing = 8,
+        Children = {
+          new Avalonia.Controls.TextBlock { Text = "One checklist item per line:" },
+          box,
+          ok,
+        },
+      },
+    };
+    ok.Click += (_, _) => dlg.Close(box.Text);
+    var result = await dlg.ShowDialog<string?>(top);
+    if (result == null) {
+      return;
+    }
+    for (int i = PreflightChecks.Count - 1; i >= AutoCheckCount; i--) {
+      PreflightChecks.RemoveAt(i);
+    }
+    foreach (var line in result.Split('\n')) {
+      var name = line.Trim();
+      if (name.Length > 0) {
+        PreflightChecks.Add(new CheckItem(name, manual: true));
+      }
+    }
+  }
+
+  // ---- Servo/Relay tab (servoOptions ch5-16 + relayOptions 0-3) ----
+  public ObservableCollection<object> ServoRelayItems { get; } = new();
 
   // ---- Aux Function tab (RCx_OPTION combos) ----
   public ObservableCollection<AuxRow> AuxOptions { get; } = new();
@@ -237,7 +297,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     if (parts.Length != 2 || !int.TryParse(parts[0], out int ch)) {
       return;
     }
-    var chan = ServoChannels.FirstOrDefault(s => s.Number == ch);
+    var chan = ServoRelayItems.OfType<ServoChannel>().FirstOrDefault(s => s.Number == ch);
     int pwm = parts[1] switch {
       "low" => chan?.Min ?? 1100,
       "high" => chan?.Max ?? 1900,
@@ -263,6 +323,10 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _redirectOutput = true;
 
+  // MP shows Edit/Run/Abort only after a script is selected.
+  [ObservableProperty]
+  private bool _scriptSelected;
+
   [RelayCommand]
   private async Task SelectScript() {
     var top = (Avalonia.Application.Current?.ApplicationLifetime
@@ -274,6 +338,7 @@ public partial class FlightDataViewModel : ViewModelBase {
         new Avalonia.Platform.Storage.FilePickerOpenOptions { Title = "Select script", AllowMultiple = false });
     if (files.Count > 0) {
       SelectedScript = files[0].Name;
+      ScriptSelected = true;
       ScriptStatus = "Python scripting engine is not bundled in this cross-platform build.";
     }
   }
@@ -645,17 +710,22 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log($"Servo {n} -> {pwm} us");
   }
 
+  // RelayOptions Low/High/Toggle. spec = "idx:low|high|toggle"
   [RelayCommand]
   [Obsolete]
-  private async Task ToggleRelay(string number) {
-    if (!Connected) {
-      Messages += "Not connected.\n";
+  private async Task SetRelay(string spec) {
+    if (!Connected || spec == null) {
       return;
     }
-    if (!int.TryParse(number, out int idx)) {
+    var parts = spec.Split(':');
+    if (parts.Length != 2 || !int.TryParse(parts[0], out int idx) || idx >= _relayState.Length) {
       return;
     }
-    bool on = !_relayState[idx];
+    bool on = parts[1] switch {
+      "low" => false,
+      "high" => true,
+      _ => !_relayState[idx],
+    };
     _relayState[idx] = on;
     await Task.Run(() =>
         _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.DO_SET_RELAY,
@@ -699,9 +769,99 @@ public partial class FlightDataViewModel : ViewModelBase {
   }
 
   private void Log(string m) => Messages += m + "\n";
+
+  // ---- HUD right-click options (mirror MP contextMenuStripHud) ----
+  [ObservableProperty]
+  private bool _hudShowIcons = true;
+
+  [ObservableProperty]
+  private bool _hudRussian;
+
+  [ObservableProperty]
+  private int _hudBatteryCells;
+
+  [ObservableProperty]
+  private string _hudGroundColor = "";
+
+  [ObservableProperty]
+  private int _hudColumn;
+
+  [ObservableProperty]
+  private int _mapColumn = 2;
+
+  private static readonly string[] GroundColors =
+      { "", "#9BB824", "#8B5A2B", "#C8781E", "#556B2F" };
+  private int _groundColorIdx;
+
+  [RelayCommand]
+  private void ToggleHudIcons() => HudShowIcons = !HudShowIcons;
+
+  [RelayCommand]
+  private void ToggleRussianHud() => HudRussian = !HudRussian;
+
+  [RelayCommand]
+  private void SetGroundColor() {
+    _groundColorIdx = (_groundColorIdx + 1) % GroundColors.Length;
+    HudGroundColor = GroundColors[_groundColorIdx];
+  }
+
+  [RelayCommand]
+  private void SwapHudMap() => (HudColumn, MapColumn) = (MapColumn, HudColumn);
+
+  [RelayCommand]
+  private async Task SetBatteryCells() {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return;
+    }
+    var box = new Avalonia.Controls.NumericUpDown {
+      Minimum = 0,
+      Maximum = 14,
+      Value = HudBatteryCells,
+      Width = 120,
+    };
+    var ok = new Avalonia.Controls.Button {
+      Content = "OK",
+      HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+    };
+    var dlg = new Avalonia.Controls.Window {
+      Title = "Battery Cell Count",
+      Width = 220,
+      Height = 140,
+      WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
+      Content = new Avalonia.Controls.StackPanel {
+        Margin = new Avalonia.Thickness(10),
+        Spacing = 8,
+        Children = {
+          new Avalonia.Controls.TextBlock { Text = "Cells (0 = auto):" },
+          box,
+          ok,
+        },
+      },
+    };
+    ok.Click += (_, _) => dlg.Close(true);
+    var res = await dlg.ShowDialog<bool>(top);
+    if (res) {
+      HudBatteryCells = (int)(box.Value ?? 0);
+    }
+  }
+
+  [RelayCommand]
+  private void HudUserItems() =>
+      Log("HUD User Items: custom display fields are configured in MP's HUD dialog (not yet ported).");
 }
 
 public record AuxRow(int Channel, ParamField Field);
+
+public class RelayChannel {
+  public RelayChannel(int index) {
+    Index = index;
+  }
+
+  public int Index { get; }
+  public string Label => $"Relay {Index + 1}";
+}
 
 public partial class ServoOut : ObservableObject {
   public ServoOut(int number) {
@@ -726,11 +886,16 @@ public partial class StatusItem : ObservableObject {
 }
 
 public partial class CheckItem : ObservableObject {
-  public CheckItem(string name) {
+  public CheckItem(string name, bool manual = false) {
     Name = name;
+    Manual = manual;
   }
 
-  public string Name { get; }
+  [ObservableProperty]
+  private string _name;
+
+  // Manual items have no telemetry value; the user toggles the checkbox themselves.
+  public bool Manual { get; }
 
   [ObservableProperty]
   private string _value = "";

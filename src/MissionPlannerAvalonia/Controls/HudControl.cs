@@ -53,6 +53,16 @@ public class HudControl : Control {
       int
   >(nameof(BatteryRemaining));
 
+  // HUD right-click options (mirror MP contextMenuStripHud)
+  public static readonly StyledProperty<bool> ShowIconsProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(ShowIcons), true);
+  public static readonly StyledProperty<bool> RussianProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(Russian));
+  public static readonly StyledProperty<int> BatteryCellsProperty =
+      AvaloniaProperty.Register<HudControl, int>(nameof(BatteryCells));
+  public static readonly StyledProperty<string> GroundColorHexProperty =
+      AvaloniaProperty.Register<HudControl, string>(nameof(GroundColorHex), "");
+
   public double Roll {
     get => GetValue(RollProperty);
     set => SetValue(RollProperty, value);
@@ -101,6 +111,22 @@ public class HudControl : Control {
     get => GetValue(BatteryRemainingProperty);
     set => SetValue(BatteryRemainingProperty, value);
   }
+  public bool ShowIcons {
+    get => GetValue(ShowIconsProperty);
+    set => SetValue(ShowIconsProperty, value);
+  }
+  public bool Russian {
+    get => GetValue(RussianProperty);
+    set => SetValue(RussianProperty, value);
+  }
+  public int BatteryCells {
+    get => GetValue(BatteryCellsProperty);
+    set => SetValue(BatteryCellsProperty, value);
+  }
+  public string GroundColorHex {
+    get => GetValue(GroundColorHexProperty);
+    set => SetValue(GroundColorHexProperty, value);
+  }
 
   private static readonly IBrush SkyBrush = new LinearGradientBrush {
     StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
@@ -139,8 +165,29 @@ public class HudControl : Control {
         ArmedProperty,
         ModeProperty,
         BatteryVoltageProperty,
-        BatteryRemainingProperty
+        BatteryRemainingProperty,
+        ShowIconsProperty,
+        RussianProperty,
+        BatteryCellsProperty,
+        GroundColorHexProperty
     );
+  }
+
+  private IBrush GroundFill() {
+    if (string.IsNullOrEmpty(GroundColorHex)) {
+      return GroundBrush;
+    }
+    try {
+      var top = Color.Parse(GroundColorHex);
+      var bot = Color.FromArgb(top.A, (byte)(top.R / 2), (byte)(top.G / 2), (byte)(top.B / 2));
+      return new LinearGradientBrush {
+        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+        EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+        GradientStops = { new GradientStop(top, 0), new GradientStop(bot, 1) },
+      };
+    } catch {
+      return GroundBrush;
+    }
   }
 
   public override void Render(DrawingContext context) {
@@ -157,16 +204,19 @@ public class HudControl : Control {
         cy = h / 2 + 14;
     double pxPerDeg = h / 60.0;
 
+    // Russian-style HUD: horizon stays level, aircraft symbol banks instead.
+    double horizonRoll = Russian ? 0 : Roll;
+    var groundFill = GroundFill();
     using (context.PushClip(new Rect(0, 28, w, h - 28))) {
       var m =
           Matrix.CreateTranslation(-cx, -cy)
-          * Matrix.CreateRotation(-Roll * Math.PI / 180.0)
+          * Matrix.CreateRotation(-horizonRoll * Math.PI / 180.0)
           * Matrix.CreateTranslation(cx, cy + Pitch * pxPerDeg);
       using (context.PushTransform(m)) {
         double big = Math.Max(w, h) * 2;
         double hor = cy;
         context.FillRectangle(SkyBrush, new Rect(cx - big, hor - big, big * 2, big));
-        context.FillRectangle(GroundBrush, new Rect(cx - big, hor, big * 2, big));
+        context.FillRectangle(groundFill, new Rect(cx - big, hor, big * 2, big));
         context.DrawLine(WhitePen, new Point(cx - big, hor), new Point(cx + big, hor));
 
         for (int p = -40; p <= 40; p += 10) {
@@ -183,23 +233,35 @@ public class HudControl : Control {
       }
     }
 
-    DrawRollArc(context, cx, cy, Math.Min(w, h) * 0.42);
+    if (ShowIcons) {
+      DrawRollArc(context, cx, cy, Math.Min(w, h) * 0.42);
+    }
 
-    context.DrawLine(RedPen, new Point(cx - 45, cy), new Point(cx - 15, cy));
-    context.DrawLine(RedPen, new Point(cx + 15, cy), new Point(cx + 45, cy));
-    context.DrawLine(RedPen, new Point(cx - 15, cy), new Point(cx, cy + 12));
-    context.DrawLine(RedPen, new Point(cx, cy + 12), new Point(cx + 15, cy));
+    // center aircraft marker (banks with Roll in Russian mode)
+    using (Russian
+        ? context.PushTransform(Matrix.CreateRotation(-Roll * Math.PI / 180.0, new Point(cx, cy)))
+        : context.PushTransform(Matrix.Identity)) {
+      context.DrawLine(RedPen, new Point(cx - 45, cy), new Point(cx - 15, cy));
+      context.DrawLine(RedPen, new Point(cx + 15, cy), new Point(cx + 45, cy));
+      context.DrawLine(RedPen, new Point(cx - 15, cy), new Point(cx, cy + 12));
+      context.DrawLine(RedPen, new Point(cx, cy + 12), new Point(cx + 15, cy));
+    }
 
-    DrawCompassTape(context, w, Yaw);
+    if (ShowIcons) {
+      DrawCompassTape(context, w, Yaw);
+    }
 
     DrawTape(context, AirSpeed, new Point(4, cy), "AS");
     DrawTape(context, Alt, new Point(w - 70, cy), "ALT");
 
+    string batt = BatteryCells > 0
+        ? $"Batt {BatteryVoltage:0.00}v {BatteryVoltage / BatteryCells:0.00}v/cell {BatteryRemaining}%"
+        : $"Batt {BatteryVoltage:0.00}v {BatteryRemaining}%";
     DrawText(context, $"AS {AirSpeed:0.0}", new Point(6, h - 52), 12);
     DrawText(context, $"GS {GroundSpeed:0.0}", new Point(6, h - 38), 12);
     DrawText(
         context,
-        $"Batt {BatteryVoltage:0.00}v {BatteryRemaining}%",
+        batt,
         new Point(6, h - 22),
         12,
         BatteryRemaining > 0 && BatteryRemaining < 20 ? Brushes.Red : TextBrush
@@ -215,14 +277,16 @@ public class HudControl : Control {
       DrawText(context, "Not Ready to Arm", new Point(cx - 52, cy + 60), 12, Brushes.Yellow);
     }
 
-    bool gps = SatCount >= 3;
-    DrawText(
-        context,
-        gps ? $"GPS: 3D ({SatCount:0})" : "GPS: No GPS",
-        new Point(cx - 50, h - 18),
-        12,
-        gps ? Brushes.LimeGreen : Brushes.Red
-    );
+    if (ShowIcons) {
+      bool gps = SatCount >= 3;
+      DrawText(
+          context,
+          gps ? $"GPS: 3D ({SatCount:0})" : "GPS: No GPS",
+          new Point(cx - 50, h - 18),
+          12,
+          gps ? Brushes.LimeGreen : Brushes.Red
+      );
+    }
   }
 
   private void DrawCompassTape(DrawingContext ctx, double w, double yaw) {
