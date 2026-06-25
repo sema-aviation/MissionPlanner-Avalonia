@@ -1,28 +1,6 @@
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 
-public class ConfigFailSafeViewModel : ParamPageBase {
-  public ConfigFailSafeViewModel() {
-    Title = "Failsafe";
-    Intro = "Throttle, battery and GCS failsafe behaviour.";
-    F("FS_THR_ENABLE", "combo");
-    F("FS_THR_VALUE");
-    F("THR_FAILSAFE", "combo");
-    F("THR_FS_VALUE");
-    F("THR_FS_ACTION", "combo");
-    F("FS_GCS_ENABLE", "combo");
-    F("FS_SHORT_ACTN", "combo");
-    F("FS_LONG_ACTN", "combo");
-    F("BATT_FS_LOW_ACT", "combo");
-    F("BATT_LOW_VOLT");
-    F("BATT_LOW_MAH");
-    F("BATT_LOW_TIMER");
-    F("FS_BATT_ENABLE", "combo");
-    F("FS_BATT_VOLTAGE");
-    F("FS_BATT_MAH");
-  }
-}
-
 public class ConfigAC_FenceViewModel : ParamPageBase {
   public ConfigAC_FenceViewModel() {
     Title = "GeoFence";
@@ -51,16 +29,6 @@ public class ConfigADSBViewModel : ParamPageBase {
   private void Setup() {
     FByPrefix("ADSB_");
     FByPrefix("AVD_");
-  }
-}
-
-public class ConfigGPSOrderViewModel : ParamPageBase {
-  public ConfigGPSOrderViewModel() {
-    Title = "CAN GPS Order";
-    F("GPS_CAN_NODEID1");
-    F("GPS_CAN_NODEID2");
-    F("GPS1_CAN_OVRIDE");
-    F("GPS2_CAN_OVRIDE");
   }
 }
 
@@ -99,24 +67,6 @@ public class ConfigOptFlowViewModel : ParamPageBase {
   }
 }
 
-public class ConfigHWOSDViewModel : ParamPageBase {
-  public ConfigHWOSDViewModel() {
-    Title = "Onboard OSD (Stream Rates)";
-    Setup();
-  }
-
-  protected override void OnRefreshed() {
-    Fields.Clear();
-    Setup();
-  }
-
-  private void Setup() {
-    FByPrefix("SR0_");
-    FByPrefix("SR1_");
-    FByPrefix("SR3_");
-  }
-}
-
 public class ConfigOSDViewModel : ParamPageBase {
   public ConfigOSDViewModel() {
     Title = "Onboard OSD";
@@ -131,36 +81,6 @@ public class ConfigOSDViewModel : ParamPageBase {
 
   private void Setup() {
     FByPrefix("OSD");
-  }
-}
-
-public class ConfigParachuteViewModel : ParamPageBase {
-  public ConfigParachuteViewModel() {
-    Title = "Parachute";
-    F("CHUTE_ENABLED", "combo");
-    F("CHUTE_TYPE", "combo");
-    F("CHUTE_SERVO_ON");
-    F("CHUTE_SERVO_OFF");
-    F("CHUTE_ALT_MIN");
-  }
-}
-
-public class ConfigFFTViewModel : ParamPageBase {
-  public ConfigFFTViewModel() {
-    Title = "FFT Setup";
-    Setup();
-  }
-
-  protected override void OnRefreshed() {
-    Fields.Clear();
-    Setup();
-  }
-
-  private void Setup() {
-    FByPrefix("FFT_");
-    F("INS_LOG_BAT_MASK");
-    F("INS_LOG_BAT_CNT");
-    F("LOG_BITMASK");
   }
 }
 

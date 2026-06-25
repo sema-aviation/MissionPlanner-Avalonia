@@ -1,0 +1,56 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="900"
+  d:DesignHeight="700"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFailSafeView"
+  x:DataType="cv:ConfigFailSafeViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <Grid ColumnDefinitions="*,320" Margin="16">
+      <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,12,0">
+        <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+        <TextBlock Classes="fieldlbl" Text="{Binding Intro}" TextWrapping="Wrap" />
+        <Button Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" />
+
+        <ItemsControl ItemsSource="{Binding Fields}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="cv:ParamField">
+              <Grid ColumnDefinitions="220,200,Auto,*" Margin="0,3">
+                <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl" ToolTip.Tip="{Binding Description}" TextWrapping="Wrap" Margin="0,0,8,0" />
+                <ComboBox Grid.Column="1" IsVisible="{Binding IsCombo}" MinWidth="180" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
+                <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
+                <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="180" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
+                <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
+                <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <Border Grid.Column="1" BorderBrush="#5A5A5A" BorderThickness="1" Padding="10" VerticalAlignment="Top">
+        <StackPanel Spacing="4">
+          <TextBlock Text="Live RC Input / Output" Classes="fieldlbl" FontWeight="Bold" Margin="0,0,0,6" />
+          <ItemsControl ItemsSource="{Binding Channels}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="cv:FailsafeChannel">
+                <Grid ColumnDefinitions="40,*,*" Margin="0,2" ColumnSpacing="6">
+                  <TextBlock Grid.Column="0" Text="{Binding Number, StringFormat='RC{0}'}" Classes="fieldlbl" VerticalAlignment="Center" />
+                  <ProgressBar Grid.Column="1" Minimum="800" Maximum="2200" Value="{Binding In}" Foreground="{Binding InBrush}" Height="14" />
+                  <ProgressBar Grid.Column="2" Minimum="800" Maximum="2200" Value="{Binding Out}" Foreground="{Binding OutBrush}" Height="14" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="Left bar = input, right bar = output. Throttle (RC3) turns red below FS_THR_VALUE." Classes="fieldlbl" TextWrapping="Wrap" Margin="0,6,0,0" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

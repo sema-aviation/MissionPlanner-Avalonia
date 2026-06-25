@@ -1,0 +1,62 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigMotorTestView"
+  x:DataType="cv:ConfigMotorTestViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+
+    <Border Grid.Row="1" Background="#5A2D2D" CornerRadius="4" Padding="12" Margin="0,8">
+      <TextBlock Text="{Binding Instructions}" Foreground="#FFD0D0" TextWrapping="Wrap" />
+    </Border>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="16" Margin="0,0,0,8">
+      <TextBlock Text="{Binding FrameClass}" Classes="fieldlbl" VerticalAlignment="Center" />
+      <TextBlock Text="{Binding FrameType}" Classes="fieldlbl" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" Margin="0,0,0,10">
+      <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Throttle %" VerticalAlignment="Center" />
+      <NumericUpDown Grid.Column="1" MinWidth="100" Minimum="0" Maximum="100" Increment="1" Value="{Binding ThrottlePercent}" />
+      <TextBlock Grid.Column="2" Classes="fieldlbl" Text="Duration (s)" VerticalAlignment="Center" />
+      <NumericUpDown Grid.Column="3" MinWidth="100" Minimum="0" Maximum="60" Increment="1" Value="{Binding DurationSec}" />
+      <Button Grid.Column="4" Content="Set MOT_SPIN_ARM" Command="{Binding SetSpinArmCommand}" />
+      <Button Grid.Column="5" Content="Set MOT_SPIN_MIN" Command="{Binding SetSpinMinCommand}" />
+    </Grid>
+
+    <ScrollViewer Grid.Row="4">
+      <StackPanel Spacing="6">
+        <ItemsControl ItemsSource="{Binding Motors}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="cv:MotorTestItem">
+              <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,2">
+                <Button
+                  Content="{Binding Label}"
+                  Command="{Binding $parent[ItemsControl].((cv:ConfigMotorTestViewModel)DataContext).TestMotorCommand}"
+                  CommandParameter="{Binding}"
+                  MinWidth="220"
+                />
+                <TextBlock Text="{Binding Rotation}" Classes="fieldlbl" VerticalAlignment="Center" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+          <Button Content="Test all in sequence" Command="{Binding TestAllSequenceCommand}" />
+          <Button Content="Stop all motors" Command="{Binding StopAllCommand}" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+
+    <TextBlock Grid.Row="5" Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" Margin="0,8,0,0" />
+  </Grid>
+</UserControl>

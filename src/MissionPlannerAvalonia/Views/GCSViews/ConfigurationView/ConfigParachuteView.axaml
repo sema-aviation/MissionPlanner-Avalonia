@@ -1,0 +1,47 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="560"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigParachuteView"
+  x:DataType="cv:ConfigParachuteViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+      <TextBlock Classes="fieldlbl" Text="{Binding Intro}" TextWrapping="Wrap" />
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" />
+
+      <Grid ColumnDefinitions="220,200,Auto" Margin="0,6,0,0">
+        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Servo Channel" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <ComboBox
+          Grid.Column="1"
+          MinWidth="180"
+          ItemsSource="{Binding ServoOptions}"
+          SelectedItem="{Binding SelectedServo}"
+        />
+        <TextBlock Grid.Column="2" Text="{Binding ServoStatus}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+      </Grid>
+
+      <ItemsControl ItemsSource="{Binding Fields}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="cv:ParamField">
+            <Grid ColumnDefinitions="220,200,Auto,*" Margin="0,3">
+              <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl" ToolTip.Tip="{Binding Description}" TextWrapping="Wrap" Margin="0,0,8,0" />
+              <ComboBox Grid.Column="1" IsVisible="{Binding IsCombo}" MinWidth="180" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
+              <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
+              <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="180" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
+              <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
+              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

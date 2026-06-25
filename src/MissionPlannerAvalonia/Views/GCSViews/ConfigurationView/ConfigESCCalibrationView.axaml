@@ -1,0 +1,67 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigESCCalibrationView"
+  x:DataType="cv:ConfigESCCalibrationViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,4,0,10">
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
+      <TextBlock Text="{Binding Intro}" Classes="fieldlbl" VerticalAlignment="Center" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <ItemsControl Grid.Row="2" ItemsSource="{Binding Fields}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="cv:ParamField">
+          <Grid ColumnDefinitions="220,200,Auto,*" Margin="0,3">
+            <TextBlock
+              Grid.Column="0"
+              Text="{Binding Label}"
+              Classes="fieldlbl"
+              ToolTip.Tip="{Binding Description}"
+              TextWrapping="Wrap"
+              Margin="0,0,8,0"
+            />
+            <ComboBox
+              Grid.Column="1"
+              IsVisible="{Binding IsCombo}"
+              MinWidth="180"
+              ItemsSource="{Binding Options}"
+              SelectedItem="{Binding SelectedOption}"
+            />
+            <NumericUpDown
+              Grid.Column="1"
+              IsVisible="{Binding IsNumeric}"
+              MinWidth="180"
+              Value="{Binding Value}"
+              Minimum="{Binding Min}"
+              Maximum="{Binding Max}"
+              Increment="{Binding Increment}"
+              FormatString="0.######"
+            />
+            <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
+            <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Border Grid.Row="3" Background="#5A2D2D" CornerRadius="4" Padding="12" Margin="0,12,0,0">
+      <TextBlock Text="{Binding Instructions}" Foreground="#FFD0D0" TextWrapping="Wrap" />
+    </Border>
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+      <Button Content="{Binding CalButtonText}" Command="{Binding CalibrateEscCommand}" MinWidth="150" />
+      <TextBlock Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" TextWrapping="Wrap" />
+    </StackPanel>
+  </Grid>
+</UserControl>

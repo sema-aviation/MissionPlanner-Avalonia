@@ -1,0 +1,49 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  xmlns:ctrl="using:MissionPlannerAvalonia.Controls"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFFTView"
+  x:DataType="cv:ConfigFFTViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+    <TextBlock Grid.Row="1" Classes="fieldlbl" Text="{Binding Info}" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+    <StackPanel Grid.Row="2" Spacing="8" Margin="0,0,0,8">
+      <ItemsControl ItemsSource="{Binding Fields}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="cv:ParamField">
+            <Grid ColumnDefinitions="220,*,Auto" Margin="0,3">
+              <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl" ToolTip.Tip="{Binding Description}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center" />
+
+              <Grid Grid.Column="1" IsVisible="{Binding Name, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsNumeric}">
+                  <Slider MinWidth="280" Minimum="32" Maximum="4096" Value="{Binding Value}" />
+                  <TextBlock Text="{Binding Value, StringFormat='0'}" VerticalAlignment="Center" Foreground="White" />
+                </StackPanel>
+                <ComboBox IsVisible="{Binding IsCombo}" MinWidth="200" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
+              </Grid>
+
+              <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
+      <Button Content="FFT" Name="FftBtn" />
+      <TextBlock Name="FftStatus" Foreground="#94C11F" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <ctrl:LivePlot Grid.Row="4" Name="Plot" />
+  </Grid>
+</UserControl>

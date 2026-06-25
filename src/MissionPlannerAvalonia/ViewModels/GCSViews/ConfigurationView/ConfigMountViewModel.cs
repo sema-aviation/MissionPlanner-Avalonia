@@ -138,6 +138,7 @@ public partial class ConfigMountViewModel : ViewModelBase {
     _startup = false;
   }
 
+  [Obsolete]
   partial void OnSelectedMountTypeChanged(ParamOption? value) {
     if (_startup || value is null) {
       return;
@@ -159,6 +160,7 @@ public partial class ConfigMountViewModel : ViewModelBase {
 
   partial void OnRetractZChanged(double value) => WriteNum(ParamHead + "RETRACT_Z", value);
 
+  [Obsolete]
   private void WriteNum(string name, double value) {
     if (_startup) {
       return;
@@ -166,6 +168,7 @@ public partial class ConfigMountViewModel : ViewModelBase {
     SetParam(name, value);
   }
 
+  [Obsolete]
   internal void AxisSelectionChanged() {
     if (_startup) {
       return;
@@ -189,6 +192,7 @@ public partial class ConfigMountViewModel : ViewModelBase {
     }
   }
 
+  [Obsolete]
   private void UpdateShutter() {
     var sel = SelectedShutter;
     if (string.IsNullOrEmpty(sel)) {
@@ -211,6 +215,7 @@ public partial class ConfigMountViewModel : ViewModelBase {
     }
   }
 
+  [Obsolete]
   internal void EnsureDisabled(int role, string exclude = "") {
     foreach (var ch in ChannelNamesWithFunction()) {
       if (ch == exclude) {
@@ -364,6 +369,7 @@ public partial class MountAxisViewModel : ObservableObject {
     _suppress = false;
   }
 
+  [Obsolete]
   internal void ApplyFunction() {
     if (string.IsNullOrEmpty(SelectedFunction)) {
       return;
@@ -405,6 +411,7 @@ public partial class MountAxisViewModel : ObservableObject {
     _parent.AxisSelectionChanged();
   }
 
+  [Obsolete]
   partial void OnServoMinChanged(double value) {
     if (_suppress || string.IsNullOrEmpty(SelectedFunction) || SelectedFunction == "Disable") {
       return;
@@ -412,6 +419,7 @@ public partial class MountAxisViewModel : ObservableObject {
     _parent.SetParam(SelectedFunction + "_MIN", value);
   }
 
+  [Obsolete]
   partial void OnServoMaxChanged(double value) {
     if (_suppress || string.IsNullOrEmpty(SelectedFunction) || SelectedFunction == "Disable") {
       return;
@@ -419,6 +427,7 @@ public partial class MountAxisViewModel : ObservableObject {
     _parent.SetParam(SelectedFunction + "_MAX", value);
   }
 
+  [Obsolete]
   partial void OnAngleMinChanged(double value) {
     if (_suppress) {
       return;
@@ -426,6 +435,7 @@ public partial class MountAxisViewModel : ObservableObject {
     _parent.SetParam(_angMin, value);
   }
 
+  [Obsolete]
   partial void OnAngleMaxChanged(double value) {
     if (_suppress) {
       return;
@@ -433,6 +443,7 @@ public partial class MountAxisViewModel : ObservableObject {
     _parent.SetParam(_angMax, value);
   }
 
+  [Obsolete]
   partial void OnReverseChanged(bool value) {
     if (_suppress || string.IsNullOrEmpty(SelectedFunction) || SelectedFunction == "Disable") {
       return;
@@ -442,6 +453,7 @@ public partial class MountAxisViewModel : ObservableObject {
     _parent.SetParam(revName, v);
   }
 
+  [Obsolete]
   partial void OnSelectedInputChanged(ParamOption? value) {
     if (_suppress || value is null) {
       return;

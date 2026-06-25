@@ -1,173 +1,813 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Avalonia.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MissionPlanner;
+using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-public class ConfigAccelCalibrationViewModel : ActionPageViewModel {
-  public ConfigAccelCalibrationViewModel() {
-    Title = "Accelerometer Calibration";
-    Instructions =
-        "Calibrate Accel: place the vehicle in each orientation as prompted (level, left, right, "
-        + "nose down, nose up, back). Simple Accel: keep the vehicle level and press once.";
-    Action(
-        "Calibrate Accel",
-        () => Send(MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 1, 0, 0, "accel")
-    );
-    Action(
-        "Calibrate Level",
-        () => Send(MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 2, 0, 0, "level")
-    );
-    Action(
-        "Simple Accel Cal",
-        () => Send(MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 4, 0, 0, "simple accel")
-    );
-  }
+public partial class ConfigAccelCalibrationViewModel : ViewModelBase, IDisposable {
+  private readonly MAVLinkInterface _comPort = AppState.comPort;
+  private bool _inCalibrate;
+  private MAVLink.ACCELCAL_VEHICLE_POS _pos;
+  private int _sub1 = -1;
+  private int _sub2 = -1;
 
-  private async void Send(
-      MAVLink.MAV_CMD cmd,
-      float p1,
-      float p2,
-      float p3,
-      float p4,
-      float p5,
-      float p6,
-      float p7,
-      string what
-  ) {
-    if (!RequireConnection()) {
+  public string Title => "Accelerometer Calibration";
+
+  public string Instructions =>
+      "Full calibration: press Calibrate Accel, then place the vehicle in each orientation as "
+      + "prompted (level, on its LEFT side, on its RIGHT side, nose DOWN, nose UP, on its BACK), "
+      + "pressing Click when Done after each. Calibrate Level trims the level position only. "
+      + "Simple Accel performs a single-position calibration.";
+
+  [ObservableProperty]
+  private string _accelButtonText = "Calibrate Accel";
+
+  [ObservableProperty]
+  private bool _accelButtonEnabled = true;
+
+  [ObservableProperty]
+  private string _levelButtonText = "Calibrate Level";
+
+  [ObservableProperty]
+  private string _simpleButtonText = "Simple Accel Cal";
+
+  [ObservableProperty]
+  private string _userMessage = "";
+
+  [ObservableProperty]
+  private string _log = "";
+
+  public bool IsConnected => _comPort.BaseStream?.IsOpen == true;
+
+  [RelayCommand]
+  private async Task CalibrateAccel() {
+    if (_inCalibrate) {
+      try {
+        await Task.Run(() => _comPort.sendPacket(
+            new MAVLink.mavlink_command_long_t {
+              param1 = (float)_pos,
+              command = (ushort)MAVLink.MAV_CMD.ACCELCAL_VEHICLE_POS,
+            },
+            _comPort.sysidcurrent,
+            _comPort.compidcurrent));
+      } catch {
+        AppendLog("Command failed.");
+      }
+
       return;
     }
 
-    AppendLog($"Starting {what} calibration…");
+    if (!IsConnected) {
+      AppendLog("Not connected — connect a vehicle first.");
+      return;
+    }
+
+    UserMessage = "";
+    Log = "";
     try {
-      bool ok = await Task.Run(() =>
-          comPort.doCommand(comPort.MAV.sysid, comPort.MAV.compid, cmd, p1, p2, p3, p4, p5, p6, p7)
-      );
-      AppendLog(ok ? $"{what}: accepted." : $"{what}: rejected by vehicle.");
+      AppendLog("Sending accel calibration command…");
+      bool ok = await Task.Run(() => _comPort.doCommand(
+          (byte)_comPort.sysidcurrent,
+          (byte)_comPort.compidcurrent,
+          MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION,
+          0, 0, 0, 0, 1, 0, 0));
+      if (!ok) {
+        AppendLog("Command failed.");
+        return;
+      }
+
+      _inCalibrate = true;
+      _sub1 = _comPort.SubscribeToPacketType(
+          MAVLink.MAVLINK_MSG_ID.STATUSTEXT,
+          ReceivedPacket,
+          (byte)_comPort.sysidcurrent,
+          (byte)_comPort.compidcurrent);
+      _sub2 = _comPort.SubscribeToPacketType(
+          MAVLink.MAVLINK_MSG_ID.COMMAND_LONG,
+          ReceivedPacket,
+          (byte)_comPort.sysidcurrent,
+          (byte)_comPort.compidcurrent);
+      AccelButtonText = "Click when Done";
     } catch (Exception ex) {
-      AppendLog($"{what}: {ex.Message}");
+      _inCalibrate = false;
+      AppendLog("Failed to start: " + ex.Message);
     }
   }
+
+  private bool ReceivedPacket(MAVLink.MAVLinkMessage arg) {
+    if (arg.msgid == (uint)MAVLink.MAVLINK_MSG_ID.STATUSTEXT) {
+      var message = Encoding.ASCII.GetString(arg.ToStructure<MAVLink.mavlink_statustext_t>().text)
+          .TrimEnd('\0');
+      UpdateUserMessage(message);
+
+      if (message.ToLower().Contains("calibration successful")
+          || message.ToLower().Contains("calibration failed")) {
+        Dispatcher.UIThread.Post(() => {
+          AccelButtonText = "Done";
+          AccelButtonEnabled = false;
+        });
+        StopCalibration();
+      }
+    }
+
+    if (arg.msgid == (uint)MAVLink.MAVLINK_MSG_ID.COMMAND_LONG) {
+      var message = arg.ToStructure<MAVLink.mavlink_command_long_t>();
+      if (message.command == (ushort)MAVLink.MAV_CMD.ACCELCAL_VEHICLE_POS) {
+        _pos = (MAVLink.ACCELCAL_VEHICLE_POS)message.param1;
+        UpdateUserMessage("Please place vehicle " + _pos);
+      }
+    }
+
+    return true;
+  }
+
+  private void UpdateUserMessage(string message) {
+    if (message.ToLower().Contains("place vehicle") || message.ToLower().Contains("calibration")) {
+      Dispatcher.UIThread.Post(() => {
+        UserMessage = message;
+        AppendLog(message);
+      });
+    }
+  }
+
+  [RelayCommand]
+  private async Task CalibrateLevel() {
+    if (!IsConnected) {
+      AppendLog("Not connected — connect a vehicle first.");
+      return;
+    }
+
+    try {
+      AppendLog("Sending level command…");
+      bool ok = await Task.Run(() => _comPort.doCommand(
+          (byte)_comPort.sysidcurrent,
+          (byte)_comPort.compidcurrent,
+          MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION,
+          0, 0, 0, 0, 2, 0, 0));
+      LevelButtonText = ok ? "Completed" : "Calibrate Level";
+      AppendLog(ok ? "Level calibration accepted." : "Command failed.");
+    } catch (Exception ex) {
+      AppendLog("Failed to level: " + ex.Message);
+    }
+  }
+
+  [RelayCommand]
+  private async Task SimpleAccel() {
+    if (!IsConnected) {
+      AppendLog("Not connected — connect a vehicle first.");
+      return;
+    }
+
+    try {
+      AppendLog("Sending simple accelerometer calibration command…");
+      bool ok = await Task.Run(() => _comPort.doCommand(
+          (byte)_comPort.sysidcurrent,
+          (byte)_comPort.compidcurrent,
+          MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION,
+          0, 0, 0, 0, 4, 0, 0));
+      SimpleButtonText = ok ? "Completed" : "Simple Accel Cal";
+      AppendLog(ok ? "Simple calibration accepted." : "Command failed.");
+    } catch (Exception ex) {
+      AppendLog("Failed: " + ex.Message);
+    }
+  }
+
+  private void StopCalibration() {
+    _inCalibrate = false;
+    if (_sub1 != -1) {
+      _comPort.UnSubscribeToPacketType(_sub1);
+      _sub1 = -1;
+    }
+    if (_sub2 != -1) {
+      _comPort.UnSubscribeToPacketType(_sub2);
+      _sub2 = -1;
+    }
+  }
+
+  public void Deactivate() => StopCalibration();
+
+  private void AppendLog(string line) {
+    void Do() => Log += (Log.Length > 0 ? "\n" : "") + line;
+    if (Dispatcher.UIThread.CheckAccess()) {
+      Do();
+    } else {
+      Dispatcher.UIThread.Post(Do);
+    }
+  }
+
+  public void Dispose() => StopCalibration();
 }
 
-public class ConfigCompassViewModel : ActionPageViewModel {
+public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
+  private int _sub1 = -1;
+  private int _sub2 = -1;
+
   public ConfigCompassViewModel() {
     Title = "Compass";
-    Instructions =
-        "Onboard magnetometer calibration. Press Start, then rotate the vehicle through all axes "
-        + "until progress completes, then Accept. Cancel aborts.";
-    Action("Start", () => Send(MAVLink.MAV_CMD.DO_START_MAG_CAL, 0, 1, 1, 0, 0, 0, 0, "start mag cal"));
-    Action(
-        "Accept",
-        () => Send(MAVLink.MAV_CMD.DO_ACCEPT_MAG_CAL, 0, 0, 1, 0, 0, 0, 0, "accept mag cal")
-    );
-    Action(
-        "Cancel",
-        () => Send(MAVLink.MAV_CMD.DO_CANCEL_MAG_CAL, 0, 0, 1, 0, 0, 0, 0, "cancel mag cal")
-    );
+    Intro = "Compass configuration and onboard magnetometer calibration.";
+
+    F("COMPASS_USE", "bool");
+    F("COMPASS_USE2", "bool");
+    F("COMPASS_USE3", "bool");
+
+    F("COMPASS_EXTERNAL", "combo");
+    F("COMPASS_EXTERN2", "combo");
+    F("COMPASS_EXTERN3", "combo");
+
+    F("COMPASS_ORIENT", "combo");
+    F("COMPASS_ORIENT2", "combo");
+    F("COMPASS_ORIENT3", "combo");
+
+    F("COMPASS_PRIMARY", "combo");
+    F("COMPASS_AUTODEC", "bool");
+    F("COMPASS_CAL_FIT", "combo");
+
+    ReloadDeclination();
   }
 
-  private async void Send(
-      MAVLink.MAV_CMD cmd,
-      float p1,
-      float p2,
-      float p3,
-      float p4,
-      float p5,
-      float p6,
-      float p7,
-      string what
-  ) {
-    if (!RequireConnection()) {
+  [ObservableProperty]
+  private double _prog1;
+
+  [ObservableProperty]
+  private double _prog2;
+
+  [ObservableProperty]
+  private double _prog3;
+
+  [ObservableProperty]
+  private string _magResult = "";
+
+  [ObservableProperty]
+  private bool _calRunning;
+
+  [ObservableProperty]
+  private double _declinationDeg;
+
+  [ObservableProperty]
+  private double _largeVehicleHeading;
+
+  [RelayCommand]
+  private async Task StartMagCal() {
+    if (!IsConnected) {
+      MagResult = "Connect to a vehicle first.";
       return;
     }
 
-    AppendLog($"{what}…");
     try {
-      bool ok = await Task.Run(() =>
-          comPort.doCommand(comPort.MAV.sysid, comPort.MAV.compid, cmd, p1, p2, p3, p4, p5, p6, p7)
-      );
-      AppendLog(ok ? $"{what}: accepted." : $"{what}: rejected.");
+      await Task.Run(() => comPort.doCommand(
+          (byte)comPort.sysidcurrent,
+          (byte)comPort.compidcurrent,
+          MAVLink.MAV_CMD.DO_START_MAG_CAL,
+          0, 1, 1, 0, 0, 0, 0));
     } catch (Exception ex) {
-      AppendLog($"{what}: {ex.Message}");
+      MagResult = "Failed to start MAG CAL: " + ex.Message;
+      return;
+    }
+
+    Prog1 = 0;
+    Prog2 = 0;
+    Prog3 = 0;
+    MagResult = "";
+
+    if (_sub1 == -1) {
+      _sub1 = comPort.SubscribeToPacketType(
+          MAVLink.MAVLINK_MSG_ID.MAG_CAL_PROGRESS,
+          ReceivedPacket,
+          (byte)comPort.sysidcurrent,
+          (byte)comPort.compidcurrent);
+    }
+    if (_sub2 == -1) {
+      _sub2 = comPort.SubscribeToPacketType(
+          MAVLink.MAVLINK_MSG_ID.MAG_CAL_REPORT,
+          ReceivedPacket,
+          (byte)comPort.sysidcurrent,
+          (byte)comPort.compidcurrent);
+    }
+
+    CalRunning = true;
+  }
+
+  [RelayCommand]
+  private async Task AcceptMagCal() {
+    if (!IsConnected) {
+      return;
+    }
+
+    try {
+      await Task.Run(() => comPort.doCommand(
+          (byte)comPort.sysidcurrent,
+          (byte)comPort.compidcurrent,
+          MAVLink.MAV_CMD.DO_ACCEPT_MAG_CAL,
+          0, 0, 1, 0, 0, 0, 0));
+    } catch (Exception ex) {
+      MagResult = ex.Message;
+    }
+
+    StopCal();
+  }
+
+  [RelayCommand]
+  private async Task CancelMagCal() {
+    if (!IsConnected) {
+      return;
+    }
+
+    try {
+      await Task.Run(() => comPort.doCommand(
+          (byte)comPort.sysidcurrent,
+          (byte)comPort.compidcurrent,
+          MAVLink.MAV_CMD.DO_CANCEL_MAG_CAL,
+          0, 0, 1, 0, 0, 0, 0));
+    } catch (Exception ex) {
+      MagResult = ex.Message;
+    }
+
+    StopCal();
+  }
+
+  [RelayCommand]
+  private async Task LargeVehicleMagCal() {
+    if (!IsConnected) {
+      MagResult = "Connect to a vehicle first.";
+      return;
+    }
+
+    try {
+      bool ok = await Task.Run(() => comPort.doCommand(
+          comPort.MAV.sysid,
+          comPort.MAV.compid,
+          MAVLink.MAV_CMD.FIXED_MAG_CAL_YAW,
+          (float)LargeVehicleHeading, 0, 0, 0, 0, 0, 0));
+      MagResult = ok
+          ? "Large-vehicle (fixed yaw) calibration completed."
+          : "Command failed. GPS lock is required.";
+    } catch (Exception ex) {
+      MagResult = ex.Message;
     }
   }
+
+  [RelayCommand]
+  private async Task QuickPixhawk() {
+    await SetParamSafe("COMPASS_EXTERNAL", 0);
+    await SetParamSafe("COMPASS_ORIENT", 0);
+    MagResult = "Set internal compass orientation for Pixhawk/Cube.";
+  }
+
+  [RelayCommand]
+  private async Task WriteDeclination() {
+    if (!IsConnected) {
+      return;
+    }
+
+    double rad = DeclinationDeg * Math.PI / 180.0;
+    bool ok = await SetParamSafe("COMPASS_DEC", rad);
+    MagResult = ok ? "Declination written." : "Failed to write declination.";
+  }
+
+  private async Task<bool> SetParamSafe(string name, double value) {
+    if (!IsConnected || !comPort.MAV.param.ContainsKey(name)) {
+      return false;
+    }
+
+    try {
+      return await Task.Run(() => comPort.setParam(
+          (byte)comPort.sysidcurrent, (byte)comPort.compidcurrent, name, value));
+    } catch {
+      return false;
+    }
+  }
+
+  private bool ReceivedPacket(MAVLink.MAVLinkMessage packet) {
+    if (packet.msgid == (byte)MAVLink.MAVLINK_MSG_ID.MAG_CAL_PROGRESS) {
+      var obj = (MAVLink.mavlink_mag_cal_progress_t)packet.data;
+      Dispatcher.UIThread.Post(() => {
+        if (obj.compass_id == 0) {
+          Prog1 = obj.completion_pct;
+        }
+
+        if (obj.compass_id == 1) {
+          Prog2 = obj.completion_pct;
+        }
+
+        if (obj.compass_id == 2) {
+          Prog3 = obj.completion_pct;
+        }
+      });
+    } else if (packet.msgid == (byte)MAVLink.MAVLINK_MSG_ID.MAG_CAL_REPORT) {
+      var obj = (MAVLink.mavlink_mag_cal_report_t)packet.data;
+      if (obj.compass_id == 0 && obj.ofs_x == 0) {
+        return true;
+      }
+
+      Dispatcher.UIThread.Post(() => {
+        if (obj.compass_id == 0) {
+          Prog1 = 100;
+        }
+
+        if (obj.compass_id == 1) {
+          Prog2 = 100;
+        }
+
+        if (obj.compass_id == 2) {
+          Prog3 = 100;
+        }
+
+        MagResult +=
+            $"id:{obj.compass_id} x:{obj.ofs_x:0.0} y:{obj.ofs_y:0.0} z:{obj.ofs_z:0.0} "
+            + $"fit:{obj.fitness:0.0} {(MAVLink.MAG_CAL_STATUS)obj.cal_status}\n";
+
+        if (obj.autosaved == 1) {
+          MagResult += "Calibration saved. Please reboot the autopilot.\n";
+          StopCal();
+        }
+      });
+    }
+
+    return true;
+  }
+
+  private void ReloadDeclination() {
+    if (comPort.MAV.param.ContainsKey("COMPASS_DEC")) {
+      DeclinationDeg = comPort.MAV.param["COMPASS_DEC"].Value * 180.0 / Math.PI;
+    }
+  }
+
+  protected override void OnRefreshed() => ReloadDeclination();
+
+  private void StopCal() {
+    CalRunning = false;
+    if (_sub1 != -1) {
+      comPort.UnSubscribeToPacketType(_sub1);
+      _sub1 = -1;
+    }
+    if (_sub2 != -1) {
+      comPort.UnSubscribeToPacketType(_sub2);
+      _sub2 = -1;
+    }
+  }
+
+  public void Deactivate() => StopCal();
+
+  public void Dispose() => StopCal();
 }
 
-public class ConfigESCCalibrationViewModel : ActionPageViewModel {
+public partial class ConfigESCCalibrationViewModel : ParamPageBase {
   public ConfigESCCalibrationViewModel() {
     Title = "ESC Calibration";
-    Instructions =
-        "Sets ESC_CALIBRATION=3. After pressing, disconnect, then power the vehicle with the throttle "
-        + "high to enter the ESC calibration sequence (follow your ESC's beep procedure). "
-        + "DANGER: remove all propellers first.";
-    Action("Calibrate ESCs", CalibrateEsc);
+    Intro = "Configure motor PWM output and run the all-at-once ESC calibration.";
+
+    F("MOT_PWM_TYPE", "combo");
+    F("MOT_PWM_MIN");
+    F("MOT_PWM_MAX");
+    F("MOT_SPIN_ARM");
+    F("MOT_SPIN_MIN");
+    F("MOT_SPIN_MAX");
   }
 
-  private async void CalibrateEsc() {
-    if (!RequireConnection()) {
+  public string Instructions =>
+      "DANGER: REMOVE ALL PROPELLERS FIRST.\n"
+      + "1. Press Calibrate ESCs (sets ESC_CALIBRATION = 3). Requires AC 3.3+.\n"
+      + "2. Disconnect the battery and USB.\n"
+      + "3. Re-connect the battery — the autopilot enters the ESC calibration sequence and passes "
+      + "the throttle range through to the ESCs.\n"
+      + "4. Listen for the ESC confirmation tones, then disconnect and reconnect power normally.";
+
+  [ObservableProperty]
+  private string _calButtonText = "Calibrate ESCs";
+
+  [ObservableProperty]
+  private string _status = "";
+
+  [RelayCommand]
+  private async Task CalibrateEsc() {
+    if (!IsConnected) {
+      Status = "Connect to a vehicle first.";
       return;
     }
 
-    AppendLog("Setting ESC_CALIBRATION = 3…");
     try {
-      bool ok = await Task.Run(() =>
-          comPort.setParam(comPort.MAV.sysid, comPort.MAV.compid, "ESC_CALIBRATION", 3)
-      );
-      AppendLog(
-          ok
-              ? "Done. Now disconnect, then power-cycle with throttle HIGH to run the ESC sequence."
-              : "Failed to set ESC_CALIBRATION."
-      );
-    } catch (Exception ex) {
-      AppendLog(ex.Message);
+      bool ok = await Task.Run(() => comPort.setParam(
+          (byte)comPort.sysidcurrent, (byte)comPort.compidcurrent, "ESC_CALIBRATION", 3));
+      if (!ok) {
+        Status = "Set param error. Please ensure your version is AC 3.3+.";
+        return;
+      }
+
+      CalButtonText = "Done";
+      Status = "ESC_CALIBRATION set. Now power-cycle the vehicle to run the sequence.";
+    } catch {
+      Status = "Set param error. Please ensure your version is AC 3.3+.";
     }
   }
 }
 
-public partial class ConfigMotorTestViewModel : ActionPageViewModel {
-  public ConfigMotorTestViewModel() {
-    Title = "Motor Test";
-    Instructions =
-        "DANGER: REMOVE ALL PROPELLERS. Spins one motor at the set throttle % for the set duration "
-        + "to verify motor order and direction.";
-    for (int m = 1; m <= 8; m++) {
-      int motor = m;
-      Action($"Test Motor {motor}", () => Spin(motor));
-    }
-    Action("Test All (sequence)", () => Spin(0, all: true));
+public partial class MotorTestItem : ObservableObject {
+  public MotorTestItem(int testOrder, string label, string rotation) {
+    TestOrder = testOrder;
+    Label = label;
+    Rotation = rotation;
   }
 
-  public int ThrottlePercent { get; set; } = 8;
-  public int DurationSec { get; set; } = 2;
+  public int TestOrder { get; }
+  public string Label { get; }
+  public string Rotation { get; }
+}
 
-  private async void Spin(int motor, bool all = false) {
-    if (!RequireConnection()) {
+public partial class ConfigMotorTestViewModel : ViewModelBase {
+  private readonly MAVLinkInterface _comPort = AppState.comPort;
+  private int _motorMax;
+
+  public ConfigMotorTestViewModel() {
+    Title = "Motor Test";
+    BuildMotors();
+  }
+
+  public string Title { get; }
+
+  public string Instructions =>
+      "DANGER: REMOVE ALL PROPELLERS. Verifies motor order and direction. Each test spins one "
+      + "motor at the set throttle % for the set duration. Test all in sequence steps through "
+      + "every motor (A, B, C…) one after another.";
+
+  public ObservableCollection<MotorTestItem> Motors { get; } = new();
+
+  [ObservableProperty]
+  private string _frameClass = "";
+
+  [ObservableProperty]
+  private string _frameType = "";
+
+  [ObservableProperty]
+  private int _throttlePercent = 8;
+
+  [ObservableProperty]
+  private int _durationSec = 2;
+
+  [ObservableProperty]
+  private string _status = "";
+
+  public bool IsConnected => _comPort.BaseStream?.IsOpen == true;
+
+  [RelayCommand]
+  private void TestMotor(MotorTestItem? item) {
+    if (item != null) {
+      RunTest(item.TestOrder, ThrottlePercent, DurationSec);
+    }
+  }
+
+  [RelayCommand]
+  private void TestAllSequence() {
+    RunTest(1, ThrottlePercent, DurationSec, _motorMax);
+  }
+
+  [RelayCommand]
+  private void StopAll() {
+    for (int i = 1; i <= _motorMax; i++) {
+      RunTest(i, 0, 0);
+    }
+  }
+
+  [RelayCommand]
+  private async Task SetSpinArm() {
+    if (!Require("MOT_SPIN_ARM")) {
       return;
     }
 
-    AppendLog(
-        all
-            ? "Testing all motors in sequence…"
-            : $"Spinning motor {motor} at {ThrottlePercent}% for {DurationSec}s…"
-    );
-    try {
-      int count = all ? 8 : 0;
-#pragma warning disable CS0612
-      bool ok = await Task.Run(() =>
-          comPort.doMotorTest(
-              all ? 1 : motor,
-              MAVLink.MOTOR_TEST_THROTTLE_TYPE.MOTOR_TEST_THROTTLE_PERCENT,
-              ThrottlePercent,
-              DurationSec,
-              count
-          )
-      );
-#pragma warning restore CS0612
-      AppendLog(ok ? "Command accepted." : "Command rejected.");
-    } catch (Exception ex) {
-      AppendLog(ex.Message);
+    if (ThrottlePercent >= 20) {
+      Status = "Throttle percent above 20, too high.";
+      return;
     }
+
+    double value = (ThrottlePercent + 2) / 100.0;
+    bool ok = await SetParam("MOT_SPIN_ARM", value);
+    Status = ok ? $"MOT_SPIN_ARM set to {value:0.00}." : "Failed to set MOT_SPIN_ARM.";
+  }
+
+  [RelayCommand]
+  private async Task SetSpinMin() {
+    if (!Require("MOT_SPIN_MIN")) {
+      return;
+    }
+
+    if (ThrottlePercent >= 20) {
+      Status = "Throttle percent above 20, too high.";
+      return;
+    }
+
+    double value = ((int)(_comPort.MAV.param["MOT_SPIN_MIN"].Value * 100) + 3) / 100.0;
+    bool ok = await SetParam("MOT_SPIN_MIN", value);
+    Status = ok ? $"MOT_SPIN_MIN set to {value:0.00}." : "Failed to set MOT_SPIN_MIN.";
+  }
+
+  private async void RunTest(int motor, int speed, int time, int motorCount = 0) {
+    if (!IsConnected) {
+      Status = "Connect to a vehicle first.";
+      return;
+    }
+
+    try {
+#pragma warning disable CS0612
+      bool ok = await Task.Run(() => _comPort.doMotorTest(
+          motor,
+          MAVLink.MOTOR_TEST_THROTTLE_TYPE.MOTOR_TEST_THROTTLE_PERCENT,
+          speed,
+          time,
+          motorCount));
+#pragma warning restore CS0612
+      Status = ok ? "" : "Command was denied by the autopilot.";
+    } catch (Exception ex) {
+      Status = "Failed to test motor: " + ex.Message;
+    }
+  }
+
+  private bool Require(string name) {
+    if (!IsConnected) {
+      Status = "Connect to a vehicle first.";
+      return false;
+    }
+
+    if (!_comPort.MAV.param.ContainsKey(name)) {
+      Status = $"param {name} missing.";
+      return false;
+    }
+
+    return true;
+  }
+
+  private async Task<bool> SetParam(string name, double value) {
+    try {
+      return await Task.Run(() => _comPort.setParam(
+          (byte)_comPort.sysidcurrent, (byte)_comPort.compidcurrent, name, value));
+    } catch {
+      return false;
+    }
+  }
+
+  private void BuildMotors() {
+    Motors.Clear();
+    _motorMax = GetMotorMax(out var layout);
+
+    for (int a = 1; a <= _motorMax; a++) {
+      string label = "Test motor " + (char)((a - 1) + 'A');
+      string rotation = "";
+      if (layout != null) {
+        foreach (var motor in layout) {
+          if (motor.TestOrder == a) {
+            label = "Test motor " + (char)((a - 1) + 'A') + "  (Motor " + motor.Number + ")";
+            if (motor.Rotation != "?" && motor.Rotation.Length > 0) {
+              rotation = motor.Rotation;
+            }
+          }
+        }
+      }
+
+      Motors.Add(new MotorTestItem(a, label, rotation));
+    }
+  }
+
+  private int GetMotorMax(out List<LayoutMotor>? layout) {
+    layout = null;
+    int motorMax = 8;
+
+    if (_comPort.MAV.aptype == MAVLink.MAV_TYPE.GROUND_ROVER
+        || _comPort.MAV.aptype == MAVLink.MAV_TYPE.SURFACE_BOAT) {
+      return 4;
+    }
+
+    bool enable = _comPort.MAV.param.ContainsKey("FRAME")
+        || _comPort.MAV.param.ContainsKey("Q_FRAME_TYPE")
+        || _comPort.MAV.param.ContainsKey("FRAME_TYPE");
+    if (!enable) {
+      return motorMax;
+    }
+
+    if (TrySetFrame("FRAME_CLASS", "FRAME_TYPE", ref layout)
+        || TrySetFrame("Q_FRAME_CLASS", "Q_FRAME_TYPE", ref layout)) {
+      if (layout != null && layout.Count > 0) {
+        return layout.Count;
+      }
+    }
+
+    var type = MAVLink.MAV_TYPE.QUADROTOR;
+    if (_comPort.MAV.param.ContainsKey("Q_FRAME_CLASS")) {
+      var value = (int)_comPort.MAV.param["Q_FRAME_CLASS"].Value;
+      type = value switch {
+        2 or 5 => MAVLink.MAV_TYPE.HEXAROTOR,
+        3 or 4 => MAVLink.MAV_TYPE.OCTOROTOR,
+        6 => MAVLink.MAV_TYPE.HELICOPTER,
+        7 => MAVLink.MAV_TYPE.TRICOPTER,
+        _ => MAVLink.MAV_TYPE.QUADROTOR,
+      };
+    } else if (_comPort.MAV.param.ContainsKey("FRAME")
+        || _comPort.MAV.param.ContainsKey("FRAME_TYPE")) {
+      type = _comPort.MAV.aptype;
+    }
+
+    motorMax = type switch {
+      MAVLink.MAV_TYPE.TRICOPTER => 4,
+      MAVLink.MAV_TYPE.QUADROTOR => 4,
+      MAVLink.MAV_TYPE.HEXAROTOR => 6,
+      MAVLink.MAV_TYPE.OCTOROTOR => 8,
+      MAVLink.MAV_TYPE.HELICOPTER => 0,
+      MAVLink.MAV_TYPE.DODECAROTOR => 12,
+      _ => motorMax,
+    };
+
+    return motorMax;
+  }
+
+  private bool TrySetFrame(string classParam, string typeParam, ref List<LayoutMotor>? layout) {
+    if (!_comPort.MAV.param.ContainsKey(classParam) || !_comPort.MAV.param.ContainsKey(typeParam)) {
+      return false;
+    }
+
+    var fw = _comPort.MAV.cs.firmware.ToString();
+    int frameClass = (int)_comPort.MAV.param[classParam].Value;
+    int frameType = (int)_comPort.MAV.param[typeParam].Value;
+
+    try {
+      var list = ParameterMetaDataRepository.GetParameterOptionsInt(classParam, fw);
+      var hit = list?.FirstOrDefault(i => i.Key == frameClass);
+      if (hit is { Value: { } cv }) {
+        FrameClass = "Class: " + cv;
+      }
+    } catch {
+    }
+
+    try {
+      var list = ParameterMetaDataRepository.GetParameterOptionsInt(typeParam, fw);
+      var hit = list?.FirstOrDefault(i => i.Key == frameType);
+      if (hit is { Value: { } tv }) {
+        FrameType = "Type: " + tv;
+      }
+    } catch {
+    }
+
+    layout = LookupLayout(frameClass, frameType);
+    return true;
+  }
+
+  private static List<LayoutMotor>? LookupLayout(int frameClass, int frameType) {
+    try {
+      string? file = FindLayoutFile();
+      if (file == null) {
+        return null;
+      }
+
+      using var doc = JsonDocument.Parse(File.ReadAllText(file));
+      var root = doc.RootElement;
+      if (!root.TryGetProperty("layouts", out var layouts)) {
+        return null;
+      }
+
+      foreach (var layout in layouts.EnumerateArray()) {
+        if (layout.GetProperty("Class").GetInt32() == frameClass
+            && layout.GetProperty("Type").GetInt32() == frameType) {
+          var motors = new List<LayoutMotor>();
+          foreach (var m in layout.GetProperty("motors").EnumerateArray()) {
+            motors.Add(new LayoutMotor {
+              Number = m.GetProperty("Number").GetInt32(),
+              TestOrder = m.GetProperty("TestOrder").GetInt32(),
+              Rotation = m.TryGetProperty("Rotation", out var r) ? r.GetString() ?? "?" : "?",
+            });
+          }
+
+          return motors;
+        }
+      }
+    } catch {
+    }
+
+    return null;
+  }
+
+  private static string? FindLayoutFile() {
+    foreach (var dir in new[] {
+        AppContext.BaseDirectory,
+        Directory.GetCurrentDirectory(),
+    }) {
+      var p = Path.Combine(dir, "APMotorLayout.json");
+      if (File.Exists(p)) {
+        return p;
+      }
+    }
+
+    return null;
+  }
+
+  internal class LayoutMotor {
+    public int Number { get; set; }
+    public int TestOrder { get; set; }
+    public string Rotation { get; set; } = "?";
   }
 }

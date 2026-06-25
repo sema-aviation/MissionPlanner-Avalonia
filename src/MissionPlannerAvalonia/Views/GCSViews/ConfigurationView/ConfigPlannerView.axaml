@@ -32,18 +32,19 @@
 
       <TextBlock Grid.Row="1" Grid.Column="0" Classes="lbl" Text="Speech" />
       <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="10">
-        <CheckBox Content="Enable Speech" IsChecked="{Binding EnableSpeech}" />
+        <CheckBox Content="Enable Speech" IsChecked="{Binding EnableSpeech, Mode=TwoWay}" />
         <ComboBox ItemsSource="{Binding SpeechOptions}" SelectedItem="{Binding SpeechLevel}" />
       </StackPanel>
 
       <TextBlock Grid.Row="2" Grid.Column="0" Classes="lbl" Text="UI Language" />
-      <ComboBox
-        Grid.Row="2"
-        Grid.Column="1"
-        HorizontalAlignment="Left"
-        ItemsSource="{Binding LanguageOptions}"
-        SelectedItem="{Binding Language}"
-      />
+      <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+        <ComboBox
+          HorizontalAlignment="Left"
+          ItemsSource="{Binding LanguageOptions}"
+          SelectedItem="{Binding Language}"
+        />
+        <TextBlock Classes="lbl" Foreground="#E0A030" Text="{Binding LanguageNote}" />
+      </StackPanel>
 
       <TextBlock Grid.Row="3" Grid.Column="0" Classes="lbl" Text="Units" />
       <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
@@ -88,10 +89,10 @@
 
       <TextBlock Grid.Row="6" Grid.Column="0" Classes="lbl" Text="Waypoints / HUD" />
       <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Spacing="14">
-        <CheckBox Content="Load Waypoints on connect?" IsChecked="{Binding LoadWaypointsOnConnect}" />
-        <CheckBox Content="Display in Flightdata" IsChecked="{Binding DisplayInFlightData}" />
-        <CheckBox Content="Map follows plane" IsChecked="{Binding MapFollowPlane}" />
-        <CheckBox Content="Enable HUD Overlay" IsChecked="{Binding EnableHudOverlay}" />
+        <CheckBox Content="Load Waypoints on connect?" IsChecked="{Binding LoadWaypointsOnConnect, Mode=TwoWay}" />
+        <CheckBox Content="Display in Flightdata" IsChecked="{Binding DisplayInFlightData, Mode=TwoWay}" />
+        <CheckBox Content="Map follows plane" IsChecked="{Binding MapFollowPlane, Mode=TwoWay}" />
+        <CheckBox Content="Enable HUD Overlay" IsChecked="{Binding EnableHudOverlay, Mode=TwoWay}" />
       </StackPanel>
 
       <TextBlock Grid.Row="7" Grid.Column="0" Classes="lbl" Text="Theme / Layout" />
@@ -104,11 +105,11 @@
 
       <TextBlock Grid.Row="8" Grid.Column="0" Classes="lbl" Text="Aircraft Icon" />
       <WrapPanel Grid.Row="8" Grid.Column="1">
-        <CheckBox Content="Display COG" IsChecked="{Binding DisplayCog}" Margin="0,0,12,0" />
-        <CheckBox Content="Display Heading" IsChecked="{Binding DisplayHeading}" Margin="0,0,12,0" />
-        <CheckBox Content="Display Nav Bearing" IsChecked="{Binding DisplayNavBearing}" Margin="0,0,12,0" />
-        <CheckBox Content="Display Target" IsChecked="{Binding DisplayTarget}" Margin="0,0,12,0" />
-        <CheckBox Content="Display ToolTip" IsChecked="{Binding DisplayTooltip}" Margin="0,0,12,0" />
+        <CheckBox Content="Display COG" IsChecked="{Binding DisplayCog, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Display Heading" IsChecked="{Binding DisplayHeading, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Display Nav Bearing" IsChecked="{Binding DisplayNavBearing, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Display Target" IsChecked="{Binding DisplayTarget, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Display ToolTip" IsChecked="{Binding DisplayTooltip, Mode=TwoWay}" Margin="0,0,12,0" />
       </WrapPanel>
 
       <TextBlock Grid.Row="9" Grid.Column="0" Classes="lbl" Text="Connect Reset" />
@@ -116,7 +117,7 @@
         Grid.Row="9"
         Grid.Column="1"
         Content="Reset on USB Connect (toggle DTR)"
-        IsChecked="{Binding ResetOnUsbConnect}"
+        IsChecked="{Binding ResetOnUsbConnect, Mode=TwoWay}"
       />
     </Grid>
   </ScrollViewer>

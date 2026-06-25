@@ -35,6 +35,13 @@
     <PackageReference Include="BouncyCastle.Cryptography" />
   </ItemGroup>
 
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <PackageReference Include="VideoLAN.LibVLC.Mac" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <PackageReference Include="VideoLAN.LibVLC.Windows" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../../external/MissionPlanner/ExtLibs/ArduPilot/MissionPlanner.ArduPilot.csproj" />
     <ProjectReference Include="../../external/MissionPlanner/ExtLibs/DroneCAN/DroneCAN.csproj" />

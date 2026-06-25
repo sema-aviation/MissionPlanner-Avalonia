@@ -1,0 +1,70 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="560"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigGPSOrderView"
+  x:DataType="cv:ConfigGPSOrderViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+    <TextBlock Grid.Row="1" Classes="fieldlbl" Text="{Binding Intro}" TextWrapping="Wrap" Margin="0,0,0,8" />
+    <Button Grid.Row="2" Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" Margin="0,0,0,8" />
+
+    <DataGrid
+      Grid.Row="3"
+      ItemsSource="{Binding Rows}"
+      AutoGenerateColumns="False"
+      IsReadOnly="True"
+      GridLinesVisibility="All"
+      CanUserResizeColumns="True"
+    >
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Order" Binding="{Binding Order}" Width="80" />
+        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200" />
+        <DataGridTextColumn Header="Node ID" Binding="{Binding NodeID}" Width="120" />
+        <DataGridTemplateColumn Header="Override" Width="*">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="cv:GpsCanRow">
+              <StackPanel Orientation="Horizontal" Spacing="6" Margin="4,2">
+                <Button
+                  Content="Override 1"
+                  Command="{Binding $parent[DataGrid].((cv:ConfigGPSOrderViewModel)DataContext).Override1Command}"
+                  CommandParameter="{Binding}"
+                />
+                <Button
+                  Content="Override 2"
+                  Command="{Binding $parent[DataGrid].((cv:ConfigGPSOrderViewModel)DataContext).Override2Command}"
+                  CommandParameter="{Binding}"
+                />
+              </StackPanel>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <StackPanel Grid.Row="4" Margin="0,8,0,0">
+      <TextBlock Text="{Binding Status}" Foreground="#94C11F" Margin="0,0,0,6" />
+      <ItemsControl ItemsSource="{Binding Fields}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="cv:ParamField">
+            <Grid ColumnDefinitions="220,200,Auto,*" Margin="0,3">
+              <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl" ToolTip.Tip="{Binding Description}" TextWrapping="Wrap" Margin="0,0,8,0" />
+              <ComboBox Grid.Column="1" IsVisible="{Binding IsCombo}" MinWidth="180" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
+              <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
+              <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="180" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
+              <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
+              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Grid>
+</UserControl>
