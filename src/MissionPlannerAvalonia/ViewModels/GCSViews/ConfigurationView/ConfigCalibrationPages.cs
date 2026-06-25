@@ -127,7 +127,6 @@ public class ConfigESCCalibrationViewModel : ActionPageViewModel {
 }
 
 public partial class ConfigMotorTestViewModel : ActionPageViewModel {
-  [Obsolete]
   public ConfigMotorTestViewModel() {
     Title = "Motor Test";
     Instructions =
@@ -143,7 +142,6 @@ public partial class ConfigMotorTestViewModel : ActionPageViewModel {
   public int ThrottlePercent { get; set; } = 8;
   public int DurationSec { get; set; } = 2;
 
-  [Obsolete]
   private async void Spin(int motor, bool all = false) {
     if (!RequireConnection()) {
       return;
@@ -156,6 +154,7 @@ public partial class ConfigMotorTestViewModel : ActionPageViewModel {
     );
     try {
       int count = all ? 8 : 0;
+#pragma warning disable CS0612
       bool ok = await Task.Run(() =>
           comPort.doMotorTest(
               all ? 1 : motor,
@@ -165,6 +164,7 @@ public partial class ConfigMotorTestViewModel : ActionPageViewModel {
               count
           )
       );
+#pragma warning restore CS0612
       AppendLog(ok ? "Command accepted." : "Command rejected.");
     } catch (Exception ex) {
       AppendLog(ex.Message);
