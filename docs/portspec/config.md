@@ -396,8 +396,12 @@ Notes:
     re-sorts (favs pinned). Desc click → `CheckForUrlAndLaunchInBrowser` (`:1066`).
   - Column widths persisted as `rawparam_<col>_width`. `static rowlist` cached across
     activations; natural+fav sort via `NaturalStringComparer` (`:746`).
-- **Avalonia status**: **MISSING** — no raw/full editable param table with tree +
-  search/compare/load/save/presaved/commit. Only metadata-driven friendly pages exist.
+- **Avalonia status**: **DONE** — `RawParamsViewModel`/`RawParamsView` (commit 0cd5159):
+  metadata grid (Fav/Name/Value/Default/Units/Options/Desc), prefix category tree, Search(≥2)+Modified+
+  Non-Default filters, Load/Save/Compare .param (reuse `ParamFile`), Write (mxparser eval + reboot note),
+  Commit-to-Flash, fav persist (`Settings` "fav_params"). Not ported: Load-Presaved GitHub fetch, separate
+  ParamCompare diff window (Compare stages diffs + flips Modified filter instead), per-row inline Options
+  editor, >2× confirm modal.
 
 ---
 
@@ -630,7 +634,7 @@ live RC bars/servo-test/swash widgets yet.
 | ConfigArdurover (Basic Tuning Rover) | — | MISSING | none |
 | ConfigFriendlyParams (Standard) | `ConfigFriendlyParamsViewModel` | DONE* | verify Find debounce/fav/bitmask parity |
 | ConfigFriendlyParamsAdv (Advanced) | `ConfigFriendlyParamsViewModel` (adv mode) | DONE* | same |
-| ConfigRawParams (Full Param List) | — | MISSING | no raw grid+tree+search/compare/load/save/presaved/commit |
+| ConfigRawParams (Full Param List) | `RawParamsViewModel` | DONE | grid+tree+search/filters/load/save/compare/write/commit/fav; no GitHub-presaved, no ParamCompare window |
 | ConfigUserDefined (User Params) | `ConfigUserDefinedViewModel` (ConfigParamPages.cs:254) | PARTIAL | stub, no Modify/rows |
 | ConfigPlanner | `ConfigPlannerViewModel` | PARTIAL | no Settings persistence wiring, no video/joystick/vario |
 | ConfigPlannerAdv | — | MISSING | no settings-dump grid |
