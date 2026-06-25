@@ -219,16 +219,52 @@
             <ctl:Gauge Grid.Row="0" Grid.Column="0" Margin="6" MinHeight="120"
                        Label="VSI" Units="m/s" Min="-10" Max="10" Value="{Binding VerticalSpeed}" />
             <ctl:Gauge Grid.Row="0" Grid.Column="1" Margin="6" MinHeight="120"
-                       Label="Speed" Units="m/s" Min="0" Max="50" Value="{Binding AirSpeed}" />
-            <ctl:Gauge Grid.Row="1" Grid.Column="0" Margin="6" MinHeight="120"
-                       Label="Alt" Units="m" Min="0" Max="200" Value="{Binding Alt}" />
-            <ctl:Gauge Grid.Row="1" Grid.Column="1" Margin="6" MinHeight="120"
                        Label="Heading" Units="deg" Min="0" Max="360" Value="{Binding Yaw}" />
+            <ctl:Gauge Grid.Row="1" Grid.Column="0" Margin="6" MinHeight="120"
+                       Label="Alt" Units="m" Min="0" Max="1000" Value="{Binding Alt}" />
+            <ctl:Gauge Grid.Row="1" Grid.Column="1" Margin="6" MinHeight="120"
+                       Label="Speed" Units="m/s" Min="0" Max="60" Value="{Binding AirSpeed}" />
           </Grid>
         </TabItem>
 
         <TabItem Header="Transponder">
-          <TextBlock Margin="8" Text="Transponder" />
+          <!-- ponytail: static layout from Designer; transponder MAVLink not ported, no wiring -->
+          <StackPanel Margin="10" Spacing="8">
+            <Button Content="Connect to Transponder" HorizontalAlignment="Left" />
+            <Grid ColumnDefinitions="Auto,160" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Squawk" VerticalAlignment="Center" />
+              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="7777" Value="1200" />
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="FlightID" VerticalAlignment="Center" />
+              <TextBox Grid.Row="1" Grid.Column="1" />
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Content="STBY" Width="60" />
+              <Button Content="ALT" Width="60" />
+              <Button Content="ON" Width="60" />
+              <Button Content="IDENT" Width="60" />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Mode" FontWeight="Bold" />
+                <CheckBox Content="Mode A" />
+                <CheckBox Content="Mode C" />
+                <CheckBox Content="Mode S" />
+                <CheckBox Content="1090ES ADS-B OUT" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Text="Faults" FontWeight="Bold" />
+                <CheckBox Content="Maint. Req." IsEnabled="False" />
+                <CheckBox Content="GPS Unavail." IsEnabled="False" />
+                <CheckBox Content="GPS No Fix" IsEnabled="False" />
+                <CheckBox Content="TX Sys. Fail." IsEnabled="False" />
+                <CheckBox Content="On Ground" IsEnabled="False" />
+              </StackPanel>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <TextBlock Text="NIC: 0" />
+              <TextBlock Text="NACp: 0" />
+            </StackPanel>
+          </StackPanel>
         </TabItem>
 
         <TabItem Header="Status">
