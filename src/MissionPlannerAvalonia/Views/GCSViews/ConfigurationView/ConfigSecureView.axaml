@@ -1,0 +1,74 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigSecureView"
+  x:DataType="cv:ConfigSecureViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Secure (Public Key Management)" />
+
+    <TextBlock
+      Grid.Row="1"
+      Text="Manage bootloader public keys on the autopilot via SECURE_COMMAND."
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,0,0,12"
+    />
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+      <TextBlock Text="Session key:" Classes="fieldlbl" VerticalAlignment="Center" />
+      <TextBlock Text="{Binding SessionKeyText}" Classes="fieldlbl" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <Border
+      Grid.Row="3"
+      BorderBrush="#262728"
+      BorderThickness="1"
+      Background="#262728"
+      Padding="4"
+    >
+      <ItemsControl ItemsSource="{Binding Keys}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="cv:SecureKeySlot">
+            <Grid ColumnDefinitions="60,*" Margin="0,3">
+              <TextBlock Grid.Column="0" Text="{Binding Index, StringFormat='\#\{0\}'}" Classes="fieldlbl" />
+              <TextBlock
+                Grid.Column="1"
+                Text="{Binding Key}"
+                Classes="fieldlbl"
+                TextWrapping="Wrap"
+                FontFamily="Consolas,monospace"
+              />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" Margin="0,12,0,8">
+      <Button Content="Get Session Key" Command="{Binding GetSessionKeyCommand}" />
+      <Button Content="Get Keys" Command="{Binding GetKeysCommand}" />
+      <Button Name="SetKeyBtn" Content="Set Key…" />
+      <Button Content="Remove Keys" Command="{Binding RemoveKeysCommand}" />
+    </StackPanel>
+
+    <TextBox
+      Grid.Row="5"
+      Text="{Binding Log}"
+      IsReadOnly="True"
+      AcceptsReturn="True"
+      TextWrapping="Wrap"
+      Height="160"
+      Background="#262728"
+      Foreground="#DDDDDD"
+      FontFamily="Consolas,monospace"
+    />
+  </Grid>
+</UserControl>

@@ -1,0 +1,67 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigScriptReplView"
+  x:DataType="cv:ConfigScriptReplViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Script REPL" Margin="0,0,0,8" />
+
+    <Border
+      Grid.Row="1"
+      Background="#262728"
+      BorderBrush="#2D2D2D"
+      BorderThickness="1"
+      CornerRadius="2"
+    >
+      <ScrollViewer>
+        <TextBox
+          Text="{Binding Output}"
+          IsReadOnly="True"
+          AcceptsReturn="True"
+          TextWrapping="NoWrap"
+          FontFamily="Consolas,Menlo,Monospace"
+          Background="Transparent"
+          BorderThickness="0"
+          Foreground="#DCDCDC"
+        />
+      </ScrollViewer>
+    </Border>
+
+    <CheckBox
+      Grid.Row="2"
+      Content="Auto scroll"
+      IsChecked="{Binding AutoScroll}"
+      Margin="0,8,0,8"
+    />
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto">
+      <TextBox
+        Grid.Column="0"
+        Text="{Binding Input}"
+        Watermark="Enter a Python statement..."
+        AcceptsReturn="False"
+        FontFamily="Consolas,Menlo,Monospace"
+        Margin="0,0,8,0"
+      />
+      <Button
+        Grid.Column="1"
+        Content="Run"
+        Command="{Binding RunCommand}"
+        Margin="0,0,8,0"
+      />
+      <Button
+        Grid.Column="2"
+        Content="Clear"
+        Command="{Binding ClearCommand}"
+      />
+    </Grid>
+  </Grid>
+</UserControl>

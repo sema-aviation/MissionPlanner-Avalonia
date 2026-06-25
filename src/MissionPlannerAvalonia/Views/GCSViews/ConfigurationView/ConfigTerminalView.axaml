@@ -1,0 +1,57 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigTerminalView"
+  x:DataType="cv:ConfigTerminalViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Terminal" />
+    <TextBlock
+      Grid.Row="1"
+      Text="{Binding Status}"
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,0,0,12"
+    />
+
+    <TextBox
+      Grid.Row="2"
+      Text="{Binding Output}"
+      IsReadOnly="True"
+      AcceptsReturn="True"
+      TextWrapping="NoWrap"
+      FontFamily="Consolas,Menlo,monospace"
+      Background="#262728"
+      Foreground="#DDDDDD"
+      VerticalContentAlignment="Top"
+    />
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
+      <TextBox
+        Grid.Column="0"
+        Text="{Binding Input}"
+        Watermark="Type a command…"
+        FontFamily="Consolas,Menlo,monospace"
+        Margin="0,0,8,0"
+      />
+      <Button
+        Grid.Column="1"
+        Content="Send"
+        Command="{Binding SendCommand}"
+        Margin="0,0,8,0"
+      />
+      <Button
+        Grid.Column="2"
+        Content="Clear"
+        Command="{Binding ClearCommand}"
+      />
+    </Grid>
+  </Grid>
+</UserControl>

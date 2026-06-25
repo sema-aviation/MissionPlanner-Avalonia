@@ -1,0 +1,94 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFirmwareLegacyView"
+  x:DataType="cv:ConfigFirmwareLegacyViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Install Firmware (Legacy)" />
+
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,*,Auto" Margin="0,8,0,8">
+      <TextBlock Grid.Column="0" Text="Vehicle" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,0,8,0" />
+      <ComboBox
+        Grid.Column="1"
+        ItemsSource="{Binding Vehicles}"
+        SelectedItem="{Binding SelectedVehicle}"
+        HorizontalAlignment="Stretch"
+        Margin="0,0,16,0"
+      />
+      <TextBlock Grid.Column="2" Text="Release" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,0,8,0" />
+      <ComboBox
+        Grid.Column="3"
+        ItemsSource="{Binding ReleaseTypes}"
+        SelectedItem="{Binding SelectedReleaseType}"
+        HorizontalAlignment="Stretch"
+        Margin="0,0,16,0"
+      />
+      <Button
+        Grid.Column="4"
+        Content="Refresh"
+        Command="{Binding RefreshCommand}"
+      />
+    </Grid>
+
+    <ListBox
+      Grid.Row="2"
+      ItemsSource="{Binding Firmwares}"
+      SelectedItem="{Binding SelectedFirmware}"
+      Background="#262728"
+    >
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="cv:FirmwareItem">
+          <TextBlock Text="{Binding Display}" Classes="fieldlbl" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <Button
+      Grid.Row="3"
+      Content="Upload Firmware"
+      Command="{Binding UploadCommand}"
+      HorizontalAlignment="Left"
+      Margin="0,12,0,0"
+    />
+
+    <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+      <ProgressBar
+        Grid.Column="0"
+        Minimum="0"
+        Maximum="100"
+        Value="{Binding Progress}"
+        Height="22"
+        Foreground="#94C11F"
+      />
+      <TextBlock
+        Grid.Column="1"
+        Text="{Binding Progress, StringFormat='\{0:0\}%'}"
+        Classes="fieldlbl"
+        VerticalAlignment="Center"
+        Margin="8,0,0,0"
+      />
+    </Grid>
+
+    <StackPanel Grid.Row="5" Margin="0,8,0,0">
+      <TextBlock Text="{Binding Status}" Classes="fieldlbl" TextWrapping="Wrap" Margin="0,0,0,6" />
+      <TextBox
+        Text="{Binding Log}"
+        IsReadOnly="True"
+        AcceptsReturn="True"
+        TextWrapping="NoWrap"
+        Height="140"
+        Background="#262728"
+        Foreground="#DDDDDD"
+        FontFamily="Consolas,Menlo,monospace"
+      />
+    </StackPanel>
+  </Grid>
+</UserControl>

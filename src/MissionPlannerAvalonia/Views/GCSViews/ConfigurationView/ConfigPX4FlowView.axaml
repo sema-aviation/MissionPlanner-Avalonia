@@ -1,0 +1,46 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigPX4FlowView"
+  x:DataType="cv:ConfigPX4FlowViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="PX4Flow" />
+    <TextBlock
+      Grid.Row="1"
+      Text="{Binding Status}"
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,0,0,12"
+    />
+
+    <Border
+      Grid.Row="2"
+      Background="#262728"
+      CornerRadius="4"
+      Padding="8"
+    >
+      <Image
+        Source="{Binding Image}"
+        Stretch="Uniform"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+      />
+    </Border>
+
+    <Button
+      Grid.Row="3"
+      Content="{Binding FocusLabel}"
+      Command="{Binding ToggleFocusCommand}"
+      HorizontalAlignment="Left"
+      Margin="0,12,0,0"
+    />
+  </Grid>
+</UserControl>

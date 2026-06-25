@@ -1,0 +1,38 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigHWIDView"
+  x:DataType="cv:ConfigHWIDViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,*" Margin="16">
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+      <TextBlock Classes="pagetitle" Text="HW ID" VerticalAlignment="Center" />
+      <Button Content="Refresh" Command="{Binding LoadCommand}" />
+    </StackPanel>
+
+    <DataGrid
+      Grid.Row="1"
+      ItemsSource="{Binding Devices}"
+      AutoGenerateColumns="False"
+      IsReadOnly="True"
+      GridLinesVisibility="All"
+      CanUserResizeColumns="True"
+    >
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Param" Binding="{Binding ParamName}" Width="200" />
+        <DataGridTextColumn Header="DevID" Binding="{Binding DevID}" Width="120" />
+        <DataGridTextColumn Header="Bus Type" Binding="{Binding BusType}" Width="100" />
+        <DataGridTextColumn Header="Bus" Binding="{Binding Bus}" Width="70" />
+        <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="90" />
+        <DataGridTextColumn Header="Dev Type" Binding="{Binding DevType}" Width="*" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </Grid>
+</UserControl>

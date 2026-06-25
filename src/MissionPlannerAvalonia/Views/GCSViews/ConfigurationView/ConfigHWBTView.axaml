@@ -1,0 +1,80 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigHWBTView"
+  x:DataType="cv:ConfigHWBTViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Bluetooth Setup" />
+
+    <TextBlock
+      Grid.Row="1"
+      Text="Configures an HC-05/HC-06 style serial Bluetooth module via AT commands. Disconnect the main link first, select the module's serial port, then click Write."
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,0,0,12"
+    />
+
+    <Grid Grid.Row="2" ColumnDefinitions="120,*" Margin="0,4">
+      <TextBlock Grid.Column="0" Text="Port" Classes="fieldlbl" VerticalAlignment="Center" />
+      <ComboBox
+        Grid.Column="1"
+        ItemsSource="{Binding Ports}"
+        SelectedItem="{Binding SelectedPort}"
+        HorizontalAlignment="Stretch"
+      />
+    </Grid>
+
+    <Grid Grid.Row="3" ColumnDefinitions="120,*" Margin="0,4">
+      <TextBlock Grid.Column="0" Text="Name" Classes="fieldlbl" VerticalAlignment="Center" />
+      <TextBox Grid.Column="1" Text="{Binding Name}" />
+    </Grid>
+
+    <Grid Grid.Row="4" ColumnDefinitions="120,*" Margin="0,4">
+      <TextBlock Grid.Column="0" Text="Baud" Classes="fieldlbl" VerticalAlignment="Center" />
+      <ComboBox
+        Grid.Column="1"
+        ItemsSource="{Binding Bauds}"
+        SelectedItem="{Binding SelectedBaud}"
+        HorizontalAlignment="Stretch"
+      />
+    </Grid>
+
+    <Grid Grid.Row="5" ColumnDefinitions="120,*,Auto" Margin="0,4">
+      <TextBlock Grid.Column="0" Text="PIN" Classes="fieldlbl" VerticalAlignment="Center" />
+      <TextBox Grid.Column="1" Text="{Binding Pin}" />
+      <Button
+        Grid.Column="2"
+        Content="Write"
+        Command="{Binding WriteCommand}"
+        IsEnabled="{Binding !IsBusy}"
+        Margin="12,0,0,0"
+        VerticalAlignment="Center"
+      />
+    </Grid>
+
+    <Border
+      Grid.Row="6"
+      Background="#262728"
+      Margin="0,12,0,0"
+    >
+      <ScrollViewer>
+        <TextBox
+          Text="{Binding Output}"
+          IsReadOnly="True"
+          AcceptsReturn="True"
+          TextWrapping="Wrap"
+          Background="Transparent"
+          BorderThickness="0"
+        />
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</UserControl>

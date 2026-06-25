@@ -1,0 +1,63 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigGpsInjectView"
+  x:DataType="cv:ConfigGpsInjectViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="RTK/GPS Inject" />
+
+    <TextBlock
+      Grid.Row="1"
+      Text="{Binding Status}"
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,0,0,12"
+    />
+
+    <Grid
+      Grid.Row="2"
+      ColumnDefinitions="140,*"
+      RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+      VerticalAlignment="Top"
+    >
+      <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Caster Host" VerticalAlignment="Center" Margin="0,4" />
+      <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Host}" Watermark="caster.example.com" Margin="0,4" />
+
+      <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Port" VerticalAlignment="Center" Margin="0,4" />
+      <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Port}" Margin="0,4" />
+
+      <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Mount Point" VerticalAlignment="Center" Margin="0,4" />
+      <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Mount}" Watermark="MOUNT" Margin="0,4" />
+
+      <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Username" VerticalAlignment="Center" Margin="0,4" />
+      <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Username}" Margin="0,4" />
+
+      <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Password" VerticalAlignment="Center" Margin="0,4" />
+      <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Password}" PasswordChar="*" Margin="0,4" />
+
+      <CheckBox Grid.Row="5" Grid.Column="1" Content="Use NTRIP v1" IsChecked="{Binding NtripV1}" Margin="0,8,0,0" />
+      <CheckBox Grid.Row="6" Grid.Column="1" Content="Send GGA (vehicle position) to caster" IsChecked="{Binding SendGga}" Margin="0,4,0,0" />
+    </Grid>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0" Spacing="12">
+      <TextBlock Classes="fieldlbl" Text="Injected:" VerticalAlignment="Center" />
+      <TextBlock Classes="fieldlbl" Text="{Binding Injected}" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <Button
+      Grid.Row="4"
+      Content="{Binding ConnectLabel}"
+      Command="{Binding ToggleConnectCommand}"
+      HorizontalAlignment="Left"
+      Margin="0,12,0,0"
+    />
+  </Grid>
+</UserControl>

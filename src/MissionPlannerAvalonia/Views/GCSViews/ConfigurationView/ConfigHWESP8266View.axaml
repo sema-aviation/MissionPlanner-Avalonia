@@ -1,0 +1,81 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="800"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigHWESP8266View"
+  x:DataType="cv:ConfigHWESP8266ViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="16">
+      <TextBlock Grid.Row="0" Classes="pagetitle" Text="ESP8266" />
+
+      <TextBlock
+        Grid.Row="1"
+        Text="{Binding Status}"
+        Classes="fieldlbl"
+        TextWrapping="Wrap"
+        Margin="0,0,0,12"
+      />
+
+      <Grid Grid.Row="2" ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,0,0,12">
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="SSID" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Ssid}" Margin="0,4" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Password" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Password}" Margin="0,4" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="WiFi Channel" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,4" />
+        <ComboBox
+          Grid.Row="2"
+          Grid.Column="1"
+          ItemsSource="{Binding ChannelOptions}"
+          SelectedItem="{Binding Channel}"
+          HorizontalAlignment="Left"
+          Width="120"
+          Margin="0,4"
+        />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="UART Baud" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,4" />
+        <ComboBox
+          Grid.Row="3"
+          Grid.Column="1"
+          ItemsSource="{Binding BaudOptions}"
+          SelectedItem="{Binding Baud}"
+          HorizontalAlignment="Left"
+          Width="120"
+          Margin="0,4"
+        />
+      </Grid>
+
+      <Border Grid.Row="3" BorderBrush="#262728" BorderThickness="1" Padding="12" Margin="0,0,0,12">
+        <StackPanel Spacing="8">
+          <CheckBox Content="Station (STA) mode" IsChecked="{Binding StaMode}" />
+          <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" IsEnabled="{Binding StaMode}">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="IP" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,4" />
+            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding IpSta}" Margin="0,4" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Gateway" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,4" />
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding GatewaySta}" Margin="0,4" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Subnet" Classes="fieldlbl" VerticalAlignment="Center" Margin="0,4" />
+            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SubnetSta}" Margin="0,4" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Grid.Row="4" Spacing="12">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Content="Save" Command="{Binding SaveCommand}" />
+          <Button Content="Reset to defaults" Command="{Binding ResetDefaultsCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding Details}" Classes="fieldlbl" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</UserControl>
