@@ -167,6 +167,26 @@ public partial class FlightDataViewModel : ViewModelBase {
     PrearmText = PrearmOk ? "Ready to Arm" : "Not Ready to Arm";
     EkfStatus = cs.ekfstatus;
     BatCurrent = cs.current;
+    NavBearing = cs.nav_bearing;
+
+    if (_hudUserFields.Count > 0) {
+      var sb = new System.Text.StringBuilder();
+      foreach (var p in StatusProps) {
+        if (!_hudUserFields.Contains(p.Name)) {
+          continue;
+        }
+        object? v;
+        try {
+          v = p.GetValue(cs);
+        } catch {
+          v = null;
+        }
+        sb.AppendLine(v is float or double ? $"{p.Name}: {v:0.00}" : $"{p.Name}: {v}");
+      }
+      HudCustomText = sb.ToString().TrimEnd();
+    } else if (HudCustomText.Length > 0) {
+      HudCustomText = "";
+    }
 
     RefreshStatus(cs);
     RefreshPreflight(cs);
@@ -789,9 +809,53 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private int _mapColumn = 2;
 
-  private static readonly string[] GroundColors =
-      { "", "#9BB824", "#8B5A2B", "#C8781E", "#556B2F" };
-  private int _groundColorIdx;
+  [ObservableProperty]
+  private double _navBearing;
+
+  [ObservableProperty]
+  private string _hudCustomText = "";
+
+  // HUD Items submenu toggles
+  [ObservableProperty]
+  private bool _hudHeading = true;
+
+  [ObservableProperty]
+  private bool _hudSpeed = true;
+
+  [ObservableProperty]
+  private bool _hudAlt = true;
+
+  [ObservableProperty]
+  private bool _hudConnection = true;
+
+  [ObservableProperty]
+  private bool _hudXTrack = true;
+
+  [ObservableProperty]
+  private bool _hudRollPitch = true;
+
+  [ObservableProperty]
+  private bool _hudGps = true;
+
+  [ObservableProperty]
+  private bool _hudBattery = true;
+
+  [ObservableProperty]
+  private bool _hudBattery2 = true;
+
+  [ObservableProperty]
+  private bool _hudEkf = true;
+
+  [ObservableProperty]
+  private bool _hudVibe = true;
+
+  [ObservableProperty]
+  private bool _hudPrearm = true;
+
+  [ObservableProperty]
+  private bool _hudAoa = true;
+
+  private readonly System.Collections.Generic.HashSet<string> _hudUserFields = new();
 
   [RelayCommand]
   private void ToggleHudIcons() => HudShowIcons = !HudShowIcons;
@@ -800,13 +864,101 @@ public partial class FlightDataViewModel : ViewModelBase {
   private void ToggleRussianHud() => HudRussian = !HudRussian;
 
   [RelayCommand]
-  private void SetGroundColor() {
-    _groundColorIdx = (_groundColorIdx + 1) % GroundColors.Length;
-    HudGroundColor = GroundColors[_groundColorIdx];
+  private async Task SetGroundColor() {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return;
+    }
+    var picker = new Avalonia.Controls.ColorPicker {
+      Color = string.IsNullOrEmpty(HudGroundColor)
+          ? Avalonia.Media.Color.Parse("#9BB824")
+          : Avalonia.Media.Color.Parse(HudGroundColor),
+    };
+    var ok = new Avalonia.Controls.Button {
+      Content = "OK",
+      HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+    };
+    var dlg = new Avalonia.Controls.Window {
+      Title = "Ground Color",
+      Width = 340,
+      Height = 420,
+      WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
+      Content = new Avalonia.Controls.StackPanel {
+        Margin = new Avalonia.Thickness(10),
+        Spacing = 8,
+        Children = { picker, ok },
+      },
+    };
+    ok.Click += (_, _) => dlg.Close(true);
+    if (await dlg.ShowDialog<bool>(top)) {
+      var c = picker.Color;
+      HudGroundColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+    }
   }
 
   [RelayCommand]
   private void SwapHudMap() => (HudColumn, MapColumn) = (MapColumn, HudColumn);
+
+  [RelayCommand]
+  private void SetAspectRatio() =>
+      Log("Set Aspect Ratio: HUD video aspect (used with video overlay; video not ported).");
+
+  [RelayCommand]
+  private void HudVideoNotPorted() =>
+      Log("HUD video/GStreamer capture is not ported in this cross-platform build.");
+
+  // MP "User Items": checkbox per numeric CurrentState field; checked ones render on the HUD.
+  [RelayCommand]
+  private async Task HudUserItems() {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return;
+    }
+    var panel = new Avalonia.Controls.WrapPanel {
+      Orientation = Avalonia.Layout.Orientation.Vertical,
+      MaxHeight = 520,
+    };
+    foreach (var p in StatusProps) {
+      if (!IsNumber(p.PropertyType)) {
+        continue;
+      }
+      var cb = new Avalonia.Controls.CheckBox {
+        Content = p.Name,
+        IsChecked = _hudUserFields.Contains(p.Name),
+        Width = 180,
+        FontSize = 11,
+      };
+      var name = p.Name;
+      cb.IsCheckedChanged += (_, _) => {
+        if (cb.IsChecked == true) {
+          _hudUserFields.Add(name);
+        } else {
+          _hudUserFields.Remove(name);
+        }
+      };
+      panel.Children.Add(cb);
+    }
+    var dlg = new Avalonia.Controls.Window {
+      Title = "HUD User Items",
+      Width = 900,
+      Height = 600,
+      WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
+      Content = new Avalonia.Controls.ScrollViewer {
+        HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+        Content = panel,
+      },
+    };
+    await dlg.ShowDialog(top);
+  }
+
+  private static bool IsNumber(Type t) {
+    t = Nullable.GetUnderlyingType(t) ?? t;
+    return t == typeof(float) || t == typeof(double) || t == typeof(int) || t == typeof(uint)
+        || t == typeof(short) || t == typeof(ushort) || t == typeof(long) || t == typeof(ulong)
+        || t == typeof(byte) || t == typeof(sbyte) || t == typeof(decimal);
+  }
 
   [RelayCommand]
   private async Task SetBatteryCells() {
@@ -847,9 +999,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  [RelayCommand]
-  private void HudUserItems() =>
-      Log("HUD User Items: custom display fields are configured in MP's HUD dialog (not yet ported).");
 }
 
 public record AuxRow(int Channel, ParamField Field);

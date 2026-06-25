@@ -63,6 +63,30 @@ public class HudControl : Control {
   public static readonly StyledProperty<string> GroundColorHexProperty =
       AvaloniaProperty.Register<HudControl, string>(nameof(GroundColorHex), "");
 
+  // HUD Items submenu toggles (mirror MP HUD.display* flags)
+  public static readonly StyledProperty<bool> DisplayHeadingProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayHeading), true);
+  public static readonly StyledProperty<bool> DisplaySpeedProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplaySpeed), true);
+  public static readonly StyledProperty<bool> DisplayAltProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayAlt), true);
+  public static readonly StyledProperty<bool> DisplayRollPitchProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayRollPitch), true);
+  public static readonly StyledProperty<bool> DisplayGpsProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayGps), true);
+  public static readonly StyledProperty<bool> DisplayBatteryProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayBattery), true);
+  public static readonly StyledProperty<bool> DisplayEkfProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayEkf), true);
+  public static readonly StyledProperty<bool> DisplayVibeProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayVibe), true);
+  public static readonly StyledProperty<bool> DisplayPrearmProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayPrearm), true);
+  public static readonly StyledProperty<double> NavBearingProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(NavBearing));
+  public static readonly StyledProperty<string> CustomItemsTextProperty =
+      AvaloniaProperty.Register<HudControl, string>(nameof(CustomItemsText), "");
+
   public double Roll {
     get => GetValue(RollProperty);
     set => SetValue(RollProperty, value);
@@ -127,6 +151,50 @@ public class HudControl : Control {
     get => GetValue(GroundColorHexProperty);
     set => SetValue(GroundColorHexProperty, value);
   }
+  public bool DisplayHeading {
+    get => GetValue(DisplayHeadingProperty);
+    set => SetValue(DisplayHeadingProperty, value);
+  }
+  public bool DisplaySpeed {
+    get => GetValue(DisplaySpeedProperty);
+    set => SetValue(DisplaySpeedProperty, value);
+  }
+  public bool DisplayAlt {
+    get => GetValue(DisplayAltProperty);
+    set => SetValue(DisplayAltProperty, value);
+  }
+  public bool DisplayRollPitch {
+    get => GetValue(DisplayRollPitchProperty);
+    set => SetValue(DisplayRollPitchProperty, value);
+  }
+  public bool DisplayGps {
+    get => GetValue(DisplayGpsProperty);
+    set => SetValue(DisplayGpsProperty, value);
+  }
+  public bool DisplayBattery {
+    get => GetValue(DisplayBatteryProperty);
+    set => SetValue(DisplayBatteryProperty, value);
+  }
+  public bool DisplayEkf {
+    get => GetValue(DisplayEkfProperty);
+    set => SetValue(DisplayEkfProperty, value);
+  }
+  public bool DisplayVibe {
+    get => GetValue(DisplayVibeProperty);
+    set => SetValue(DisplayVibeProperty, value);
+  }
+  public bool DisplayPrearm {
+    get => GetValue(DisplayPrearmProperty);
+    set => SetValue(DisplayPrearmProperty, value);
+  }
+  public double NavBearing {
+    get => GetValue(NavBearingProperty);
+    set => SetValue(NavBearingProperty, value);
+  }
+  public string CustomItemsText {
+    get => GetValue(CustomItemsTextProperty);
+    set => SetValue(CustomItemsTextProperty, value);
+  }
 
   private static readonly IBrush SkyBrush = new LinearGradientBrush {
     StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
@@ -169,7 +237,18 @@ public class HudControl : Control {
         ShowIconsProperty,
         RussianProperty,
         BatteryCellsProperty,
-        GroundColorHexProperty
+        GroundColorHexProperty,
+        DisplayHeadingProperty,
+        DisplaySpeedProperty,
+        DisplayAltProperty,
+        DisplayRollPitchProperty,
+        DisplayGpsProperty,
+        DisplayBatteryProperty,
+        DisplayEkfProperty,
+        DisplayVibeProperty,
+        DisplayPrearmProperty,
+        NavBearingProperty,
+        CustomItemsTextProperty
     );
   }
 
@@ -219,21 +298,23 @@ public class HudControl : Control {
         context.FillRectangle(groundFill, new Rect(cx - big, hor, big * 2, big));
         context.DrawLine(WhitePen, new Point(cx - big, hor), new Point(cx + big, hor));
 
-        for (int p = -40; p <= 40; p += 10) {
-          if (p == 0) {
-            continue;
-          }
+        if (DisplayRollPitch) {
+          for (int p = -40; p <= 40; p += 10) {
+            if (p == 0) {
+              continue;
+            }
 
-          double y = hor - p * pxPerDeg;
-          double half = 44;
-          context.DrawLine(ThinPen, new Point(cx - half, y), new Point(cx + half, y));
-          DrawText(context, Math.Abs(p).ToString(), new Point(cx + half + 4, y - 7), 11);
-          DrawText(context, Math.Abs(p).ToString(), new Point(cx - half - 22, y - 7), 11);
+            double y = hor - p * pxPerDeg;
+            double half = 44;
+            context.DrawLine(ThinPen, new Point(cx - half, y), new Point(cx + half, y));
+            DrawText(context, Math.Abs(p).ToString(), new Point(cx + half + 4, y - 7), 11);
+            DrawText(context, Math.Abs(p).ToString(), new Point(cx - half - 22, y - 7), 11);
+          }
         }
       }
     }
 
-    if (ShowIcons) {
+    if (ShowIcons && DisplayRollPitch) {
       DrawRollArc(context, cx, cy, Math.Min(w, h) * 0.42);
     }
 
@@ -247,25 +328,31 @@ public class HudControl : Control {
       context.DrawLine(RedPen, new Point(cx, cy + 12), new Point(cx + 15, cy));
     }
 
-    if (ShowIcons) {
-      DrawCompassTape(context, w, Yaw);
+    if (DisplayHeading) {
+      DrawCompassTape(context, w, Yaw, NavBearing);
     }
 
-    DrawTape(context, AirSpeed, new Point(4, cy), "AS");
-    DrawTape(context, Alt, new Point(w - 70, cy), "ALT");
+    if (DisplaySpeed) {
+      DrawTape(context, AirSpeed, new Point(4, cy), "AS");
+      DrawText(context, $"AS {AirSpeed:0.0}", new Point(6, h - 52), 12);
+      DrawText(context, $"GS {GroundSpeed:0.0}", new Point(6, h - 38), 12);
+    }
+    if (DisplayAlt) {
+      DrawTape(context, Alt, new Point(w - 70, cy), "ALT");
+    }
 
-    string batt = BatteryCells > 0
-        ? $"Batt {BatteryVoltage:0.00}v {BatteryVoltage / BatteryCells:0.00}v/cell {BatteryRemaining}%"
-        : $"Batt {BatteryVoltage:0.00}v {BatteryRemaining}%";
-    DrawText(context, $"AS {AirSpeed:0.0}", new Point(6, h - 52), 12);
-    DrawText(context, $"GS {GroundSpeed:0.0}", new Point(6, h - 38), 12);
-    DrawText(
-        context,
-        batt,
-        new Point(6, h - 22),
-        12,
-        BatteryRemaining > 0 && BatteryRemaining < 20 ? Brushes.Red : TextBrush
-    );
+    if (DisplayBattery) {
+      string batt = BatteryCells > 0
+          ? $"Batt {BatteryVoltage:0.00}v {BatteryVoltage / BatteryCells:0.00}v/cell {BatteryRemaining}%"
+          : $"Batt {BatteryVoltage:0.00}v {BatteryRemaining}%";
+      DrawText(
+          context,
+          batt,
+          new Point(6, h - 22),
+          12,
+          BatteryRemaining > 0 && BatteryRemaining < 20 ? Brushes.Red : TextBrush
+      );
+    }
 
     DrawText(context, $"{VerticalSpeed:+0.0;-0.0;0.0}", new Point(w - 64, h - 38), 12);
     DrawText(context, Mode, new Point(w - 90, h - 22), 13);
@@ -273,11 +360,19 @@ public class HudControl : Control {
     var arm = Armed ? "ARMED" : "DISARMED";
     var armBrush = Armed ? Brushes.LimeGreen : Brushes.Red;
     DrawText(context, arm, new Point(cx - 36, cy + 40), 16, armBrush);
-    if (!Armed) {
+    if (!Armed && DisplayPrearm) {
       DrawText(context, "Not Ready to Arm", new Point(cx - 52, cy + 60), 12, Brushes.Yellow);
     }
 
-    if (ShowIcons) {
+    // EKF/Vibe status indicators (MP draws these centered under the attitude)
+    if (DisplayEkf) {
+      DrawText(context, "EKF", new Point(cx - 30, cy + 78), 11, Brushes.LightGray);
+    }
+    if (DisplayVibe) {
+      DrawText(context, "Vibe", new Point(cx + 10, cy + 78), 11, Brushes.LightGray);
+    }
+
+    if (DisplayGps) {
       bool gps = SatCount >= 3;
       DrawText(
           context,
@@ -287,9 +382,17 @@ public class HudControl : Control {
           gps ? Brushes.LimeGreen : Brushes.Red
       );
     }
+
+    if (!string.IsNullOrEmpty(CustomItemsText)) {
+      double yy = 30;
+      foreach (var line in CustomItemsText.Split('\n')) {
+        DrawText(context, line, new Point(w - 150, yy), 11, Brushes.White);
+        yy += 14;
+      }
+    }
   }
 
-  private void DrawCompassTape(DrawingContext ctx, double w, double yaw) {
+  private void DrawCompassTape(DrawingContext ctx, double w, double yaw, double navBearing) {
     double cx = w / 2;
     ctx.FillRectangle(Tape, new Rect(0, 0, w, 24));
     double pxPerDeg = 4;
@@ -313,6 +416,15 @@ public class HudControl : Control {
         DrawText(ctx, lbl, new Point(x - 7, 2), 10);
       }
     }
+    // nav bearing (target heading) marker — distinct color, like MP's map heading vectors
+    if (navBearing != 0) {
+      double delta = ((navBearing - yaw + 540) % 360) - 180;
+      if (Math.Abs(delta) <= 60) {
+        double nx = cx + delta * pxPerDeg;
+        ctx.DrawLine(new Pen(Brushes.Magenta, 2), new Point(nx, 0), new Point(nx, 22));
+      }
+    }
+    // current heading marker (yellow)
     ctx.DrawLine(new Pen(Brushes.Yellow, 2), new Point(cx, 0), new Point(cx, 22));
   }
 

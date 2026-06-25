@@ -34,17 +34,54 @@
           Russian="{Binding HudRussian}"
           BatteryCells="{Binding HudBatteryCells}"
           GroundColorHex="{Binding HudGroundColor}"
+          NavBearing="{Binding NavBearing}"
+          CustomItemsText="{Binding HudCustomText}"
+          DisplayHeading="{Binding HudHeading}"
+          DisplaySpeed="{Binding HudSpeed}"
+          DisplayAlt="{Binding HudAlt}"
+          DisplayRollPitch="{Binding HudRollPitch}"
+          DisplayGps="{Binding HudGps}"
+          DisplayBattery="{Binding HudBattery}"
+          DisplayEkf="{Binding HudEkf}"
+          DisplayVibe="{Binding HudVibe}"
+          DisplayPrearm="{Binding HudPrearm}"
         >
           <ctl:HudControl.ContextMenu>
             <ContextMenu>
-              <MenuItem Header="Swap With Map" Command="{Binding SwapHudMapCommand}" />
-              <MenuItem Header="Russian Hud" Command="{Binding ToggleRussianHudCommand}" />
-              <MenuItem Header="Ground Color" Command="{Binding SetGroundColorCommand}" />
-              <MenuItem Header="Show icons" Command="{Binding ToggleHudIconsCommand}" />
-              <MenuItem Header="Battery Cell Voltage" Command="{Binding SetBatteryCellsCommand}" />
+              <MenuItem Header="Video">
+                <MenuItem Header="Record Hud to AVI" Command="{Binding HudVideoNotPortedCommand}" />
+                <MenuItem Header="Stop Record" Command="{Binding HudVideoNotPortedCommand}" />
+                <MenuItem Header="Set MJPEG source" Command="{Binding HudVideoNotPortedCommand}" />
+                <MenuItem Header="Start Camera" Command="{Binding HudVideoNotPortedCommand}" />
+                <MenuItem Header="Set GStreamer Source" Command="{Binding HudVideoNotPortedCommand}" />
+                <MenuItem Header="HereLink Video" Command="{Binding HudVideoNotPortedCommand}" />
+                <MenuItem Header="GStreamer Stop" Command="{Binding HudVideoNotPortedCommand}" />
+              </MenuItem>
+              <MenuItem Header="Set Aspect Ratio" Command="{Binding SetAspectRatioCommand}" />
               <MenuItem Header="User Items" Command="{Binding HudUserItemsCommand}" />
-              <Separator />
-              <MenuItem Header="Video" IsEnabled="False" />
+              <MenuItem Header="Russian Hud" ToggleType="CheckBox" IsChecked="{Binding HudRussian}" />
+              <MenuItem Header="Swap With Map" Command="{Binding SwapHudMapCommand}" />
+              <MenuItem Header="Ground Color" Command="{Binding SetGroundColorCommand}" />
+              <MenuItem Header="Battery Cell Voltage" Command="{Binding SetBatteryCellsCommand}" />
+              <MenuItem Header="Show icons" ToggleType="CheckBox" IsChecked="{Binding HudShowIcons}" />
+              <MenuItem Header="Herelink Video">
+                <MenuItem Header="HereLink Video" Command="{Binding HudVideoNotPortedCommand}" />
+              </MenuItem>
+              <MenuItem Header="HUD Items">
+                <MenuItem Header="Heading" ToggleType="CheckBox" IsChecked="{Binding HudHeading}" />
+                <MenuItem Header="Speed" ToggleType="CheckBox" IsChecked="{Binding HudSpeed}" />
+                <MenuItem Header="Alt" ToggleType="CheckBox" IsChecked="{Binding HudAlt}" />
+                <MenuItem Header="Connection" ToggleType="CheckBox" IsChecked="{Binding HudConnection}" />
+                <MenuItem Header="X-Track" ToggleType="CheckBox" IsChecked="{Binding HudXTrack}" />
+                <MenuItem Header="Roll/Pitch" ToggleType="CheckBox" IsChecked="{Binding HudRollPitch}" />
+                <MenuItem Header="GPS" ToggleType="CheckBox" IsChecked="{Binding HudGps}" />
+                <MenuItem Header="Battery" ToggleType="CheckBox" IsChecked="{Binding HudBattery}" />
+                <MenuItem Header="Battery2" ToggleType="CheckBox" IsChecked="{Binding HudBattery2}" />
+                <MenuItem Header="EKF" ToggleType="CheckBox" IsChecked="{Binding HudEkf}" />
+                <MenuItem Header="Vibe" ToggleType="CheckBox" IsChecked="{Binding HudVibe}" />
+                <MenuItem Header="Prearm Status" ToggleType="CheckBox" IsChecked="{Binding HudPrearm}" />
+                <MenuItem Header="AOA" ToggleType="CheckBox" IsChecked="{Binding HudAoa}" />
+              </MenuItem>
             </ContextMenu>
           </ctl:HudControl.ContextMenu>
         </ctl:HudControl>

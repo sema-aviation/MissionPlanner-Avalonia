@@ -69,16 +69,33 @@
 
   <Style Selector="TabControl">
     <Setter Property="Background" Value="{StaticResource MpControlBg}" />
+    <Setter Property="Padding" Value="0" />
   </Style>
   <Style Selector="TabItem">
-    <Setter Property="Foreground" Value="#E0E0E0" />
+    <Setter Property="Foreground" Value="#CFCFCF" />
     <Setter Property="FontSize" Value="11" />
-    <Setter Property="Padding" Value="5,2" />
+    <Setter Property="Padding" Value="8,3" />
     <Setter Property="Margin" Value="0" />
-    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Background" Value="#373839" />
+    <Setter Property="BorderThickness" Value="0,0,1,2" />
+    <Setter Property="BorderBrush" Value="#262728" />
+  </Style>
+  <Style Selector="TabItem /template/ Border#PART_LayoutRoot">
+    <Setter Property="CornerRadius" Value="3,3,0,0" />
+  </Style>
+  <Style Selector="TabItem:pointerover">
+    <Setter Property="Background" Value="#454647" />
+    <Setter Property="Foreground" Value="#FFFFFF" />
   </Style>
   <Style Selector="TabItem:selected">
-    <Setter Property="Foreground" Value="#94C11F" />
+    <Setter Property="Foreground" Value="#405704" />
+    <Setter Property="Background" Value="#94C11F" />
+    <Setter Property="BorderBrush" Value="#CDE296" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="#94C11F" />
   </Style>
   <Style Selector="TextBlock">
     <Setter Property="Foreground" Value="{StaticResource MpText}" />
