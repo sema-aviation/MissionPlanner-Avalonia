@@ -60,21 +60,21 @@
             <Border Classes="qv">
               <StackPanel>
                 <TextBlock
-                  Text="{Binding WpDist, StringFormat={}{0:0.00}}"
+                  Text="{Binding BatCurrent, StringFormat={}{0:0.00}}"
                   Foreground="#FF605B"
                   Classes="qval"
                 />
-                <TextBlock Text="Dist to WP (m)" Classes="qlbl" />
+                <TextBlock Text="Bat Current (Amps)" Classes="qlbl" />
               </StackPanel>
             </Border>
             <Border Classes="qv">
               <StackPanel>
                 <TextBlock
-                  Text="{Binding Yaw, StringFormat={}{0:0.00}}"
+                  Text="{Binding AirSpeed, StringFormat={}{0:0.00}}"
                   Foreground="#00FF53"
                   Classes="qval"
                 />
-                <TextBlock Text="Yaw (deg)" Classes="qlbl" />
+                <TextBlock Text="AirSpeed (m/s)" Classes="qlbl" />
               </StackPanel>
             </Border>
             <Border Classes="qv">
@@ -102,33 +102,54 @@
 
         <TabItem Header="Actions">
           <ScrollViewer>
-            <StackPanel Margin="6" Spacing="6">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <ComboBox Width="160" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" />
-                <Button Content="Set Mode" Command="{Binding SetModeCommand}" />
-                <Button Content="{Binding ArmText}" Command="{Binding ToggleArmCommand}" MinWidth="90" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Content="Auto" Command="{Binding QuickAutoCommand}" MinWidth="80" />
-                <Button Content="Loiter" Command="{Binding QuickLoiterCommand}" MinWidth="80" />
-                <Button Content="RTL" Command="{Binding QuickRtlCommand}" MinWidth="80" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <ComboBox Width="220" ItemsSource="{Binding Actions}" SelectedItem="{Binding SelectedAction}" />
-                <Button Content="Do Action" Command="{Binding DoActionCommand}" MinWidth="90" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="Set WP #" VerticalAlignment="Center" />
-                <NumericUpDown Width="100" Minimum="0" Maximum="700" Value="{Binding SetWpIndex}" />
-                <Button Content="Set WP" Command="{Binding SetWpCommand}" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="Home Alt (m)" VerticalAlignment="Center" />
-                <NumericUpDown Width="110" Value="{Binding HomeAlt}" />
-                <Button Content="Set Home Alt" Command="{Binding SetHomeCommand}" />
-                <Button Content="Abort Land" Command="{Binding AbortLandCommand}" />
-              </StackPanel>
-            </StackPanel>
+            <Grid Margin="6" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto"
+                  RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="4" RowSpacing="4">
+              <ComboBox Grid.Row="0" Grid.Column="0" Width="130" ItemsSource="{Binding Actions}"
+                        SelectedItem="{Binding SelectedAction}" />
+              <Button Grid.Row="0" Grid.Column="1" Content="Do Action" HorizontalAlignment="Stretch"
+                      Command="{Binding DoActionCommand}" />
+              <Button Grid.Row="0" Grid.Column="2" Content="Auto" HorizontalAlignment="Stretch"
+                      Command="{Binding QuickAutoCommand}" />
+              <Button Grid.Row="0" Grid.Column="3" Content="Set Home Alt" HorizontalAlignment="Stretch"
+                      Command="{Binding SetHomeCommand}" />
+              <NumericUpDown Grid.Row="0" Grid.Column="4" Width="90" Value="{Binding HomeAlt}" />
+
+              <ComboBox Grid.Row="1" Grid.Column="0" Width="130" ItemsSource="{Binding WpNumbers}"
+                        SelectedItem="{Binding SetWpIndex}" />
+              <Button Grid.Row="1" Grid.Column="1" Content="Set WP" HorizontalAlignment="Stretch"
+                      Command="{Binding SetWpCommand}" />
+              <Button Grid.Row="1" Grid.Column="2" Content="Loiter" HorizontalAlignment="Stretch"
+                      Command="{Binding QuickLoiterCommand}" />
+              <Button Grid.Row="1" Grid.Column="3" Content="Restart Mission" HorizontalAlignment="Stretch"
+                      Command="{Binding RestartMissionCommand}" />
+
+              <ComboBox Grid.Row="2" Grid.Column="0" Width="130" ItemsSource="{Binding Modes}"
+                        SelectedItem="{Binding SelectedMode}" />
+              <Button Grid.Row="2" Grid.Column="1" Content="Set Mode" HorizontalAlignment="Stretch"
+                      Command="{Binding SetModeCommand}" />
+              <Button Grid.Row="2" Grid.Column="2" Content="RTL" HorizontalAlignment="Stretch"
+                      Command="{Binding QuickRtlCommand}" />
+              <Button Grid.Row="2" Grid.Column="3" Content="Raw Sensor View" HorizontalAlignment="Stretch"
+                      Command="{Binding RawSensorViewCommand}" />
+
+              <ComboBox Grid.Row="3" Grid.Column="0" Width="130" ItemsSource="{Binding MountModes}"
+                        SelectedItem="{Binding SelectedMountMode}" />
+              <Button Grid.Row="3" Grid.Column="1" Content="Set Mount" HorizontalAlignment="Stretch"
+                      Command="{Binding SetMountCommand}" />
+              <Button Grid.Row="3" Grid.Column="2" Content="Joystick" HorizontalAlignment="Stretch"
+                      Command="{Binding JoystickCommand}" />
+              <Button Grid.Row="3" Grid.Column="3" Content="{Binding ArmText}" HorizontalAlignment="Stretch"
+                      Command="{Binding ToggleArmCommand}" />
+              <Button Grid.Row="3" Grid.Column="4" Content="Clear Track" HorizontalAlignment="Stretch"
+                      Command="{Binding ClearTrackCommand}" />
+
+              <Button Grid.Row="4" Grid.Column="1" Content="Message" HorizontalAlignment="Stretch"
+                      Command="{Binding ShowMessageCommand}" />
+              <Button Grid.Row="4" Grid.Column="2" Content="Resume Mission" HorizontalAlignment="Stretch"
+                      Command="{Binding ResumeMissionCommand}" />
+              <Button Grid.Row="4" Grid.Column="3" Content="Abort Landing" HorizontalAlignment="Stretch"
+                      Command="{Binding AbortLandCommand}" />
+            </Grid>
           </ScrollViewer>
         </TabItem>
 
@@ -144,42 +165,37 @@
         </TabItem>
 
         <TabItem Header="PreFlight">
-          <StackPanel Margin="10" Spacing="6">
-            <Panel>
-              <TextBlock
-                Text="{Binding PrearmText}"
-                FontWeight="Bold"
-                FontSize="16"
-                Foreground="#E03030"
-                IsVisible="{Binding !PrearmOk}"
-              />
-              <TextBlock
-                Text="{Binding PrearmText}"
-                FontWeight="Bold"
-                FontSize="16"
-                Foreground="#94C11F"
-                IsVisible="{Binding PrearmOk}"
-              />
-            </Panel>
-            <TextBlock Text="{Binding Mode, StringFormat=Mode: {0}}" />
-            <TextBlock Text="{Binding Armed, StringFormat=Armed: {0}}" />
-            <TextBlock Text="{Binding SatCount, StringFormat=GPS Satellites: {0}}" />
-            <TextBlock Text="{Binding GpsHdop, StringFormat=HDOP: {0:0.00}}" />
-            <TextBlock Text="{Binding BatteryVoltage, StringFormat=Battery: {0:0.00} V}" />
-            <TextBlock Text="{Binding EkfStatus, StringFormat=EKF status: {0:0.00}}" />
-          </StackPanel>
+          <DockPanel Margin="6">
+            <Button DockPanel.Dock="Top" HorizontalAlignment="Right" Content="Edit" Width="60" />
+            <ItemsControl ItemsSource="{Binding PreflightChecks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CheckItem">
+                  <Grid ColumnDefinitions="*,120,28" Margin="0,2" Background="#3A3B3C">
+                    <TextBlock Grid.Column="0" Text="{Binding Name}" Margin="6,4" VerticalAlignment="Center" />
+                    <Panel Grid.Column="1">
+                      <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Foreground="#94C11F"
+                                 IsVisible="{Binding Ok}" />
+                      <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Foreground="#E03030"
+                                 IsVisible="{Binding !Ok}" />
+                    </Panel>
+                    <CheckBox Grid.Column="2" IsChecked="{Binding Ok, Mode=OneWay}" IsHitTestVisible="False" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </DockPanel>
         </TabItem>
 
         <TabItem Header="Gauges">
           <Grid Margin="6" RowDefinitions="*,*" ColumnDefinitions="*,*">
             <ctl:Gauge Grid.Row="0" Grid.Column="0" Margin="6" MinHeight="120"
-                       Label="Airspeed" Units="m/s" Min="0" Max="50" Value="{Binding AirSpeed}" />
+                       Label="VSI" Units="m/s" Min="-10" Max="10" Value="{Binding VerticalSpeed}" />
             <ctl:Gauge Grid.Row="0" Grid.Column="1" Margin="6" MinHeight="120"
-                       Label="Altitude" Units="m" Min="0" Max="200" Value="{Binding Alt}" />
+                       Label="Speed" Units="m/s" Min="0" Max="50" Value="{Binding AirSpeed}" />
             <ctl:Gauge Grid.Row="1" Grid.Column="0" Margin="6" MinHeight="120"
-                       Label="Heading" Units="deg" Min="0" Max="360" Value="{Binding Yaw}" />
+                       Label="Alt" Units="m" Min="0" Max="200" Value="{Binding Alt}" />
             <ctl:Gauge Grid.Row="1" Grid.Column="1" Margin="6" MinHeight="120"
-                       Label="Climb" Units="m/s" Min="-10" Max="10" Value="{Binding VerticalSpeed}" />
+                       Label="Heading" Units="deg" Min="0" Max="360" Value="{Binding Yaw}" />
           </Grid>
         </TabItem>
 
@@ -189,117 +205,127 @@
 
         <TabItem Header="Status">
           <ScrollViewer>
-            <StackPanel Margin="8" Spacing="3">
-              <TextBlock Text="{Binding Mode, StringFormat=Mode: {0}}" />
-              <TextBlock Text="{Binding Armed, StringFormat=Armed: {0}}" />
-              <TextBlock Text="{Binding BatteryVoltage, StringFormat=Battery: {0:0.00} V}" />
-              <TextBlock Text="{Binding BatteryRemaining, StringFormat=Battery remaining: {0}%}" />
-              <TextBlock Text="{Binding SatCount, StringFormat=Satellites: {0}}" />
-              <TextBlock Text="{Binding GpsHdop, StringFormat=HDOP: {0:0.00}}" />
-              <TextBlock Text="{Binding Roll, StringFormat=Roll: {0:0.0}}" />
-              <TextBlock Text="{Binding Pitch, StringFormat=Pitch: {0:0.0}}" />
-              <TextBlock Text="{Binding Yaw, StringFormat=Yaw: {0:0}}" />
-            </StackPanel>
+            <ItemsControl ItemsSource="{Binding Statuses}" Margin="6">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Vertical" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:StatusItem">
+                  <Grid Width="200" ColumnDefinitions="*,Auto" Margin="2,1">
+                    <TextBlock Grid.Column="0" Text="{Binding Name}" Foreground="#BBBBBB" FontSize="11" />
+                    <TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="11" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </ScrollViewer>
         </TabItem>
 
         <TabItem Header="Servo/Relay">
           <ScrollViewer>
-            <StackPanel Margin="8" Spacing="8">
-              <TextBlock Text="Servo output (live)" FontWeight="Bold" />
-              <ItemsControl ItemsSource="{Binding Servos}">
+            <StackPanel Margin="6" Spacing="4">
+              <ItemsControl ItemsSource="{Binding ServoChannels}">
                 <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ServoOut">
-                    <Grid ColumnDefinitions="70,*,60" Margin="0,3">
-                      <TextBlock
-                        Grid.Column="0"
-                        Text="{Binding Number, StringFormat='Servo \{0\}'}"
-                        VerticalAlignment="Center"
-                      />
-                      <ProgressBar
-                        Grid.Column="1"
-                        Minimum="1000"
-                        Maximum="2000"
-                        Value="{Binding Value}"
-                        Height="20"
-                        Foreground="#94C11F"
-                      />
-                      <TextBlock
-                        Grid.Column="2"
-                        Text="{Binding Value}"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                      />
-                    </Grid>
+                  <DataTemplate x:DataType="vm:ServoChannel">
+                    <StackPanel Orientation="Horizontal" Spacing="3" Margin="0,1">
+                      <Button Content="Low" MinWidth="44" FontSize="11" Padding="4,2"
+                              Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
+                              CommandParameter="{Binding Number, StringFormat='{}{0}:low'}" />
+                      <Button Content="Mid" MinWidth="44" FontSize="11" Padding="4,2"
+                              Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
+                              CommandParameter="{Binding Number, StringFormat='{}{0}:mid'}" />
+                      <Button Content="High" MinWidth="44" FontSize="11" Padding="4,2"
+                              Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
+                              CommandParameter="{Binding Number, StringFormat='{}{0}:high'}" />
+                      <Button Content="Toggle" MinWidth="56" FontSize="11" Padding="4,2"
+                              Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
+                              CommandParameter="{Binding Number, StringFormat='{}{0}:toggle'}" />
+                      <TextBlock Text="{Binding Number}" Width="24" VerticalAlignment="Center"
+                                 HorizontalAlignment="Center" />
+                      <NumericUpDown Width="92" FontSize="11" Value="{Binding Min}" />
+                      <NumericUpDown Width="92" FontSize="11" Value="{Binding Max}" />
+                    </StackPanel>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <TextBlock Text="Servo override" FontWeight="Bold" Margin="0,8,0,0" />
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="Ch" VerticalAlignment="Center" />
-                <NumericUpDown Width="90" Minimum="1" Maximum="16" Value="{Binding ServoNumber}" />
-                <TextBlock Text="PWM" VerticalAlignment="Center" />
-                <NumericUpDown Width="110" Minimum="800" Maximum="2200" Value="{Binding ServoPwm}" />
-                <Button Content="Set Servo" Command="{Binding SetServoCommand}" />
-              </StackPanel>
-
               <TextBlock Text="Relays" FontWeight="Bold" Margin="0,8,0,0" />
               <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Content="Relay 0" Command="{Binding ToggleRelayCommand}" CommandParameter="0" />
-                <Button Content="Relay 1" Command="{Binding ToggleRelayCommand}" CommandParameter="1" />
-                <Button Content="Relay 2" Command="{Binding ToggleRelayCommand}" CommandParameter="2" />
-                <Button Content="Relay 3" Command="{Binding ToggleRelayCommand}" CommandParameter="3" />
+                <Button Content="Relay 1" Command="{Binding ToggleRelayCommand}" CommandParameter="0" />
+                <Button Content="Relay 2" Command="{Binding ToggleRelayCommand}" CommandParameter="1" />
+                <Button Content="Relay 3" Command="{Binding ToggleRelayCommand}" CommandParameter="2" />
+                <Button Content="Relay 4" Command="{Binding ToggleRelayCommand}" CommandParameter="3" />
               </StackPanel>
             </StackPanel>
           </ScrollViewer>
         </TabItem>
 
         <TabItem Header="Payload Control">
-          <StackPanel Margin="10" Spacing="8">
-            <TextBlock Text="Gimbal" FontWeight="Bold" />
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="Pitch" VerticalAlignment="Center" Width="44" />
-              <Slider Width="240" Minimum="-90" Maximum="45" Value="{Binding GimbalPitch}" />
-              <TextBlock Text="{Binding GimbalPitch, StringFormat={}{0:0}°}" VerticalAlignment="Center" />
+          <Grid Margin="10" ColumnDefinitions="Auto,*" RowDefinitions="*,Auto">
+            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" Margin="0,0,20,0">
+              <TextBlock Text="Tilt" HorizontalAlignment="Center" />
+              <Slider Orientation="Vertical" Height="180" Minimum="-90" Maximum="45"
+                      Value="{Binding Tilt}" HorizontalAlignment="Center" />
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="Yaw" VerticalAlignment="Center" Width="44" />
-              <Slider Width="240" Minimum="-180" Maximum="180" Value="{Binding GimbalYaw}" />
-              <TextBlock Text="{Binding GimbalYaw, StringFormat={}{0:0}°}" VerticalAlignment="Center" />
+            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="14" VerticalAlignment="Top">
+              <StackPanel Spacing="2">
+                <TextBlock Text="Pan" />
+                <Slider Minimum="-180" Maximum="180" Value="{Binding Pan}" />
+              </StackPanel>
+              <StackPanel Spacing="2">
+                <TextBlock Text="Roll" />
+                <Slider Minimum="-90" Maximum="90" Value="{Binding Roll2}" />
+              </StackPanel>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Button Content="Point Gimbal" Command="{Binding PointGimbalCommand}" />
-              <Button Content="Trigger Camera" Command="{Binding TriggerCameraCommand}" />
+            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
+                        Spacing="6" Margin="0,12,0,0">
+              <Button Content="Reset Position" Command="{Binding ResetPositionCommand}" />
+              <Button Content="Point" Command="{Binding PointMountCommand}" />
+              <Button Content="Video Control" Command="{Binding TriggerCameraCommand}" />
             </StackPanel>
-          </StackPanel>
-        </TabItem>
-        <TabItem Header="Telemetry Logs">
-          <views:LogBrowseView DataContext="{Binding TelemetryLogs}" />
-        </TabItem>
-        <TabItem Header="DataFlash Logs">
-          <views:LogBrowseView DataContext="{Binding DataFlashLogs}" />
+          </Grid>
         </TabItem>
         <TabItem Header="Scripts">
           <StackPanel Margin="8" Spacing="6">
-            <TextBlock Text="Automation script" FontWeight="Bold" />
-            <TextBox
-              AcceptsReturn="True"
-              Height="160"
-              Background="#1F1F20"
-              Foreground="WhiteSmoke"
-              FontFamily="monospace"
-            />
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Button Content="Run" IsEnabled="False" />
-              <Button Content="Stop" IsEnabled="False" />
-            </StackPanel>
-            <TextBlock
-              Text="The embedded Python automation engine (IronPython) is not bundled in this cross-platform build."
-              Foreground="#C8A03C"
-              TextWrapping="Wrap"
-            />
+            <TextBlock Text="{Binding ScriptStatus, StringFormat=Script Status: {0}}" />
+            <TextBlock Text="{Binding SelectedScript, StringFormat=Selected Script: {0}}" />
+            <CheckBox Content="Redirect Program Output" IsChecked="{Binding RedirectOutput}" />
+            <Button Content="Select Script" Command="{Binding SelectScriptCommand}" HorizontalAlignment="Left" />
           </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Telemetry Logs">
+          <StackPanel Margin="8" Spacing="8">
+            <Button Content="Load Log" HorizontalAlignment="Left" Command="{Binding DownloadDataflashLogCommand}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Content="Play" />
+              <Slider Width="240" Minimum="0" Maximum="100" />
+              <TextBlock Text="0.00 %" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button Content="Tlog > Kml or Graph" HorizontalAlignment="Left" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Speed" VerticalAlignment="Center" />
+              <TextBlock Text="x 1.0" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Text="{Binding LogStatus}" Foreground="#C8A03C" TextWrapping="Wrap" />
+          </StackPanel>
+        </TabItem>
+
+        <TabItem Header="DataFlash Logs">
+          <WrapPanel Margin="8">
+            <Button Content="Download DataFlash Log Via Mavlink" Margin="3"
+                    Command="{Binding DownloadDataflashLogCommand}" />
+            <Button Content="Review a Log" Margin="3" />
+            <Button Content="Auto Analysis" Margin="3" />
+            <Button Content="Create KML + gpx" Margin="3" />
+            <Button Content="Convert Bin to Log" Margin="3" />
+            <Button Content="Create Matlab File" Margin="3" />
+            <Button Content="Geo Reference Images" Margin="3" />
+            <TextBlock Text="{Binding LogStatus}" Foreground="#C8A03C" TextWrapping="Wrap"
+                       Width="320" Margin="3" />
+          </WrapPanel>
         </TabItem>
       </TabControl>
     </Grid>

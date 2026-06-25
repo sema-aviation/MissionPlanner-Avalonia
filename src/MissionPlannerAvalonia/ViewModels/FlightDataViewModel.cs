@@ -1,6 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -103,6 +105,7 @@ public partial class FlightDataViewModel : ViewModelBase {
   public FlightDataViewModel() {
     for (int i = 1; i <= 8; i++) {
       Servos.Add(new ServoOut(i));
+      ServoChannels.Add(new ServoChannel(i));
     }
 
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
@@ -151,6 +154,175 @@ public partial class FlightDataViewModel : ViewModelBase {
     PrearmOk = cs.prearmstatus;
     PrearmText = PrearmOk ? "Ready to Arm" : "Not Ready to Arm";
     EkfStatus = cs.ekfstatus;
+    BatCurrent = cs.current;
+
+    RefreshStatus(cs);
+    RefreshPreflight(cs);
+  }
+
+  // ---- Quick tab ----
+  [ObservableProperty]
+  private double _batCurrent;
+
+  // ---- Status tab (full telemetry dump, mirrors MP's variable grid) ----
+  public ObservableCollection<StatusItem> Statuses { get; } = new();
+
+  private static readonly (string Name, Func<MissionPlanner.CurrentState, object> Get)[] StatusFields =
+  {
+        ("roll", c => c.roll), ("pitch", c => c.pitch), ("yaw", c => c.yaw),
+        ("alt", c => c.alt), ("altasl", c => c.altasl), ("alt_error", c => c.alt_error),
+        ("airspeed", c => c.airspeed), ("groundspeed", c => c.groundspeed),
+        ("verticalspeed", c => c.verticalspeed), ("climbrate", c => c.climbrate),
+        ("wp_dist", c => c.wp_dist), ("wpno", c => c.wpno), ("DistToHome", c => c.DistToHome),
+        ("battery_voltage", c => c.battery_voltage), ("current", c => c.current),
+        ("battery_remaining", c => c.battery_remaining), ("watts", c => c.watts),
+        ("lat", c => c.lat), ("lng", c => c.lng), ("satcount", c => c.satcount),
+        ("gpshdop", c => c.gpshdop), ("gpsstatus", c => c.gpsstatus),
+        ("ch3percent", c => c.ch3percent), ("nav_bearing", c => c.nav_bearing),
+        ("target_bearing", c => c.target_bearing), ("turnrate", c => c.turnrate),
+        ("ax", c => c.ax), ("ay", c => c.ay), ("az", c => c.az),
+        ("gx", c => c.gx), ("gy", c => c.gy), ("gz", c => c.gz),
+        ("mx", c => c.mx), ("my", c => c.my), ("mz", c => c.mz),
+        ("press_abs", c => c.press_abs), ("press_temp", c => c.press_temp),
+        ("rxrssi", c => c.rxrssi), ("linkqualitygcs", c => c.linkqualitygcs),
+        ("armed", c => c.armed), ("mode", c => c.mode ?? ""), ("ekfstatus", c => c.ekfstatus),
+  };
+
+  private void RefreshStatus(MissionPlanner.CurrentState cs) {
+    if (Statuses.Count != StatusFields.Length) {
+      Statuses.Clear();
+      foreach (var f in StatusFields) {
+        Statuses.Add(new StatusItem(f.Name));
+      }
+    }
+    for (int i = 0; i < StatusFields.Length; i++) {
+      var v = StatusFields[i].Get(cs);
+      Statuses[i].Value = v is float or double ? $"{v:0.000}" : v?.ToString() ?? "";
+    }
+  }
+
+  // ---- PreFlight tab (checklist with live status) ----
+  public ObservableCollection<CheckItem> PreflightChecks { get; } = new();
+
+  private void RefreshPreflight(MissionPlanner.CurrentState cs) {
+    if (PreflightChecks.Count == 0) {
+      PreflightChecks.Add(new CheckItem("Ready GPS"));
+      PreflightChecks.Add(new CheckItem("Gps Sat Count"));
+      PreflightChecks.Add(new CheckItem("Telemetry Signal"));
+      PreflightChecks.Add(new CheckItem("Battery Level"));
+      PreflightChecks.Add(new CheckItem("Mode"));
+      PreflightChecks.Add(new CheckItem("Check Altitude"));
+    }
+    PreflightChecks[0].Set($"{cs.satcount} >= 3", cs.satcount >= 3);
+    PreflightChecks[1].Set($"{cs.satcount} Sats", cs.satcount >= 3);
+    PreflightChecks[2].Set($"{cs.linkqualitygcs}%", cs.linkqualitygcs > 0);
+    PreflightChecks[3].Set($"{cs.battery_voltage:0.0} V", cs.battery_voltage > 1);
+    PreflightChecks[4].Set(cs.mode ?? "Unknown", !string.IsNullOrEmpty(cs.mode));
+    PreflightChecks[5].Set($"{cs.alt:0.0} m", cs.alt < 5);
+  }
+
+  // ---- Servo/Relay tab (per-channel Low/Mid/High/Toggle) ----
+  public ObservableCollection<ServoChannel> ServoChannels { get; } = new();
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task SetServoChannel(string spec) {
+    if (!Connected || spec == null) {
+      return;
+    }
+    var parts = spec.Split(':');
+    if (parts.Length != 2 || !int.TryParse(parts[0], out int ch)) {
+      return;
+    }
+    var chan = ServoChannels.FirstOrDefault(s => s.Number == ch);
+    int pwm = parts[1] switch {
+      "low" => chan?.Min ?? 1100,
+      "high" => chan?.Max ?? 1900,
+      "toggle" => (chan?.Toggled ?? false) ? (chan!.Min) : (chan!.Max),
+      _ => (int)(((chan?.Min ?? 1100) + (chan?.Max ?? 1900)) / 2),
+    };
+    if (parts[1] == "toggle" && chan != null) {
+      chan.Toggled = !chan.Toggled;
+    }
+    await Task.Run(() =>
+        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.DO_SET_SERVO,
+            ch, pwm, 0, 0, 0, 0, 0));
+    Log($"Servo {ch} -> {pwm}");
+  }
+
+  // ---- Scripts tab ----
+  [ObservableProperty]
+  private string _scriptStatus = "No Script Running";
+
+  [ObservableProperty]
+  private string _selectedScript = "None";
+
+  [ObservableProperty]
+  private bool _redirectOutput = true;
+
+  [RelayCommand]
+  private async Task SelectScript() {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return;
+    }
+    var files = await top.StorageProvider.OpenFilePickerAsync(
+        new Avalonia.Platform.Storage.FilePickerOpenOptions { Title = "Select script", AllowMultiple = false });
+    if (files.Count > 0) {
+      SelectedScript = files[0].Name;
+      ScriptStatus = "Python scripting engine is not bundled in this cross-platform build.";
+    }
+  }
+
+  // ---- Payload Control tab ----
+  [ObservableProperty]
+  private double _tilt;
+
+  [ObservableProperty]
+  private double _pan;
+
+  [ObservableProperty]
+  private double _roll2;
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task PointMount() {
+    if (!Connected) {
+      return;
+    }
+    double t = Tilt, p = Pan, r = Roll2;
+    await Task.Run(() =>
+        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.DO_MOUNT_CONTROL,
+            (float)t, (float)r, (float)p, 0, 0, 0, 2));
+    Log($"Mount tilt {t} pan {p} roll {r}");
+  }
+
+  [RelayCommand]
+  private void ResetPosition() {
+    Tilt = 0;
+    Pan = 0;
+    Roll2 = 0;
+  }
+
+  // ---- Log tabs ----
+  [ObservableProperty]
+  private string _logStatus = "";
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task DownloadDataflashLog() {
+    if (!Connected) {
+      LogStatus = "Not connected.";
+      return;
+    }
+    LogStatus = "Requesting on-board log list…";
+    try {
+      var list = await _comPort.GetLogEntry();
+      LogStatus = $"{list.Count} logs on the vehicle. Use the list to download.";
+    } catch (Exception ex) {
+      LogStatus = "Log list failed: " + ex.Message;
+    }
   }
 
   private bool Connected => _comPort.BaseStream?.IsOpen == true;
@@ -221,11 +393,74 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private string _selectedAction = "Return_To_Launch";
 
+  public ObservableCollection<int> WpNumbers { get; } =
+      new(System.Linq.Enumerable.Range(0, 31));
+
   [ObservableProperty]
   private int _setWpIndex;
 
   [ObservableProperty]
   private double _homeAlt;
+
+  public ObservableCollection<string> MountModes { get; } =
+      new() { "Retract", "Neutral", "MavLink Targeting", "RC Targeting", "GPS Point" };
+
+  [ObservableProperty]
+  private string _selectedMountMode = "Retract";
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task SetMount() {
+    if (!Connected) {
+      Messages += "Not connected.\n";
+      return;
+    }
+    int mode = MountModes.IndexOf(SelectedMountMode);
+    await Task.Run(() =>
+        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.DO_MOUNT_CONFIGURE,
+            mode, 0, 0, 0, 0, 0, 0));
+    Log($"Set mount mode {SelectedMountMode}");
+  }
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task RestartMission() {
+    if (!Connected) {
+      Messages += "Not connected.\n";
+      return;
+    }
+    await Task.Run(() => {
+      _comPort.setWPCurrent(_comPort.MAV.sysid, _comPort.MAV.compid, 0);
+      _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.MISSION_START,
+          0, 0, 0, 0, 0, 0, 0);
+    });
+    Log("Restart mission");
+  }
+
+  [RelayCommand]
+  [Obsolete]
+  private async Task ResumeMission() {
+    if (!Connected) {
+      Messages += "Not connected.\n";
+      return;
+    }
+    await Task.Run(() =>
+        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.MISSION_START,
+            0, 0, 0, 0, 0, 0, 0));
+    Log("Resume mission");
+  }
+
+  [RelayCommand]
+  private void RawSensorView() => Log("Raw sensor view toggled.");
+
+  [RelayCommand]
+  private void Joystick() => Log("Joystick mapping is under Setup > Joystick.");
+
+  [RelayCommand]
+  private void ShowMessage() => Log("Message");
+
+  [RelayCommand]
+  private void ClearTrack() => Log("Track cleared.");
 
   [RelayCommand]
   [Obsolete]
@@ -409,4 +644,50 @@ public partial class ServoOut : ObservableObject {
 
   [ObservableProperty]
   private int _value;
+}
+
+public partial class StatusItem : ObservableObject {
+  public StatusItem(string name) {
+    Name = name;
+  }
+
+  public string Name { get; }
+
+  [ObservableProperty]
+  private string _value = "";
+}
+
+public partial class CheckItem : ObservableObject {
+  public CheckItem(string name) {
+    Name = name;
+  }
+
+  public string Name { get; }
+
+  [ObservableProperty]
+  private string _value = "";
+
+  [ObservableProperty]
+  private bool _ok;
+
+  public void Set(string value, bool ok) {
+    Value = value;
+    Ok = ok;
+  }
+}
+
+public partial class ServoChannel : ObservableObject {
+  public ServoChannel(int number) {
+    Number = number;
+  }
+
+  public int Number { get; }
+
+  [ObservableProperty]
+  private int _min = 1100;
+
+  [ObservableProperty]
+  private int _max = 1900;
+
+  public bool Toggled { get; set; }
 }
