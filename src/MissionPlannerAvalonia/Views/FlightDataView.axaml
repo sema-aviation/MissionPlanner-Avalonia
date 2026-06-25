@@ -113,6 +113,21 @@
                 <Button Content="Loiter" Command="{Binding QuickLoiterCommand}" MinWidth="80" />
                 <Button Content="RTL" Command="{Binding QuickRtlCommand}" MinWidth="80" />
               </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ComboBox Width="220" ItemsSource="{Binding Actions}" SelectedItem="{Binding SelectedAction}" />
+                <Button Content="Do Action" Command="{Binding DoActionCommand}" MinWidth="90" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="Set WP #" VerticalAlignment="Center" />
+                <NumericUpDown Width="100" Minimum="0" Maximum="700" Value="{Binding SetWpIndex}" />
+                <Button Content="Set WP" Command="{Binding SetWpCommand}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="Home Alt (m)" VerticalAlignment="Center" />
+                <NumericUpDown Width="110" Value="{Binding HomeAlt}" />
+                <Button Content="Set Home Alt" Command="{Binding SetHomeCommand}" />
+                <Button Content="Abort Land" Command="{Binding AbortLandCommand}" />
+              </StackPanel>
             </StackPanel>
           </ScrollViewer>
         </TabItem>
@@ -188,34 +203,76 @@
           </ScrollViewer>
         </TabItem>
 
-        <TabItem Header="Servo">
-          <ItemsControl Margin="8" ItemsSource="{Binding Servos}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ServoOut">
-                <Grid ColumnDefinitions="70,*,60" Margin="0,3">
-                  <TextBlock
-                    Grid.Column="0"
-                    Text="{Binding Number, StringFormat='Servo \{0\}'}"
-                    VerticalAlignment="Center"
-                  />
-                  <ProgressBar
-                    Grid.Column="1"
-                    Minimum="1000"
-                    Maximum="2000"
-                    Value="{Binding Value}"
-                    Height="20"
-                    Foreground="#94C11F"
-                  />
-                  <TextBlock
-                    Grid.Column="2"
-                    Text="{Binding Value}"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                  />
-                </Grid>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+        <TabItem Header="Servo/Relay">
+          <ScrollViewer>
+            <StackPanel Margin="8" Spacing="8">
+              <TextBlock Text="Servo output (live)" FontWeight="Bold" />
+              <ItemsControl ItemsSource="{Binding Servos}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ServoOut">
+                    <Grid ColumnDefinitions="70,*,60" Margin="0,3">
+                      <TextBlock
+                        Grid.Column="0"
+                        Text="{Binding Number, StringFormat='Servo \{0\}'}"
+                        VerticalAlignment="Center"
+                      />
+                      <ProgressBar
+                        Grid.Column="1"
+                        Minimum="1000"
+                        Maximum="2000"
+                        Value="{Binding Value}"
+                        Height="20"
+                        Foreground="#94C11F"
+                      />
+                      <TextBlock
+                        Grid.Column="2"
+                        Text="{Binding Value}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                      />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <TextBlock Text="Servo override" FontWeight="Bold" Margin="0,8,0,0" />
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="Ch" VerticalAlignment="Center" />
+                <NumericUpDown Width="90" Minimum="1" Maximum="16" Value="{Binding ServoNumber}" />
+                <TextBlock Text="PWM" VerticalAlignment="Center" />
+                <NumericUpDown Width="110" Minimum="800" Maximum="2200" Value="{Binding ServoPwm}" />
+                <Button Content="Set Servo" Command="{Binding SetServoCommand}" />
+              </StackPanel>
+
+              <TextBlock Text="Relays" FontWeight="Bold" Margin="0,8,0,0" />
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="Relay 0" Command="{Binding ToggleRelayCommand}" CommandParameter="0" />
+                <Button Content="Relay 1" Command="{Binding ToggleRelayCommand}" CommandParameter="1" />
+                <Button Content="Relay 2" Command="{Binding ToggleRelayCommand}" CommandParameter="2" />
+                <Button Content="Relay 3" Command="{Binding ToggleRelayCommand}" CommandParameter="3" />
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Payload Control">
+          <StackPanel Margin="10" Spacing="8">
+            <TextBlock Text="Gimbal" FontWeight="Bold" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Pitch" VerticalAlignment="Center" Width="44" />
+              <Slider Width="240" Minimum="-90" Maximum="45" Value="{Binding GimbalPitch}" />
+              <TextBlock Text="{Binding GimbalPitch, StringFormat={}{0:0}°}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Yaw" VerticalAlignment="Center" Width="44" />
+              <Slider Width="240" Minimum="-180" Maximum="180" Value="{Binding GimbalYaw}" />
+              <TextBlock Text="{Binding GimbalYaw, StringFormat={}{0:0}°}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Content="Point Gimbal" Command="{Binding PointGimbalCommand}" />
+              <Button Content="Trigger Camera" Command="{Binding TriggerCameraCommand}" />
+            </StackPanel>
+          </StackPanel>
         </TabItem>
         <TabItem Header="Telemetry Logs">
           <views:LogBrowseView DataContext="{Binding TelemetryLogs}" />
@@ -224,7 +281,25 @@
           <views:LogBrowseView DataContext="{Binding DataFlashLogs}" />
         </TabItem>
         <TabItem Header="Scripts">
-          <TextBlock Margin="8" Text="Scripts (Lua / Python) — deferred subsystem." />
+          <StackPanel Margin="8" Spacing="6">
+            <TextBlock Text="Automation script" FontWeight="Bold" />
+            <TextBox
+              AcceptsReturn="True"
+              Height="160"
+              Background="#1F1F20"
+              Foreground="WhiteSmoke"
+              FontFamily="monospace"
+            />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Content="Run" IsEnabled="False" />
+              <Button Content="Stop" IsEnabled="False" />
+            </StackPanel>
+            <TextBlock
+              Text="The embedded Python automation engine (IronPython) is not bundled in this cross-platform build."
+              Foreground="#C8A03C"
+              TextWrapping="Wrap"
+            />
+          </StackPanel>
         </TabItem>
       </TabControl>
     </Grid>
