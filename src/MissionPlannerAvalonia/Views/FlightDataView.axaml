@@ -407,7 +407,8 @@
         <TabItem Header="Telemetry Logs">
           <Grid Margin="8" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto"
                 ColumnSpacing="6" RowSpacing="6">
-            <Button Grid.Row="0" Grid.Column="0" Content="Load Log" HorizontalAlignment="Stretch" />
+            <Button Grid.Row="0" Grid.Column="0" Content="Load Log" HorizontalAlignment="Stretch"
+                    Command="{Binding LoadTlogCommand}" />
             <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding LogStatus}" Foreground="#C8A03C"
                        VerticalAlignment="Center" TextWrapping="Wrap" />
 
@@ -435,7 +436,8 @@
                 ColumnSpacing="4" RowSpacing="4">
             <Button Grid.Row="0" Grid.Column="0" Content="Download DataFlash Log Via Mavlink"
                     HorizontalAlignment="Stretch" Command="{Binding DownloadDataflashLogCommand}" />
-            <Button Grid.Row="0" Grid.Column="1" Content="Review a Log" HorizontalAlignment="Stretch" />
+            <Button Grid.Row="0" Grid.Column="1" Content="Review a Log" HorizontalAlignment="Stretch"
+                    Command="{Binding ReviewLogCommand}" />
             <Button Grid.Row="0" Grid.Column="2" Content="Auto Analysis" HorizontalAlignment="Stretch" />
 
             <Button Grid.Row="1" Grid.Column="0" Content="Create KML + gpx" HorizontalAlignment="Stretch" />

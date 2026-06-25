@@ -373,6 +373,39 @@ public partial class FlightDataViewModel : ViewModelBase {
   [RelayCommand]
   private void EditScript() => Log("Edit selected script: external editor not bundled.");
 
+  private static async Task<string?> PickFileAsync(string title, string ext, string desc) {
+    var top = (Avalonia.Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return null;
+    }
+    var files = await top.StorageProvider.OpenFilePickerAsync(
+        new Avalonia.Platform.Storage.FilePickerOpenOptions {
+          Title = title,
+          AllowMultiple = false,
+          FileTypeFilter = new[] {
+            new Avalonia.Platform.Storage.FilePickerFileType(desc) { Patterns = new[] { ext } },
+          },
+        });
+    return files.Count > 0 ? files[0].Name : null;
+  }
+
+  [RelayCommand]
+  private async Task LoadTlog() {
+    var name = await PickFileAsync("Open telemetry log", "*.tlog", "Telemetry log");
+    if (name != null) {
+      LogStatus = $"Loaded {name}. Tlog playback is not yet implemented.";
+    }
+  }
+
+  [RelayCommand]
+  private async Task ReviewLog() {
+    var name = await PickFileAsync("Open dataflash log", "*.bin", "DataFlash log");
+    if (name != null) {
+      LogStatus = $"Opened {name}. Log review/graphing is not yet implemented.";
+    }
+  }
+
   // ---- Payload Control tab ----
   [ObservableProperty]
   private double _tilt;
@@ -382,6 +415,31 @@ public partial class FlightDataViewModel : ViewModelBase {
 
   [ObservableProperty]
   private double _roll2;
+
+  private long _lastMountSend;
+
+  [Obsolete]
+  partial void OnTiltChanged(double value) => NudgeMount();
+
+  [Obsolete]
+  partial void OnPanChanged(double value) => NudgeMount();
+
+  [Obsolete]
+  partial void OnRoll2Changed(double value) => NudgeMount();
+
+  // throttle continuous slider drags to ~10 Hz
+  [Obsolete]
+  private void NudgeMount() {
+    if (!Connected) {
+      return;
+    }
+    long now = Environment.TickCount64;
+    if (now - _lastMountSend < 100) {
+      return;
+    }
+    _lastMountSend = now;
+    _ = PointMount();
+  }
 
   [RelayCommand]
   [Obsolete]
