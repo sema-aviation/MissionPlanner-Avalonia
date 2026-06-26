@@ -44,10 +44,20 @@
       <Button Content="Load Settings" Command="{Binding LoadCommand}" Margin="0,0,8,0" />
       <Button Content="Save Settings" Command="{Binding SaveCommand}" Margin="0,0,8,0" />
       <Button Content="Reset to Defaults" Command="{Binding ResetDefaultsCommand}" Margin="0,0,8,0" />
-      <Button Content="Upload Firmware" Command="{Binding UploadFirmwareCommand}" IsEnabled="False" />
+      <Button
+        Content="Upload Firmware"
+        Command="{Binding UploadFirmwareCommand}"
+        ToolTip.Tip="{Binding UploadFirmwareTooltip}"
+        Margin="0,0,8,0"
+      />
+      <CheckBox Content="Beta" IsChecked="{Binding BetaFirmware}" VerticalAlignment="Center"
+                ToolTip.Tip="Download beta channel firmware instead of stable" />
     </WrapPanel>
 
     <WrapPanel Grid.Row="3" Margin="0,0,0,8">
+      <TextBlock Classes="fieldlbl" Text="Status Leds" VerticalAlignment="Center" Margin="0,0,6,0" />
+      <Ellipse Width="12" Height="12" Fill="{Binding StatusLed}" VerticalAlignment="Center" Margin="0,0,6,0" />
+      <TextBlock Classes="fieldlbl" Text="{Binding StatusLedLabel}" VerticalAlignment="Center" Margin="0,0,20,0" />
       <TextBlock Classes="fieldlbl" Text="{Binding Status, StringFormat='Status: {0}'}" Margin="0,0,20,0" />
       <TextBlock Classes="fieldlbl" Text="{Binding LocalVersion, StringFormat='Local: {0}'}" Margin="0,0,20,0" />
       <TextBlock Classes="fieldlbl" Text="{Binding RemoteVersion, StringFormat='Remote: {0}'}" Margin="0,0,20,0" />
@@ -98,12 +108,23 @@
           </ScrollViewer>
 
           <WrapPanel Grid.Row="2" Margin="0,8,0,4">
+            <Button
+              Content="Copy required to remote"
+              Command="{Binding CopyRequiredToRemoteCommand}"
+              Margin="0,0,16,0"
+            />
             <TextBlock Classes="fieldlbl" Text="AES Key" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox
               Text="{Binding AesKey}"
               IsEnabled="{Binding AesEnabled}"
               MinWidth="240"
               Watermark="hex key (AT&amp;E)"
+              Margin="0,0,8,0"
+            />
+            <Button
+              Content="Random"
+              Command="{Binding RandomAesKeyCommand}"
+              IsEnabled="{Binding AesEnabled}"
               Margin="0,0,12,0"
             />
             <TextBlock

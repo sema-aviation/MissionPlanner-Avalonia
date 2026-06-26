@@ -9,6 +9,12 @@ using CommunityToolkit.Mvvm.Input;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigADSBViewModel : ParamPageBase {
+  private static readonly HashSet<string> BitmaskParams = new(StringComparer.OrdinalIgnoreCase) {
+    "ADSB_OPTIONS",
+    "ADSB_RF_CAPABLE",
+    "ADSB_RF_SELECT",
+  };
+
   public ObservableCollection<ParamField> FilteredFields { get; } = new();
 
   [ObservableProperty]
@@ -16,6 +22,12 @@ public partial class ConfigADSBViewModel : ParamPageBase {
 
   [ObservableProperty]
   private string _status = "";
+
+  [ObservableProperty]
+  private string _flightId = "";
+
+  [ObservableProperty]
+  private string _aircraftRegistration = "";
 
   public ConfigADSBViewModel() {
     Title = "ADSB";
@@ -37,7 +49,7 @@ public partial class ConfigADSBViewModel : ParamPageBase {
                  .Where(k => k.StartsWith("ADSB_", StringComparison.OrdinalIgnoreCase) ||
                              k.StartsWith("AVD_", StringComparison.OrdinalIgnoreCase))
                  .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)) {
-      F(key);
+      F(key, BitmaskParams.Contains(key) ? "bitmask" : null);
     }
     ApplyFilter();
   }
@@ -53,6 +65,16 @@ public partial class ConfigADSBViewModel : ParamPageBase {
         FilteredFields.Add(f);
       }
     }
+  }
+
+  [RelayCommand]
+  private void SaveFlightId() {
+    Status = "Flight ID over MAVLink not yet wired in this port.";
+  }
+
+  [RelayCommand]
+  private void SaveAircraftRegistration() {
+    Status = "Aircraft registration over MAVLink not yet wired in this port.";
   }
 
   [RelayCommand]

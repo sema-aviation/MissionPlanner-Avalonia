@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
 using MissionPlanner.ArduPilot;
 using MissionPlanner.Utilities;
+using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -48,6 +49,9 @@ public partial class ConfigFlightModesViewModel : ViewModelBase, IDisposable {
   private readonly DispatcherTimer _timer;
   private readonly string _prefix;
   private readonly bool _isCopter;
+
+  private const string SuperSimpleWikiUrl =
+      "https://ardupilot.org/copter/docs/simpleandsuper-simple-modes.html";
 
   public ObservableCollection<ParamOption> ModeOptions { get; } = new();
   public ObservableCollection<FlightModeRow> Rows { get; } = new();
@@ -199,6 +203,9 @@ public partial class ConfigFlightModesViewModel : ViewModelBase, IDisposable {
     }
     return 5;
   }
+
+  [RelayCommand]
+  private void OpenSuperSimpleWiki() => Dialogs.OpenUrl(SuperSimpleWikiUrl);
 
   [RelayCommand]
   private async Task SaveModes() {

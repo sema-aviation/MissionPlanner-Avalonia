@@ -44,7 +44,7 @@
           <TextBlock Grid.Column="2" Text="Value" Classes="fieldlbl" />
           <TextBlock Grid.Column="3" Text="Expo" Classes="fieldlbl" />
           <TextBlock Grid.Column="4" Text="Reverse" Classes="fieldlbl" />
-          <TextBlock Grid.Column="5" Text="Detect" Classes="fieldlbl" />
+          <TextBlock Grid.Column="5" Text="Auto Detect" Classes="fieldlbl" />
         </Grid>
 
         <ItemsControl ItemsSource="{Binding Axes}">
@@ -78,7 +78,9 @@
                 <CheckBox Grid.Column="4" IsChecked="{Binding Reverse}" HorizontalAlignment="Center" />
                 <Button
                   Grid.Column="5"
-                  Content="Detect"
+                  Content="Auto Detect"
+                  Background="#94C11F"
+                  Foreground="#262728"
                   Command="{Binding $parent[ItemsControl].((cv:ConfigJoystickViewModel)DataContext).DetectAxisCommand}"
                   CommandParameter="{Binding}"
                 />

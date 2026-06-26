@@ -22,11 +22,11 @@
         <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Type.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
 
         <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Enable" VerticalAlignment="Center" Margin="0,0,8,4" />
-        <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Enable.Options}" SelectedItem="{Binding Enable.SelectedOption}" />
+        <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding Enable.Checked}" />
         <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Enable.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
 
         <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Use Airspeed" VerticalAlignment="Center" Margin="0,0,8,4" />
-        <ComboBox Grid.Row="2" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Use.Options}" SelectedItem="{Binding Use.SelectedOption}" />
+        <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding Use.Checked}" />
         <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Use.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
 
         <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Pin" VerticalAlignment="Center" Margin="0,0,8,4" />

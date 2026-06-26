@@ -1,0 +1,193 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="820"
+  d:DesignHeight="700"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigAntennaTrackerParamView"
+  x:DataType="cv:ConfigAntennaTrackerParamViewModel"
+  Background="#434445"
+>
+  <ScrollViewer IsEnabled="{Binding IsArduTracker}">
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+
+      <TextBlock
+        Text="This page requires an AntennaTracker (ArduTracker) firmware connection."
+        Foreground="#E0A030"
+        IsVisible="{Binding !IsArduTracker}" />
+
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
+        <Button Content="Write PIDS" Command="{Binding WritePidsCommand}" />
+        <TextBlock Text="{Binding WriteStatus}" Foreground="#94C11F" VerticalAlignment="Center" />
+      </StackPanel>
+
+      <!-- orientation / types / alt source -->
+      <Grid ColumnDefinitions="180,200,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,6,0,0">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Orientation" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="180" ItemsSource="{Binding Orientation.Options}" SelectedItem="{Binding Orientation.SelectedOption}" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Orientation.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Servo Yaw Type" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="180" ItemsSource="{Binding YawType.Options}" SelectedItem="{Binding YawType.SelectedOption}" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding YawType.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Servo Pitch Type" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="2" Grid.Column="1" MinWidth="180" ItemsSource="{Binding PitchType.Options}" SelectedItem="{Binding PitchType.SelectedOption}" />
+        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding PitchType.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Alt Source" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="3" Grid.Column="1" MinWidth="180" ItemsSource="{Binding AltSource.Options}" SelectedItem="{Binding AltSource.SelectedOption}" />
+        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding AltSource.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+      </Grid>
+
+      <!-- yaw / pitch servo setup -->
+      <Grid ColumnDefinitions="*,16,*">
+        <Border Grid.Column="0" BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Yaw" FontWeight="Bold" Foreground="#DDD" />
+            <Grid ColumnDefinitions="120,140,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="RC1 Min" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="900" Maximum="2200" Increment="1" Value="{Binding YawMin.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding YawMin.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="RC1 Max" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="900" Maximum="2200" Increment="1" Value="{Binding YawMax.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding YawMax.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="RC1 Trim" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="900" Maximum="2200" Increment="1" Value="{Binding YawTrim.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding YawTrim.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Reverse" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding YawRev.Checked}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="2" BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Pitch" FontWeight="Bold" Foreground="#DDD" />
+            <Grid ColumnDefinitions="120,140,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="RC2 Min" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="900" Maximum="2200" Increment="1" Value="{Binding PitchRcMin.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding PitchRcMin.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="RC2 Max" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="900" Maximum="2200" Increment="1" Value="{Binding PitchRcMax.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding PitchRcMax.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="RC2 Trim" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="900" Maximum="2200" Increment="1" Value="{Binding PitchTrim.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding PitchTrim.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Reverse" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding PitchRev.Checked}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <!-- ranges -->
+      <Grid ColumnDefinitions="180,140,Auto" RowDefinitions="Auto,Auto,Auto">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Yaw Range" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="360" Increment="1" Value="{Binding YawRange.Value}" FormatString="0.######" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding YawRange.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Pitch Min" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="-90" Maximum="90" Increment="1" Value="{Binding PitchMin.Value}" FormatString="0.######" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding PitchMin.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Pitch Max" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="-90" Maximum="90" Increment="1" Value="{Binding PitchMax.Value}" FormatString="0.######" />
+        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding PitchMax.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+      </Grid>
+
+      <!-- PIDs -->
+      <Grid ColumnDefinitions="*,16,*">
+        <Border Grid.Column="0" BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Yaw PID" FontWeight="Bold" Foreground="#DDD" />
+            <Grid ColumnDefinitions="100,140,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="P" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Increment="0.1" Value="{Binding YawP.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding YawP.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="I" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Increment="0.1" Value="{Binding YawI.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding YawI.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="D" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Increment="0.1" Value="{Binding YawD.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding YawD.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="IMAX" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="100" Increment="1" Value="{Binding YawImax.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding YawImax.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Slew Time" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="100" Increment="0.1" Value="{Binding YawSlewTime.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding YawSlewTime.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="2" BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Pitch PID" FontWeight="Bold" Foreground="#DDD" />
+            <Grid ColumnDefinitions="100,140,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="P" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Increment="0.1" Value="{Binding PitchP.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding PitchP.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="I" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Increment="0.1" Value="{Binding PitchI.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding PitchI.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="D" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Increment="0.1" Value="{Binding PitchD.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding PitchD.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="IMAX" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="100" Increment="1" Value="{Binding PitchImax.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding PitchImax.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+              <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Slew Time" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <NumericUpDown Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="100" Increment="0.1" Value="{Binding PitchSlewTime.Value}" FormatString="0.######" />
+              <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding PitchSlewTime.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <!-- test servos -->
+      <Grid ColumnDefinitions="*,16,*" Margin="0,8,0,0">
+        <Border Grid.Column="0" BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Test Yaw" Command="{Binding TestYawCommand}" />
+              <TextBlock Classes="fieldlbl" Text="PWM:" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding YawPwm}" Foreground="#94C11F" VerticalAlignment="Center" />
+            </StackPanel>
+            <Slider Minimum="0" Maximum="100" Value="{Binding YawTest}" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="2" BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Test Pitch" Command="{Binding TestPitchCommand}" />
+              <TextBlock Classes="fieldlbl" Text="PWM:" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding PitchPwm}" Foreground="#94C11F" VerticalAlignment="Center" />
+            </StackPanel>
+            <Slider Minimum="0" Maximum="100" Value="{Binding PitchTest}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

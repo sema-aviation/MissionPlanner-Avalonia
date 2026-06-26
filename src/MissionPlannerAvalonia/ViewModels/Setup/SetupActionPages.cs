@@ -5,8 +5,10 @@ using System.IO.Ports;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -146,6 +148,15 @@ public partial class SikRadioViewModel : ViewModelBase {
   public string TerminalButtonLabel => TerminalOpen ? "Close Terminal" : "Open Terminal";
   public string RssiButtonLabel => RssiRunning ? "Stop RSSI" : "Start RSSI";
 
+  // Status LED: green = RSSI link streaming, amber = busy/AT session, grey = idle.
+  public IBrush StatusLed =>
+      RssiRunning ? Brushes.LimeGreen
+      : (IsBusy || _session != null || TerminalOpen) ? Brushes.Goldenrod
+      : Brushes.DimGray;
+
+  public string StatusLedLabel =>
+      RssiRunning ? "Link live" : (IsBusy || _session != null || TerminalOpen) ? "Active" : "Idle";
+
   // RSSI samples for the ScottPlot LivePlot (time, rssiLocal, rssiRemote, noiseLocal, noiseRemote).
   // The view code-behind subscribes and appends to the plot.
   public event Action<double, double, double, double, double>? RssiSample;
@@ -183,6 +194,8 @@ public partial class SikRadioViewModel : ViewModelBase {
   private bool NotBusy => !IsBusy && _session == null;
 
   partial void OnIsBusyChanged(bool value) {
+    OnPropertyChanged(nameof(StatusLed));
+    OnPropertyChanged(nameof(StatusLedLabel));
     LoadCommand.NotifyCanExecuteChanged();
     SaveCommand.NotifyCanExecuteChanged();
     ResetDefaultsCommand.NotifyCanExecuteChanged();
@@ -437,16 +450,149 @@ public partial class SikRadioViewModel : ViewModelBase {
     IsBusy = false;
   }
 
-  // BLOCKED: firmware upload. Upstream routes flashing through RFD/RFD900 (Radio/RFD900.cs +
-  // RFDLib) — board auto-detect, internet firmware download, bootloader entry (AT&UPDATE),
-  // banking and session-mode juggling — none of which are ported. The low-level
-  // MissionPlanner.Radio.Uploader (upload/connect_and_sync) and IHex parser exist, but driving
-  // them safely needs that orchestration + real reflash hardware, so this stays disabled.
+  // Download stable vs beta SiK firmware.
+  [ObservableProperty]
+  private bool _betaFirmware;
+
+  // Real SiK reflash via the linked upstream STK500 bootloader Uploader + IHex parser:
+  // AT mode -> AT&UPDATE (reboot to bootloader) -> reopen @115200 -> sync + getDevice ->
+  // download the matching radio~*.ihx -> upload+verify+reboot. Covers the .ihx SiK boards
+  // (HM_TRP, RFD900/a/p/u). RFD900x/ux (.bin / bootloaderX) need the RFD vendor path — reported.
   [RelayCommand(CanExecute = nameof(NotBusy))]
-  private void UploadFirmware() {
-    AppendLog("Firmware upload is BLOCKED: needs the unported RFD900/RFDLib reflash path "
-        + "(board detect, firmware download, AT&UPDATE bootloader entry, banking).");
-    Status = "Firmware upload not available";
+  private async Task UploadFirmware() {
+    if (!GuardLink()) {
+      return;
+    }
+
+    var port = SelectedPort!;
+    var baud = SelectedBaud;
+    IsBusy = true;
+    Status = "Programming firmware…";
+    AppendLog("=== Upload Firmware (" + (BetaFirmware ? "beta" : "stable") + ") ===");
+
+    await Task.Run(() => {
+      SerialPort? atsp = null;
+      MissionPlanner.Comms.SerialPort? boot = null;
+      try {
+        atsp = Connect(port, baud, out var used);
+        if (atsp == null) {
+          SetStatus("Failed to enter AT mode");
+          AppendLog("Could not enter AT command mode — cannot reflash.");
+          return;
+        }
+        AppendLog("In AT mode @ " + used + " baud. Rebooting into bootloader (AT&UPDATE)…");
+        atsp.DiscardInBuffer();
+        atsp.Write("\r\n");
+        Thread.Sleep(100);
+        atsp.Write("AT&UPDATE\r\n");
+        Thread.Sleep(700);
+        ClosePort(atsp);
+        atsp = null;
+
+        boot = new MissionPlanner.Comms.SerialPort {
+          PortName = port, BaudRate = 115200, ReadTimeout = 3000,
+        };
+        boot.Open();
+        Thread.Sleep(300);
+
+        var up = new MissionPlanner.Radio.Uploader();
+        up.LogEvent += (m, _) => AppendLog(m.TrimEnd());
+        up.ProgressEvent += pct => SetStatus($"Programming… {pct * 100:0}%");
+        up.port = boot;
+        up.connect_and_sync();
+
+        var board = MissionPlanner.Radio.Uploader.Board.FAILED;
+        var freq = MissionPlanner.Radio.Uploader.Frequency.FREQ_NONE;
+        up.getDevice(ref board, ref freq);
+        AppendLog($"Bootloader: board={board} freq={freq}");
+
+        var url = FirmwareUrl(board, BetaFirmware);
+        if (url == null) {
+          SetStatus("Board not supported by SiK uploader");
+          AppendLog($"Board {board} is not flashable via the SiK .ihx path (RFD900x/ux use the "
+              + "vendor RFD tool). Aborted before erase.");
+          return;
+        }
+
+        var fw = System.IO.Path.GetTempFileName();
+        AppendLog("Downloading " + url);
+        if (!MissionPlanner.Utilities.Download.getFilefromNet(url, fw)) {
+          SetStatus("Firmware download failed");
+          AppendLog("Could not download firmware — aborted before erase.");
+          return;
+        }
+
+        var ihex = new MissionPlanner.Radio.IHex();
+        ihex.load(fw);
+        AppendLog($"Loaded {ihex.Count} hex blocks. Erasing + programming…");
+        up.upload(boot, ihex);
+
+        SetStatus("Firmware programmed");
+        AppendLog("Firmware programmed + verified. Radio rebooted.");
+      } catch (Exception ex) {
+        AppendLog("Upload error: " + ex.Message);
+        SetStatus("Upload failed — power-cycle the radio and retry");
+      } finally {
+        ClosePort(atsp);
+        try {
+          if (boot?.IsOpen == true) {
+            boot.Close();
+          }
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    IsBusy = false;
+  }
+
+  // Maps the bootloader-reported board to its firmware .ihx URL (mirrors upstream getFirmware).
+  private static string? FirmwareUrl(MissionPlanner.Radio.Uploader.Board board, bool beta) {
+    string ch = beta ? "beta" : "stable";
+    return board switch {
+      MissionPlanner.Radio.Uploader.Board.DEVICE_ID_HM_TRP =>
+          $"https://firmware.ardupilot.org/SiK/{ch}/radio~hm_trp.ihx",
+      MissionPlanner.Radio.Uploader.Board.DEVICE_ID_RFD900 =>
+          $"https://firmware.ardupilot.org/SiK/{ch}/radio~rfd900.ihx",
+      MissionPlanner.Radio.Uploader.Board.DEVICE_ID_RFD900A =>
+          $"https://firmware.ardupilot.org/SiK/{ch}/radio~rfd900a.ihx",
+      MissionPlanner.Radio.Uploader.Board.DEVICE_ID_RFD900U => beta
+          ? "http://files.rfdesign.com.au/Files/firmware/MPSiK%20V2.6%20rfd900u.ihx"
+          : "http://files.rfdesign.com.au/Files/firmware/RFDSiK%20V1.9%20rfd900u.ihx",
+      MissionPlanner.Radio.Uploader.Board.DEVICE_ID_RFD900P => beta
+          ? "http://files.rfdesign.com.au/Files/firmware/MPSiK%20V2.6%20rfd900p.ihx"
+          : "http://files.rfdesign.com.au/Files/firmware/RFDSiK%20V1.9%20rfd900p.ihx",
+      _ => null,
+    };
+  }
+
+  public string UploadFirmwareTooltip { get; } =
+      "Reflash SiK firmware (HM_TRP / RFD900/a/p/u). Disconnect MAVLink first.";
+
+  // Fills the AES key with 32 random hex chars (16 bytes). Mirrors upstream btnRandom_Click.
+  [RelayCommand]
+  private void RandomAesKey() {
+    Span<byte> bytes = stackalloc byte[16];
+    RandomNumberGenerator.Fill(bytes);
+    AesKey = Convert.ToHexString(bytes);
+    AppendLog("Generated random AES key.");
+  }
+
+  // Copies every Local register value into the Remote column (in-memory). Mirrors upstream
+  // btnCopyRequired — the user must still Save to push the changes to the remote radio.
+  [RelayCommand]
+  private void CopyRequiredToRemote() {
+    foreach (var s in Registers) {
+      if (s.Num == 0) {
+        continue;
+      }
+      s.RemoteValue = s.LocalValue;
+      s.EnsureOption(s.LocalValue);
+      s.HasRemote = true;
+    }
+    Status = "Copy then Save to apply";
+    AppendLog("Copied Local register values to Remote. Save to apply to the remote radio.");
   }
 
   // ---- AT command terminal (persistent session) ----
@@ -462,6 +608,8 @@ public partial class SikRadioViewModel : ViewModelBase {
 
   partial void OnRssiRunningChanged(bool value) {
     OnPropertyChanged(nameof(RssiButtonLabel));
+    OnPropertyChanged(nameof(StatusLed));
+    OnPropertyChanged(nameof(StatusLedLabel));
     OpenTerminalCommand.NotifyCanExecuteChanged();
     OnIsBusyChanged(false);
   }

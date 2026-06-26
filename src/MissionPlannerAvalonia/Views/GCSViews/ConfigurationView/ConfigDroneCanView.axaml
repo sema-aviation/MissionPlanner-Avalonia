@@ -6,12 +6,13 @@
   xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
   mc:Ignorable="d"
   d:DesignWidth="800"
-  d:DesignHeight="640"
+  d:DesignHeight="760"
+  x:Name="Root"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigDroneCanView"
   x:DataType="cv:ConfigDroneCanViewModel"
   Background="#434445"
 >
-  <Grid RowDefinitions="Auto,Auto,Auto,2*,Auto,Auto,Auto,3*" Margin="16">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,2*,Auto,Auto,Auto,2*,2*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="DroneCAN / UAVCAN" />
 
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,8">
@@ -23,11 +24,23 @@
       />
       <Button Content="{Binding ConnectLabel}" Command="{Binding ToggleConnectCommand}" />
       <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+      <Button Content="Filter" Command="{Binding FilterCommand}" />
+      <Button Content="Stats" Command="{Binding StatsCommand}" />
       <Button Name="BusInspectorBtn" Content="Bus Inspector" />
+      <CheckBox Content="Exit SLCAN on leave?" IsChecked="{Binding ExitSlcanOnLeave}" />
+      <CheckBox Content="Log" IsChecked="{Binding LogToFile}" />
     </StackPanel>
 
     <TextBlock
       Grid.Row="2"
+      Text="After enabling SLCAN you can no longer connect via MAVLink. Leave this screen and wait 2 seconds before connecting again."
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,0,0,4"
+    />
+
+    <TextBlock
+      Grid.Row="3"
       Text="{Binding Status}"
       Classes="fieldlbl"
       TextWrapping="Wrap"
@@ -35,7 +48,7 @@
     />
 
     <DataGrid
-      Grid.Row="3"
+      Grid.Row="4"
       ItemsSource="{Binding Nodes}"
       SelectedItem="{Binding SelectedNode}"
       AutoGenerateColumns="False"
@@ -44,17 +57,31 @@
       HeadersVisibility="Column"
     >
       <DataGrid.Columns>
-        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60" />
+        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" />
         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
-        <DataGridTextColumn Header="Health" Binding="{Binding Health}" Width="100" />
-        <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="140" />
-        <DataGridTextColumn Header="Uptime" Binding="{Binding Uptime}" Width="120" />
-        <DataGridTextColumn Header="SW" Binding="{Binding SoftwareVersion}" Width="120" />
-        <DataGridTextColumn Header="HW" Binding="{Binding HardwareVersion}" Width="80" />
+        <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="120" />
+        <DataGridTextColumn Header="Health" Binding="{Binding Health}" Width="80" />
+        <DataGridTextColumn Header="Uptime" Binding="{Binding Uptime}" Width="90" />
+        <DataGridTextColumn Header="HW Version" Binding="{Binding HardwareVersion}" Width="80" />
+        <DataGridTextColumn Header="SW Version" Binding="{Binding SoftwareVersion}" Width="100" />
+        <DataGridTextColumn Header="SW CRC" Binding="{Binding SoftwareCrc}" Width="110" />
+        <DataGridTemplateColumn Header="Menu" Width="70">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="cv:DroneCanNode">
+              <Button
+                Content="Menu"
+                Padding="6,0"
+                HorizontalAlignment="Stretch"
+                Tag="{Binding}"
+                Click="OnNodeMenu"
+              />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
       </DataGrid.Columns>
     </DataGrid>
 
-    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" Margin="0,8,0,4">
+    <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8" Margin="0,8,0,4">
       <Button Content="Get Parameters" Command="{Binding GetParametersCommand}" />
       <Button Content="Restart Node" Command="{Binding RestartNodeCommand}" />
       <Button Name="FirmwareUpdateBtn" Content="Update Firmware…" />
@@ -64,15 +91,42 @@
     </StackPanel>
 
     <TextBlock
-      Grid.Row="5"
+      Grid.Row="6"
       Text="{Binding NodeStatus}"
       Classes="fieldlbl"
       TextWrapping="Wrap"
       Margin="0,0,0,8"
     />
 
-    <DataGrid
+    <Grid
       Grid.Row="7"
+      ColumnDefinitions="Auto,*,Auto,*"
+      RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+      Margin="0,0,0,8"
+    >
+      <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Node ID / Name" VerticalAlignment="Center" Margin="0,2,8,2" />
+      <TextBox Grid.Row="0" Grid.Column="1" IsReadOnly="True" Text="{Binding SelectedNode.Id}" Margin="2" />
+      <TextBox Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" IsReadOnly="True" Text="{Binding SelectedNode.Name}" Margin="2" />
+
+      <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Mode / Health / Uptime" VerticalAlignment="Center" Margin="0,2,8,2" />
+      <TextBox Grid.Row="1" Grid.Column="1" IsReadOnly="True" Text="{Binding SelectedNode.Mode}" Margin="2" />
+      <TextBox Grid.Row="1" Grid.Column="2" IsReadOnly="True" Text="{Binding SelectedNode.Health}" Margin="2" />
+      <TextBox Grid.Row="1" Grid.Column="3" IsReadOnly="True" Text="{Binding SelectedNode.Uptime}" Margin="2" />
+
+      <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Vendor-specific code" VerticalAlignment="Center" Margin="0,2,8,2" />
+      <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" IsReadOnly="True" Text="{Binding SelectedNode.VendorSpecificCode}" Margin="2" />
+
+      <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Software version / CRC64" VerticalAlignment="Center" Margin="0,2,8,2" />
+      <TextBox Grid.Row="3" Grid.Column="1" IsReadOnly="True" Text="{Binding SelectedNode.SoftwareVersion}" Margin="2" />
+      <TextBox Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2" IsReadOnly="True" Text="{Binding SelectedNode.SoftwareCrc}" Margin="2" />
+
+      <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Hardware version / UID" VerticalAlignment="Center" Margin="0,2,8,2" />
+      <TextBox Grid.Row="4" Grid.Column="1" IsReadOnly="True" Text="{Binding SelectedNode.HardwareVersion}" Margin="2" />
+      <TextBox Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="2" IsReadOnly="True" Text="{Binding SelectedNode.HardwareUid}" Margin="2" />
+    </Grid>
+
+    <DataGrid
+      Grid.Row="8"
       ItemsSource="{Binding NodeParams}"
       AutoGenerateColumns="False"
       GridLinesVisibility="All"
@@ -84,6 +138,23 @@
         <DataGridTextColumn Header="Min" Binding="{Binding Min}" Width="*" IsReadOnly="True" />
         <DataGridTextColumn Header="Max" Binding="{Binding Max}" Width="*" IsReadOnly="True" />
         <DataGridTextColumn Header="Default" Binding="{Binding Default}" Width="*" IsReadOnly="True" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <DataGrid
+      Grid.Row="9"
+      ItemsSource="{Binding DebugLog}"
+      AutoGenerateColumns="False"
+      IsReadOnly="True"
+      GridLinesVisibility="All"
+      HeadersVisibility="Column"
+      Margin="0,8,0,0"
+    >
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Node" Binding="{Binding Node}" Width="50" />
+        <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="50" />
+        <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" />
+        <DataGridTextColumn Header="Text" Binding="{Binding Text}" Width="*" />
       </DataGrid.Columns>
     </DataGrid>
   </Grid>

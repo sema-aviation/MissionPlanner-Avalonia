@@ -47,8 +47,8 @@ public partial class ConfigAirspeedViewModel : ParamPageBase, IDisposable {
 
   private void Setup() {
     Type = new ParamField("ARSPD_TYPE", "combo");
-    Enable = new ParamField("ARSPD_ENABLE", "combo");
-    Use = new ParamField("ARSPD_USE", "combo");
+    Enable = new ParamField("ARSPD_ENABLE", "bool");
+    Use = new ParamField("ARSPD_USE", "bool");
 
     var pin = new ParamField("ARSPD_PIN", "combo");
     pin.Options.Clear();

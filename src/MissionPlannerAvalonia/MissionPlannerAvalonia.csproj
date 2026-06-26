@@ -47,8 +47,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Real SiK bootloader uploader + Intel-HEX parser, linked from upstream (no rewrite). -->
+    <Compile Include="../../external/MissionPlanner/Radio/Uploader.cs" Link="Radio/Uploader.cs" />
+    <Compile Include="../../external/MissionPlanner/Radio/IHex.cs" Link="Radio/IHex.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../../external/MissionPlanner/ExtLibs/ArduPilot/MissionPlanner.ArduPilot.csproj" />
     <ProjectReference Include="../../external/MissionPlanner/ExtLibs/DroneCAN/DroneCAN.csproj" />
     <ProjectReference Include="../Px4Uploader/Px4Uploader.csproj" />
+  </ItemGroup>
+
+  <!-- Offline parameter metadata (Units/Range/Values/Description). The pdef repo downloads per-vehicle
+       apm.pdef.xml to an unwritable system dir on macOS; this bundled file is the legacy fallback that
+       ParameterMetaDataRepositoryAPM loads from the app's running directory. -->
+  <ItemGroup>
+    <Content Include="../../external/MissionPlanner/ParameterMetaDataBackup.xml" Link="ParameterMetaDataBackup.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

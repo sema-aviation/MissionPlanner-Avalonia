@@ -15,6 +15,33 @@ public partial class ConfigDroneCanView : UserControl {
         (_, _) => MissionPlannerAvalonia.Views.DroneCANInspectorWindow.OpenWindow();
   }
 
+  private void OnNodeMenu(object? sender, RoutedEventArgs e) {
+    if (sender is not Button btn || btn.Tag is not DroneCanNode node ||
+        DataContext is not ConfigDroneCanViewModel vm) {
+      return;
+    }
+
+    vm.SelectNodeCommand.Execute(node);
+
+    var menu = new ContextMenu();
+    menu.Items.Add(NodeMenuItem("Parameters", vm.GetParametersCommand));
+    menu.Items.Add(NodeMenuItem("Restart", vm.RestartNodeCommand));
+    menu.Items.Add(NodeMenuItem("Write", vm.WriteParametersCommand));
+    menu.Items.Add(NodeMenuItem("Save to Flash", vm.SaveConfigCommand));
+    menu.Items.Add(NodeMenuItem("Erase", vm.EraseConfigCommand));
+    menu.Open(btn);
+  }
+
+  private static MenuItem NodeMenuItem(string header, System.Windows.Input.ICommand command) {
+    var item = new MenuItem { Header = header };
+    item.Click += (_, _) => {
+      if (command.CanExecute(null)) {
+        command.Execute(null);
+      }
+    };
+    return item;
+  }
+
   private async void OnFirmwareUpdate(object? sender, RoutedEventArgs e) {
     var top = TopLevel.GetTopLevel(this);
     if (top is null || DataContext is not ConfigDroneCanViewModel vm) {

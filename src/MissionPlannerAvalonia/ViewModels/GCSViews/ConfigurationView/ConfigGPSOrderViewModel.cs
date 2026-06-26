@@ -12,7 +12,7 @@ public partial class ConfigGPSOrderViewModel : ParamPageBase {
   public ObservableCollection<GpsCanRow> Rows { get; } = new();
 
   public ConfigGPSOrderViewModel() {
-    Title = "CAN GPS Order";
+    Title = "UAVCAN GPS Order";
     Intro = "Detected DroneCAN GPS nodes. Use Override to pin a node to GPS1 or GPS2.";
     Setup();
     BuildRows();

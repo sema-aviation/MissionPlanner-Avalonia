@@ -16,6 +16,7 @@ public class ConfigViewModel : BackstageViewModel {
   private static bool IsHeli =>
       IsCopter && AppState.comPort.MAV.param.ContainsKey("H_SWASH_TYPE");
 
+  [System.Obsolete]
   public ConfigViewModel() : base(persistKey: "config_lastpage") {
     Add("Flight Modes", () => new ConfigFlightModesViewModel(), requiresConnection: true);
     Add("Standard Params", () => new ConfigFriendlyParamsViewModel(advanced: false), requiresConnection: true);
@@ -31,9 +32,11 @@ public class ConfigViewModel : BackstageViewModel {
         visibleWhen: () => IsPlane);
     Add("Basic Tuning (Rover)", () => new ConfigArduroverViewModel(), requiresConnection: true,
         visibleWhen: () => IsRover);
-    Add("Extended Tuning", () => new ConfigExtendedTuningViewModel(), advanced: true, requiresConnection: true);
+    Add(IsPlane ? "QP Extended Tuning" : "Extended Tuning",
+        () => new ConfigExtendedTuningViewModel(), advanced: true, requiresConnection: true);
     Add("Initial Parameters", () => new ConfigInitialParamsViewModel(), requiresConnection: true);
     Add("Onboard OSD", () => new ConfigOSDViewModel(), requiresConnection: true);
+    Add("MAVFtp", () => new MavFTPUIViewModel(), requiresConnection: true);
     Add("User Params", () => new ConfigUserDefinedViewModel(), requiresConnection: true);
     Add("Full Parameter List", () => new RawParamsViewModel());
     Add("Planner", () => new ConfigPlannerViewModel());

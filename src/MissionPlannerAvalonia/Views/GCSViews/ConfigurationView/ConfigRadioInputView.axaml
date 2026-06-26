@@ -5,58 +5,129 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
   mc:Ignorable="d"
-  d:DesignWidth="800"
+  d:DesignWidth="820"
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigRadioInputView"
   x:DataType="cv:ConfigRadioInputViewModel"
   Background="#434445"
 >
-  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
-    <TextBlock Grid.Row="0" Classes="pagetitle" Text="Radio Calibration" />
-    <TextBlock
-      Grid.Row="1"
-      Text="{Binding Status}"
-      Classes="fieldlbl"
-      TextWrapping="Wrap"
-      Margin="0,0,0,12"
-    />
+  <UserControl.Styles>
+    <Style Selector="ProgressBar.rc">
+      <Setter Property="Foreground" Value="#94C11F" />
+      <Setter Property="Background" Value="#43494C" />
+    </Style>
+  </UserControl.Styles>
 
-    <ItemsControl Grid.Row="2" ItemsSource="{Binding Channels}">
-      <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="cv:RcChannel">
-          <Grid ColumnDefinitions="80,*,70,70" Margin="0,4">
-            <TextBlock Grid.Column="0" Text="{Binding Number, StringFormat='Ch \{0\}'}" Classes="fieldlbl" />
-            <ProgressBar
-              Grid.Column="1"
-              Minimum="1000"
-              Maximum="2000"
-              Value="{Binding Value}"
-              Height="22"
-              Foreground="#94C11F"
-            />
-            <TextBlock
-              Grid.Column="2"
-              Text="{Binding Value}"
-              Classes="fieldlbl"
-              HorizontalAlignment="Center"
-            />
-            <TextBlock
-              Grid.Column="3"
-              HorizontalAlignment="Center"
-              Classes="fieldlbl"
-              Text="{Binding Min, StringFormat='\{0\}'}"
-            />
-          </Grid>
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="Radio Calibration" />
+      <TextBlock Text="{Binding Status}" Classes="fieldlbl" TextWrapping="Wrap" />
 
-    <Button
-      Grid.Row="3"
-      Content="{Binding CalibrateLabel}"
-      Command="{Binding ToggleCalibrateCommand}"
-      HorizontalAlignment="Left"
-      Margin="0,12,0,0"
-    />
-  </Grid>
+      <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+        <!-- Left: mapped sticks -->
+        <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,16,0">
+          <!-- Roll (horizontal) -->
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Grid Width="340" Height="26">
+              <ProgressBar Classes="rc" Minimum="1000" Maximum="2000" Value="{Binding Roll.Value}" Height="26" />
+              <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"
+                         Text="{Binding Roll.Value, StringFormat='\{0\}'}" />
+              <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Foreground="White"
+                         Text="{Binding Roll.Label}" />
+            </Grid>
+            <CheckBox Content="Reverse" IsChecked="{Binding RevRoll}" IsVisible="{Binding ShowReverse}" />
+          </StackPanel>
+
+          <!-- Pitch + Throttle (vertical) -->
+          <StackPanel Orientation="Horizontal" Spacing="24">
+            <StackPanel Spacing="4">
+              <Grid Width="64" Height="200">
+                <ProgressBar Classes="rc" Orientation="Vertical" Minimum="1000" Maximum="2000"
+                             Value="{Binding Pitch.Value}" Width="64" Height="200" />
+                <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,4"
+                           Foreground="White" Text="{Binding Pitch.Value, StringFormat='\{0\}'}" />
+              </Grid>
+              <TextBlock Text="{Binding Pitch.Label}" Classes="fieldlbl" HorizontalAlignment="Center" />
+              <CheckBox Content="Reverse" IsChecked="{Binding RevPitch}" IsVisible="{Binding ShowReverse}"
+                        HorizontalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <Grid Width="64" Height="200">
+                <ProgressBar Classes="rc" Orientation="Vertical" Minimum="1000" Maximum="2000"
+                             Value="{Binding Throttle.Value}" Width="64" Height="200" />
+                <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,4"
+                           Foreground="White" Text="{Binding Throttle.Value, StringFormat='\{0\}'}" />
+              </Grid>
+              <TextBlock Text="{Binding Throttle.Label}" Classes="fieldlbl" HorizontalAlignment="Center" />
+              <CheckBox Content="Reverse" IsChecked="{Binding RevThrottle}" IsVisible="{Binding ShowReverse}"
+                        HorizontalAlignment="Center" />
+            </StackPanel>
+          </StackPanel>
+
+          <!-- Yaw (horizontal) -->
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Grid Width="340" Height="26">
+              <ProgressBar Classes="rc" Minimum="1000" Maximum="2000" Value="{Binding Yaw.Value}" Height="26" />
+              <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"
+                         Text="{Binding Yaw.Value, StringFormat='\{0\}'}" />
+              <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Foreground="White"
+                         Text="{Binding Yaw.Label}" />
+            </Grid>
+            <CheckBox Content="Reverse" IsChecked="{Binding RevYaw}" IsVisible="{Binding ShowReverse}" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Right: aux channels 5-16 + Calibrate -->
+        <StackPanel Grid.Column="1" Spacing="6">
+          <ItemsControl ItemsSource="{Binding Aux}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="2" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="cv:RcChannel">
+                <Grid Width="150" Height="22" Margin="3">
+                  <ProgressBar Classes="rc" Minimum="1000" Maximum="2000" Value="{Binding Value}" Height="22" />
+                  <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" Foreground="White" FontSize="11"
+                             Text="{Binding Label}" />
+                  <TextBlock VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,6,0"
+                             Foreground="White" FontSize="11" Text="{Binding Value, StringFormat='\{0\}'}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Content="{Binding CalibrateLabel}" Command="{Binding ToggleCalibrateCommand}"
+                  HorizontalAlignment="Right" Margin="0,6,3,0" />
+        </StackPanel>
+      </Grid>
+
+      <!-- Elevon + Spektrum groups -->
+      <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+        <Border Grid.Column="0" BorderBrush="#666" BorderThickness="1" Padding="10" Margin="0,0,16,0"
+                IsVisible="{Binding IsPlane}" HorizontalAlignment="Left">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Elevon Config" Classes="fieldlbl" FontWeight="Bold" />
+            <StackPanel Orientation="Horizontal" Spacing="14">
+              <CheckBox Content="Elevons" IsChecked="{Binding ElevonMixing}" />
+              <CheckBox Content="Elevons Rev" IsChecked="{Binding ElevonReverse}" />
+              <CheckBox Content="Elevons CH1 Rev" IsChecked="{Binding ElevonCh1Rev}" />
+              <CheckBox Content="Elevons CH2 Rev" IsChecked="{Binding ElevonCh2Rev}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1" BorderBrush="#666" BorderThickness="1" Padding="10" HorizontalAlignment="Right">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Spektrum Bind" Classes="fieldlbl" FontWeight="Bold" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Bind DSM2" Command="{Binding BindDsm2Command}" />
+              <Button Content="Bind DSMX" Command="{Binding BindDsmXCommand}" />
+              <Button Content="Bind DSM8" Command="{Binding BindDsm8Command}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
 </UserControl>

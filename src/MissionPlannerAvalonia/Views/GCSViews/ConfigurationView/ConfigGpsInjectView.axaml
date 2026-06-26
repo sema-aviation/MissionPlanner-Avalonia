@@ -119,6 +119,45 @@
         </StackPanel>
       </Border>
 
+      <!-- Septentrio config -->
+      <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10" IsVisible="{Binding IsSeptentrio}">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="fieldlbl" Text="Septentrio" FontWeight="Bold" />
+
+          <CheckBox Content="Fixed Position" IsChecked="{Binding SeptentrioFixedPosition}" />
+          <Grid ColumnDefinitions="140,140,Auto" RowDefinitions="Auto,Auto,Auto,Auto"
+                IsEnabled="{Binding SeptentrioFixedPosition}">
+            <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Atitude (WGS84)" VerticalAlignment="Center" Margin="0,2" />
+            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SeptentrioLat}" Margin="0,2" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Longitude (WGS84)" VerticalAlignment="Center" Margin="0,2" />
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SeptentrioLng}" Margin="0,2" />
+            <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Altitude (m)" VerticalAlignment="Center" Margin="0,2" />
+            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SeptentrioAlt}" Margin="0,2" />
+            <Button Grid.Row="3" Grid.Column="1" Content="Set Position" Margin="0,4,0,0"
+                    Command="{Binding ApplySeptentrioPositionCommand}" />
+          </Grid>
+
+          <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto">
+            <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="RTCM Message Amount" VerticalAlignment="Center" Margin="0,2" />
+            <ComboBox Grid.Row="0" Grid.Column="1" Width="120" HorizontalAlignment="Left" Margin="0,2"
+                      ItemsSource="{Binding SeptentrioRtcmLevels}" SelectedItem="{Binding SelectedSeptentrioRtcmLevel}" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="RTCM Message Interval (s)" VerticalAlignment="Center" Margin="0,2" />
+            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,2">
+              <TextBox Width="80" Text="{Binding SeptentrioRtcmInterval}" />
+              <Button Content="Set Interval" Command="{Binding ApplySeptentrioRtcmCommand}" />
+            </StackPanel>
+          </Grid>
+
+          <TextBlock Classes="fieldlbl" Text="RTCM Constellation Usage" />
+          <WrapPanel Orientation="Horizontal">
+            <CheckBox Content="GPS" IsChecked="{Binding SeptentrioGps}" Margin="0,0,16,0" />
+            <CheckBox Content="GLONASS" IsChecked="{Binding SeptentrioGlonass}" Margin="0,0,16,0" />
+            <CheckBox Content="Galileo" IsChecked="{Binding SeptentrioGalileo}" Margin="0,0,16,0" />
+            <CheckBox Content="BeiDou" IsChecked="{Binding SeptentrioBeidou}" Margin="0,0,16,0" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
       <!-- Base positions -->
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10">
         <StackPanel Spacing="6">

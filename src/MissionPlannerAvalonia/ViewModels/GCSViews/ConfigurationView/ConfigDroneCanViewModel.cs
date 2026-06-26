@@ -29,10 +29,22 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
   // Per-node parameter list (uavcan.protocol.param.GetSet) for the selected node.
   public ObservableCollection<DroneCanParam> NodeParams { get; } = new();
 
-  public string[] BusOptions { get; } = { "MAVLink CAN1", "MAVLink CAN2" };
+  // uavcan.protocol.debug.LogMessage stream (Node / Level / Source / Text).
+  public ObservableCollection<DroneCanLog> DebugLog { get; } = new();
+
+  public string[] BusOptions { get; } = { "MAVLink-CAN1", "MAVLink-CAN2", "SLCAN" };
 
   [ObservableProperty]
   private int _selectedBusIndex;
+
+  [ObservableProperty]
+  private bool _exitSlcanOnLeave = true;
+
+  [ObservableProperty]
+  private bool _logToFile;
+
+  [ObservableProperty]
+  private bool _statsLogging;
 
   [ObservableProperty]
   private string _status = "Connect over the active MAVLink link to enumerate DroneCAN / UAVCAN nodes.";
@@ -62,10 +74,41 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
 
   partial void OnIsConnectedChanged(bool value) => OnPropertyChanged(nameof(ConnectLabel));
 
+  partial void OnLogToFileChanged(bool value) {
+    if (_can == null) {
+      return;
+    }
+
+    try {
+      _can.LogFile = value ? BuildLogPath() : null;
+    } catch {
+    }
+  }
+
+  private static string BuildLogPath() {
+    string dir;
+    try {
+      dir = MissionPlanner.Utilities.Settings.Instance.LogDir;
+    } catch {
+      dir = Path.GetTempPath();
+    }
+
+    if (string.IsNullOrEmpty(dir)) {
+      dir = Path.GetTempPath();
+    }
+
+    return Path.Combine(dir, DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".can");
+  }
+
   [RelayCommand]
   private void ToggleConnect() {
     if (IsConnected) {
       Disconnect();
+      return;
+    }
+
+    if (SelectedBusIndex == 2) {
+      Status = "SLCAN-direct not yet supported — use MAVLink-CAN1/CAN2.";
       return;
     }
 
@@ -79,6 +122,31 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
     StartMavlinkCAN(bus);
     IsConnected = true;
     Status = $"Listening for nodes on MAVLink CAN{bus}…";
+  }
+
+  [RelayCommand]
+  private void Filter() {
+    Status = "Frame filtering is not yet supported in the Avalonia port (TODO).";
+  }
+
+  [RelayCommand]
+  private void Stats() {
+    if (!IsConnected || _can == null) {
+      NodeStatus = "Connect first to capture node statistics.";
+      return;
+    }
+
+    StatsLogging = !StatsLogging;
+    NodeStatus = StatsLogging
+        ? "Logging DroneCAN node statistics to the message grid…"
+        : "Stopped logging node statistics.";
+  }
+
+  [RelayCommand]
+  private void SelectNode(DroneCanNode? node) {
+    if (node != null) {
+      SelectedNode = node;
+    }
   }
 
   [RelayCommand]
@@ -407,11 +475,40 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
             item.Name = Encoding.ASCII.GetString(gnires.name, 0, gnires.name_len);
             item.SoftwareVersion = gnires.software_version.major + "." + gnires.software_version.minor +
                                    "." + gnires.software_version.vcs_commit.ToString("X");
+            item.SoftwareCrc = gnires.software_version.image_crc.ToString("X");
             item.HardwareVersion = gnires.hardware_version.major + "." + gnires.hardware_version.minor;
+            item.HardwareUid = string.Join(" ",
+                gnires.hardware_version.unique_id.Select(b => b.ToString("X2")));
+            item.VendorSpecificCode = gnires.status.vendor_specific_status_code.ToString();
           }
         });
+      } else if (msg is DroneCAN.DroneCAN.uavcan_protocol_debug_LogMessage dbg) {
+        Dispatcher.UIThread.Post(() => {
+          DebugLog.Insert(0, new DroneCanLog {
+            Node = frame.SourceNode.ToString(),
+            Level = dbg.level.value.ToString(),
+            Source = Encoding.ASCII.GetString(dbg.source, 0, dbg.source_len),
+            Text = Encoding.ASCII.GetString(dbg.text, 0, dbg.text_len),
+          });
+          while (DebugLog.Count > 100) {
+            DebugLog.RemoveAt(DebugLog.Count - 1);
+          }
+        });
+      } else if (StatsLogging && msg is DroneCAN.DroneCAN.dronecan_protocol_Stats st) {
+        Dispatcher.UIThread.Post(() => AppendStat(frame.SourceNode,
+            $"tx={st.tx_frames} txerr={st.tx_errors} rx={st.rx_frames} crc_err={st.rx_error_bad_crc}"));
+      } else if (StatsLogging && msg is DroneCAN.DroneCAN.dronecan_protocol_CanStats cs) {
+        Dispatcher.UIThread.Post(() => AppendStat(frame.SourceNode,
+            $"if{cs.@interface} tx_req={cs.tx_requests} tx_ok={cs.tx_success} rx={cs.rx_received} busoff={cs.busoff_errors}"));
       }
     };
+
+    if (LogToFile) {
+      try {
+        can.LogFile = BuildLogPath();
+      } catch {
+      }
+    }
 
     try {
       can.StartSLCAN(port.BaseStream);
@@ -419,6 +516,18 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
       can.SetupDynamicNodeAllocator();
     } catch (Exception ex) {
       Dispatcher.UIThread.Post(() => Status = "CAN start failed: " + ex.Message);
+    }
+  }
+
+  private void AppendStat(byte node, string text) {
+    DebugLog.Insert(0, new DroneCanLog {
+      Node = node.ToString(),
+      Level = "STAT",
+      Source = "stats",
+      Text = text,
+    });
+    while (DebugLog.Count > 100) {
+      DebugLog.RemoveAt(DebugLog.Count - 1);
     }
   }
 
@@ -479,7 +588,11 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
     Status = "Disconnected.";
   }
 
-  public void Dispose() => Disconnect();
+  public void Dispose() {
+    if (ExitSlcanOnLeave) {
+      Disconnect();
+    }
+  }
 }
 
 public partial class DroneCanNode : ObservableObject {
@@ -503,6 +616,29 @@ public partial class DroneCanNode : ObservableObject {
 
   [ObservableProperty]
   private string _softwareVersion = "";
+
+  [ObservableProperty]
+  private string _softwareCrc = "";
+
+  [ObservableProperty]
+  private string _hardwareUid = "";
+
+  [ObservableProperty]
+  private string _vendorSpecificCode = "";
+}
+
+public partial class DroneCanLog : ObservableObject {
+  [ObservableProperty]
+  private string _node = "";
+
+  [ObservableProperty]
+  private string _level = "";
+
+  [ObservableProperty]
+  private string _source = "";
+
+  [ObservableProperty]
+  private string _text = "";
 }
 
 public partial class DroneCanParam : ObservableObject {

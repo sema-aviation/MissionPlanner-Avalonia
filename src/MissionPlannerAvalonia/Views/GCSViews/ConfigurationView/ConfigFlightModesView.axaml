@@ -77,12 +77,22 @@
       </ItemsControl>
     </ScrollViewer>
 
-    <Button
-      Grid.Row="4"
-      Content="{Binding SaveModesText}"
-      Command="{Binding SaveModesCommand}"
-      HorizontalAlignment="Left"
-      Margin="0,12,0,0"
-    />
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="12" Margin="0,12,0,0">
+      <Button
+        Content="{Binding SaveModesText}"
+        Command="{Binding SaveModesCommand}"
+      />
+      <Button
+        Content="Super Simple Modes"
+        Command="{Binding OpenSuperSimpleWikiCommand}"
+        IsVisible="{Binding ShowSimple}"
+        Background="Transparent"
+        Foreground="CornflowerBlue"
+        Padding="0"
+        Cursor="Hand"
+        VerticalAlignment="Center"
+        ToolTip.Tip="https://ardupilot.org/copter/docs/simpleandsuper-simple-modes.html"
+      />
+    </StackPanel>
   </Grid>
 </UserControl>

@@ -1,5 +1,7 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:MissionPlannerAvalonia">
   <Styles.Resources>
+    <local:StringOnlyConverter x:Key="StringTip" />
     <Color x:Key="MpBgColor">#262728</Color>
     <Color x:Key="MpControlBgColor">#434445</Color>
     <Color x:Key="MpTextColor">#FFFFFF</Color>
@@ -17,6 +19,9 @@
       <GradientStop Offset="0" Color="{StaticResource MpButTop}" />
       <GradientStop Offset="1" Color="{StaticResource MpButBot}" />
     </LinearGradientBrush>
+
+    <!-- Kill Fluent's blue tab-selection pipe; green background marks selection instead. -->
+    <SolidColorBrush x:Key="TabItemHeaderSelectedPipeFill" Color="Transparent" />
   </Styles.Resources>
 
   <Style Selector="Button">
@@ -29,7 +34,7 @@
     <Setter Property="BorderThickness" Value="0" />
     <!-- clipped labels ellipsize; hover shows full text -->
     <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
-    <Setter Property="ToolTip.Tip" Value="{Binding $self.Content}" />
+    <Setter Property="ToolTip.Tip" Value="{Binding $self.Content, Converter={StaticResource StringTip}}" />
   </Style>
   <Style Selector="Button.nav">
     <Setter Property="ToolTip.Tip" Value="{x:Null}" />
@@ -102,6 +107,10 @@
   </Style>
   <Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="#94C11F" />
+  </Style>
+  <!-- Hide Fluent's blue accent selection underline; the green background marks selection instead. -->
+  <Style Selector="TabItem /template/ Border#PART_SelectedPipe">
+    <Setter Property="IsVisible" Value="False" />
   </Style>
   <Style Selector="TextBlock">
     <Setter Property="Foreground" Value="{StaticResource MpText}" />

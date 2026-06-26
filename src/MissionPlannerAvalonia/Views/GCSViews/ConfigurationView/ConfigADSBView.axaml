@@ -16,6 +16,14 @@
       <TextBlock Classes="pagetitle" Text="{Binding Title}" />
       <TextBlock Classes="fieldlbl" Text="{Binding Intro}" TextWrapping="Wrap" />
       <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Classes="fieldlbl" Text="Flight Identification" VerticalAlignment="Center" />
+        <TextBox Width="160" MaxLength="8" Text="{Binding FlightId}" />
+        <Button Content="Save" Command="{Binding SaveFlightIdCommand}" />
+        <TextBlock Classes="fieldlbl" Text="Aircraft Registration" VerticalAlignment="Center" Margin="12,0,0,0" />
+        <TextBox Width="160" MaxLength="8" Text="{Binding AircraftRegistration}" />
+        <Button Content="Save" Command="{Binding SaveAircraftRegistrationCommand}" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="8">
         <TextBlock Classes="fieldlbl" Text="Find" VerticalAlignment="Center" />
         <TextBox Width="220" Text="{Binding Search}" Watermark="search (min 2 chars)" />
         <Button Content="Write Params" Command="{Binding WriteCommand}" />
@@ -32,6 +40,21 @@
               <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl" ToolTip.Tip="{Binding Description}" TextWrapping="Wrap" Margin="0,0,8,0" />
               <ComboBox Grid.Column="1" IsVisible="{Binding IsCombo}" MinWidth="180" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
               <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
+              <Button Grid.Column="1" IsVisible="{Binding IsBitmask}" MinWidth="180" HorizontalContentAlignment="Left" Content="{Binding BitmaskSummary}">
+                <Button.Flyout>
+                  <Flyout>
+                    <ScrollViewer MaxHeight="320">
+                      <ItemsControl ItemsSource="{Binding BitOptions}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="cv:BitOption">
+                            <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSet}" />
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </Flyout>
+                </Button.Flyout>
+              </Button>
               <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="180" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
               <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
               <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />

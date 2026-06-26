@@ -222,10 +222,6 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
     Title = "Compass";
     Intro = "Compass configuration and onboard magnetometer calibration.";
 
-    F("COMPASS_USE", "bool");
-    F("COMPASS_USE2", "bool");
-    F("COMPASS_USE3", "bool");
-
     F("COMPASS_EXTERNAL", "combo");
     F("COMPASS_EXTERN2", "combo");
     F("COMPASS_EXTERN3", "combo");
@@ -239,6 +235,228 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
     F("COMPASS_CAL_FIT", "combo");
 
     ReloadDeclination();
+    LoadCompassFlags();
+    BuildCompassList();
+  }
+
+  public ObservableCollection<CompassPrioRow> Compasses { get; } = new();
+
+  [ObservableProperty]
+  private bool _useCompass1;
+
+  [ObservableProperty]
+  private bool _useCompass2;
+
+  [ObservableProperty]
+  private bool _useCompass3;
+
+  [ObservableProperty]
+  private bool _learnOffsets;
+
+  [ObservableProperty]
+  private string _compassStatus = "";
+
+  private bool _loadingFlags;
+
+  partial void OnUseCompass1Changed(bool value) =>
+      WriteFlag(new[] { "COMPASS_USE", "COMPASS1_USE" }, value);
+
+  partial void OnUseCompass2Changed(bool value) =>
+      WriteFlag(new[] { "COMPASS_USE2", "COMPASS2_USE" }, value);
+
+  partial void OnUseCompass3Changed(bool value) =>
+      WriteFlag(new[] { "COMPASS_USE3", "COMPASS3_USE" }, value);
+
+  partial void OnLearnOffsetsChanged(bool value) =>
+      WriteFlag(new[] { "COMPASS_LEARN" }, value);
+
+  private async void WriteFlag(string[] names, bool value) {
+    if (_loadingFlags || !IsConnected) {
+      return;
+    }
+
+    var p = comPort.MAV.param[names];
+    if (p == null) {
+      return;
+    }
+
+    try {
+      await Task.Run(() => comPort.setParam(
+          (byte)comPort.sysidcurrent, (byte)comPort.compidcurrent, p.Name, value ? 1 : 0));
+    } catch {
+    }
+  }
+
+  private void LoadCompassFlags() {
+    var p = comPort.MAV?.param;
+    if (p == null) {
+      return;
+    }
+
+    _loadingFlags = true;
+    UseCompass1 = p[new[] { "COMPASS_USE", "COMPASS1_USE" }]?.Value > 0;
+    UseCompass2 = p[new[] { "COMPASS_USE2", "COMPASS2_USE" }]?.Value > 0;
+    UseCompass3 = p[new[] { "COMPASS_USE3", "COMPASS3_USE" }]?.Value > 0;
+    LearnOffsets = p[new[] { "COMPASS_LEARN" }]?.Value > 0;
+    _loadingFlags = false;
+  }
+
+  private void BuildCompassList() {
+    Compasses.Clear();
+
+    var param = comPort.MAV?.param;
+    if (param == null) {
+      return;
+    }
+
+    var orientOptions = OrientOptions(param);
+
+    var list = param
+        .Where(a => a.Name.StartsWith("COMPASS") && a.Name.Contains("DEV_ID") && a.Value != 0)
+        .OrderBy(a => a.Name)
+        .Select(a => new CompassDevice(a.Name, (uint)a.Value, param))
+        .ToList();
+
+    var prio = param
+        .Where(a => a.Name.StartsWith("COMPASS_PRIO") && a.Value != 0)
+        .OrderBy(a => a.Name)
+        .Select(a => new CompassDevice(a.Name, (uint)a.Value, param))
+        .ToList();
+
+    bool anyMissing = false;
+    foreach (var p in prio) {
+      if (p.DevID == 0 || list.Any(b => b.DevID == p.DevID)) {
+        p.Missing = false;
+      } else {
+        p.Missing = true;
+        anyMissing = true;
+      }
+    }
+
+    list = list.Where(a => !prio.Any(b => b.DevID == a.DevID)).ToList();
+    list.InsertRange(0, prio);
+
+    int i = 1;
+    foreach (var d in list) {
+      Compasses.Add(new CompassPrioRow {
+        Priority = i++,
+        DevID = d.DevID,
+        BusType = d.BusType,
+        Bus = d.Bus,
+        Address = d.Address,
+        DevType = d.DevType,
+        Missing = d.Missing,
+        External = d.External,
+        Orientation = FormatOrient(d.OrientValue, orientOptions),
+      });
+    }
+
+    CompassStatus = anyMissing
+        ? "Your compass configuration has changed, please review the missing compass."
+        : "";
+  }
+
+  private static List<KeyValuePair<int, string>>? OrientOptions(MAVLink.MAVLinkParamList param) {
+    try {
+      var op = param[new[] { "COMPASS_ORIENT", "COMPASS1_ORIENT" }];
+      if (op == null) {
+        return null;
+      }
+
+      return ParameterMetaDataRepository.GetParameterOptionsInt(
+          op.Name, AppState.comPort.MAV.cs.firmware.ToString());
+    } catch {
+      return null;
+    }
+  }
+
+  private static string FormatOrient(int? value, List<KeyValuePair<int, string>>? options) {
+    if (value == null) {
+      return "";
+    }
+
+    var hit = options?.FirstOrDefault(o => o.Key == value.Value);
+    return hit is { Value: { } text } && text.Length > 0 ? text : value.Value.ToString();
+  }
+
+  [RelayCommand]
+  private async Task MoveUp(CompassPrioRow? row) {
+    if (row == null) {
+      return;
+    }
+
+    int idx = Compasses.IndexOf(row);
+    if (idx <= 0) {
+      return;
+    }
+
+    Compasses.Move(idx, idx - 1);
+    Renumber();
+    await UpdateFirst3();
+  }
+
+  [RelayCommand]
+  private async Task MoveDown(CompassPrioRow? row) {
+    if (row == null) {
+      return;
+    }
+
+    int idx = Compasses.IndexOf(row);
+    if (idx < 0 || idx >= Compasses.Count - 1) {
+      return;
+    }
+
+    Compasses.Move(idx, idx + 1);
+    Renumber();
+    await UpdateFirst3();
+  }
+
+  [RelayCommand]
+  private async Task RemoveMissing() {
+    for (int i = Compasses.Count - 1; i >= 0; i--) {
+      if (Compasses[i].Missing) {
+        Compasses.RemoveAt(i);
+      }
+    }
+
+    Renumber();
+    await UpdateFirst3();
+  }
+
+  [RelayCommand]
+  private async Task Reboot() {
+    if (!IsConnected) {
+      return;
+    }
+
+    try {
+      await Task.Run(() => comPort.doCommand(
+          (byte)comPort.sysidcurrent,
+          (byte)comPort.compidcurrent,
+          MAVLink.MAV_CMD.PREFLIGHT_REBOOT_SHUTDOWN,
+          1, 0, 0, 0, 0, 0, 0));
+    } catch (Exception ex) {
+      MagResult = ex.Message;
+    }
+  }
+
+  private void Renumber() {
+    for (int i = 0; i < Compasses.Count; i++) {
+      Compasses[i].Priority = i + 1;
+    }
+  }
+
+  private async Task UpdateFirst3() {
+    if (!IsConnected) {
+      return;
+    }
+
+    await SetParamSafe("COMPASS_PRIO1_ID", Compasses.Count >= 1 ? Compasses[0].DevID : 0);
+    await SetParamSafe("COMPASS_PRIO2_ID", Compasses.Count >= 2 ? Compasses[1].DevID : 0);
+    await SetParamSafe("COMPASS_PRIO3_ID", Compasses.Count >= 3 ? Compasses[2].DevID : 0);
+
+    MagResult = "Compass priority updated. A reboot is required for it to take effect.";
+    BuildCompassList();
   }
 
   [ObservableProperty]
@@ -457,7 +675,11 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
     }
   }
 
-  protected override void OnRefreshed() => ReloadDeclination();
+  protected override void OnRefreshed() {
+    ReloadDeclination();
+    LoadCompassFlags();
+    BuildCompassList();
+  }
 
   private void StopCal() {
     CalRunning = false;
@@ -476,9 +698,80 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
   public void Dispose() => StopCal();
 }
 
+public partial class CompassPrioRow : ObservableObject {
+  [ObservableProperty]
+  private int _priority;
+
+  public int DevID { get; init; }
+  public string BusType { get; init; } = "";
+  public int Bus { get; init; }
+  public int Address { get; init; }
+  public string DevType { get; init; } = "";
+  public bool Missing { get; init; }
+  public bool External { get; init; }
+  public string Orientation { get; init; } = "";
+}
+
+internal sealed class CompassDevice {
+  private readonly Device.DeviceStructure _devid;
+
+  public CompassDevice(string paramName, uint id, MAVLink.MAVLinkParamList param) {
+    ParamName = paramName;
+    _devid = new Device.DeviceStructure(paramName, id);
+
+    var id1 = param[new[] { "COMPASS_DEV_ID", "COMPASS1_DEV_ID" }];
+    var id2 = param[new[] { "COMPASS_DEV_ID2", "COMPASS2_DEV_ID" }];
+    var id3 = param[new[] { "COMPASS_DEV_ID3", "COMPASS3_DEV_ID" }];
+
+    if (id1 != null && (uint)id1.Value == id) {
+      OrientValue = (int?)param[new[] { "COMPASS_ORIENT", "COMPASS1_ORIENT" }]?.Value;
+      External = param[new[] { "COMPASS_EXTERNAL", "COMPASS1_EXTERN" }]?.Value > 0;
+    }
+    if (id2 != null && (uint)id2.Value == id) {
+      OrientValue = (int?)param[new[] { "COMPASS_ORIENT2", "COMPASS2_ORIENT" }]?.Value;
+      External = param[new[] { "COMPASS_EXTERN2", "COMPASS2_EXTERN" }]?.Value > 0;
+    }
+    if (id3 != null && (uint)id3.Value == id) {
+      OrientValue = (int?)param[new[] { "COMPASS_ORIENT3", "COMPASS3_ORIENT" }]?.Value;
+      External = param[new[] { "COMPASS_EXTERN3", "COMPASS3_EXTERN" }]?.Value > 0;
+    }
+  }
+
+  public string ParamName { get; }
+  public int DevID => (int)_devid.devid;
+  public string BusType => _devid.bus_type.ToString().Replace("BUS_TYPE_", "");
+  public int Bus => (int)_devid.bus;
+  public int Address => (int)_devid.address;
+  public bool External { get; }
+  public bool Missing { get; set; }
+  public int? OrientValue { get; }
+
+  public string DevType {
+    get {
+      if (_devid.bus_type == Device.BusType.BUS_TYPE_UAVCAN) {
+        return "SENSOR_ID#" + _devid.devtype;
+      }
+
+      if (ParamName.Contains("COMP")) {
+        return _devid.devtypecompass.ToString().Replace("DEVTYPE_", "");
+      }
+
+      if (ParamName.Contains("BARO")) {
+        return _devid.devtypebaro.ToString().Replace("DEVTYPE_", "");
+      }
+
+      if (ParamName.Contains("ASP")) {
+        return _devid.devtypeairspd.ToString().Replace("DEVTYPE_", "");
+      }
+
+      return _devid.devtypeimu.ToString().Replace("DEVTYPE_", "");
+    }
+  }
+}
+
 public partial class ConfigESCCalibrationViewModel : ParamPageBase {
   public ConfigESCCalibrationViewModel() {
-    Title = "ESC Calibration";
+    Title = "ESC Calibration (AC3.3+)";
     Intro = "Configure motor PWM output and run the all-at-once ESC calibration.";
 
     F("MOT_PWM_TYPE", "combo");

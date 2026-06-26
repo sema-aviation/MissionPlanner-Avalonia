@@ -117,28 +117,35 @@
 
       <Border BorderBrush="#5A5A5A" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,8,0,0">
         <StackPanel Spacing="6">
-          <TextBlock Text="Live measurement" FontWeight="Bold" Foreground="#D8D8D8" />
-          <StackPanel Orientation="Horizontal" Spacing="16">
-            <TextBlock Classes="fieldlbl" Text="{Binding LiveVoltage, StringFormat='Measured voltage: \{0\} V'}" />
-            <TextBlock Classes="fieldlbl" Text="{Binding LiveCurrent, StringFormat='Measured current: \{0\} A'}" />
-          </StackPanel>
-          <TextBlock
-            Classes="fieldlbl"
-            Text="Calibrate: measure the pack with a multimeter, type the value, then Apply."
-            TextWrapping="Wrap"
-          />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <NumericUpDown
-              Width="140"
-              Increment="0.1"
-              FormatString="0.##"
-              Value="{Binding MeasuredVoltage}"
-            />
-            <Button Content="Apply Calibration" Command="{Binding ApplyCalibrationCommand}" />
-          </StackPanel>
+          <TextBlock Text="Calibration" FontWeight="Bold" Foreground="#D8D8D8" />
+
+          <Grid ColumnDefinitions="280,140,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="8">
+            <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="1. Measured battery voltage" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="0" Grid.Column="1" Increment="0.1" FormatString="0.##" Value="{Binding MeasuredVoltage}" />
+            <Button Grid.Row="0" Grid.Column="2" Content="Apply" Command="{Binding ApplyVoltageCalibrationCommand}" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="2. Battery voltage (Calced)" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Classes="fieldlbl" Text="{Binding LiveVoltage}" VerticalAlignment="Center" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="3. Voltage divider (Calced)" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="2" Grid.Column="1" Increment="0.001" FormatString="0.######" Value="{Binding VoltMult.Value}" />
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="4. Measured current" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="3" Grid.Column="1" Increment="0.1" FormatString="0.##" Value="{Binding MeasuredCurrent}" />
+            <Button Grid.Row="3" Grid.Column="2" Content="Apply" Command="{Binding ApplyCurrentCalibrationCommand}" />
+
+            <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="5. Current (Calced)" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Classes="fieldlbl" Text="{Binding LiveCurrent}" VerticalAlignment="Center" />
+
+            <TextBlock Grid.Row="5" Grid.Column="0" Classes="fieldlbl" Text="6. Amps per volt" VerticalAlignment="Center" />
+            <NumericUpDown Grid.Row="5" Grid.Column="1" Increment="0.001" FormatString="0.######" Value="{Binding AmpPerVolt.Value}" />
+          </Grid>
+
           <TextBlock Foreground="#94C11F" Text="{Binding CalibrationStatus}" />
         </StackPanel>
       </Border>
+
+      <CheckBox Content="MP Alert on Low Battery" IsChecked="{Binding AlertOnLowBattery}" Margin="0,4,0,0" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

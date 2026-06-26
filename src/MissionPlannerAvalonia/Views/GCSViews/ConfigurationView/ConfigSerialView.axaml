@@ -51,13 +51,25 @@
                   SelectedItem="{Binding SelectedProtocol}"
                 />
                 <StackPanel Grid.Column="3" Grid.Row="0" Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasOptions}">
-                  <NumericUpDown
-                    Width="120"
-                    Minimum="0"
-                    Increment="1"
-                    FormatString="0"
-                    Value="{Binding OptionsValue}"
-                  />
+                  <Button
+                    Content="Set Bitmask"
+                    IsVisible="{Binding HasBits}"
+                    VerticalAlignment="Center"
+                  >
+                    <Button.Flyout>
+                      <Flyout>
+                        <ScrollViewer MaxHeight="320">
+                          <ItemsControl ItemsSource="{Binding OptionBits}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="cv:SerialBitOption">
+                                <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSet}" />
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </ScrollViewer>
+                      </Flyout>
+                    </Button.Flyout>
+                  </Button>
                   <TextBlock Text="{Binding OptionsText}" Classes="fieldlbl" VerticalAlignment="Center" TextWrapping="Wrap" />
                 </StackPanel>
                 <TextBlock
@@ -73,6 +85,15 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+
+      <TextBlock
+        Text="{Binding Warning}"
+        IsVisible="{Binding HasWarning}"
+        Foreground="#E0B040"
+        FontWeight="Bold"
+        TextWrapping="Wrap"
+        Margin="0,8,0,0"
+      />
 
       <TextBlock Text="{Binding Note}" Classes="fieldlbl" TextWrapping="Wrap" Margin="0,8,0,0" />
     </StackPanel>

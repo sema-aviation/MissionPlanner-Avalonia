@@ -65,6 +65,7 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
       new() { "UBlox M8P/F9P", "Septentrio", "Unicore UM982" };
 
   [ObservableProperty]
+  [NotifyPropertyChangedFor(nameof(IsSeptentrio))]
   private string _selectedReceiverType = "UBlox M8P/F9P";
 
   [ObservableProperty]
@@ -89,6 +90,7 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
   private bool _sendGga = true;
 
   [ObservableProperty]
+  [NotifyPropertyChangedFor(nameof(IsSeptentrio))]
   private bool _autoConfig;
 
   [ObservableProperty]
@@ -99,6 +101,40 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
 
   [ObservableProperty]
   private string _surveyInTime = "60";
+
+  [ObservableProperty]
+  private ObservableCollection<string> _septentrioRtcmLevels =
+      new() { "Lite", "Basic", "Full" };
+
+  [ObservableProperty]
+  private string _selectedSeptentrioRtcmLevel = "Basic";
+
+  [ObservableProperty]
+  private bool _septentrioGps = true;
+
+  [ObservableProperty]
+  private bool _septentrioGlonass = true;
+
+  [ObservableProperty]
+  private bool _septentrioGalileo = true;
+
+  [ObservableProperty]
+  private bool _septentrioBeidou = true;
+
+  [ObservableProperty]
+  private string _septentrioRtcmInterval = "1.0";
+
+  [ObservableProperty]
+  private bool _septentrioFixedPosition;
+
+  [ObservableProperty]
+  private string _septentrioLat = "0";
+
+  [ObservableProperty]
+  private string _septentrioLng = "0";
+
+  [ObservableProperty]
+  private string _septentrioAlt = "0";
 
   [ObservableProperty]
   [NotifyPropertyChangedFor(nameof(ConnectLabel))]
@@ -148,12 +184,14 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
 
   public bool IsNtrip => SelectedPort == NtripOption;
   public bool IsSerial => !IsNtrip;
+  public bool IsSeptentrio => AutoConfig && SelectedReceiverType == "Septentrio";
   public string ConnectLabel => Connected ? "Disconnect" : "Connect";
 
   public ConfigGpsInjectViewModel() {
     RefreshPorts();
     LoadBasePosList();
     LoadActiveBasePos();
+    LoadSeptentrioSettings();
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
     _timer.Tick += (_, _) => UpdateStats();
     _timer.Start();
@@ -233,6 +271,8 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
         // auto-config is best-effort; continue injecting whatever the base outputs.
         Status = "Connected (auto-config failed: " + ex.Message + ").";
       }
+    } else if (AutoConfig && SelectedReceiverType == "Septentrio" && comm is SerialPort) {
+      ConfigureSeptentrio(comm);
     } else if (AutoConfig && SelectedReceiverType != "UBlox M8P/F9P") {
       Status = "Connected. Auto-config for " + SelectedReceiverType +
                " is not supported here; inject only.";
@@ -605,6 +645,113 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
     SaveBasePosList();
   }
 
+  [RelayCommand]
+  private void ApplySeptentrioRtcm() {
+    var comm = _comm;
+    if (comm == null || !comm.IsOpen || comm is not SerialPort) {
+      Status = "Connect to a Septentrio receiver on a serial port first.";
+      return;
+    }
+    try {
+      ApplySeptentrioRtcmTo(comm);
+      Status = "Septentrio RTCM settings updated.";
+    } catch (Septentrio.FailedAckException) {
+      Status = "Septentrio RTCM configuration failed (no ACK).";
+    } catch (Exception ex) {
+      Status = "Septentrio RTCM configuration failed: " + ex.Message;
+    }
+  }
+
+  [RelayCommand]
+  private void ApplySeptentrioPosition() {
+    var comm = _comm;
+    if (comm == null || !comm.IsOpen || comm is not SerialPort) {
+      Status = "Connect to a Septentrio receiver on a serial port first.";
+      return;
+    }
+    try {
+      ApplySeptentrioPositionTo(comm);
+      Status = "Septentrio base position updated.";
+    } catch (Septentrio.FailedAckException) {
+      Status = "Septentrio fixed position configuration failed (no ACK).";
+    } catch (Exception ex) {
+      Status = "Septentrio fixed position configuration failed: " + ex.Message;
+    }
+  }
+
+  private void ConfigureSeptentrio(ICommsSerial comm) {
+    try {
+      Septentrio.ConfigureBaseReceiver(comm).GetAwaiter().GetResult();
+      ApplySeptentrioPositionTo(comm);
+      ApplySeptentrioRtcmTo(comm);
+      Status = "Connected — Septentrio configured, injecting RTCM.";
+    } catch (Septentrio.FailedAckException) {
+      Status = "Connected (Septentrio auto-config failed: no ACK).";
+    } catch (Exception ex) {
+      Status = "Connected (Septentrio auto-config failed: " + ex.Message + ").";
+    }
+  }
+
+  private void ApplySeptentrioRtcmTo(ICommsSerial comm) {
+    var signals = Septentrio.RTCMSignals.None;
+    if (SeptentrioGps) {
+      signals |= Septentrio.RTCMSignals.Gps;
+    }
+    if (SeptentrioGlonass) {
+      signals |= Septentrio.RTCMSignals.Glonass;
+    }
+    if (SeptentrioGalileo) {
+      signals |= Septentrio.RTCMSignals.Galileo;
+    }
+    if (SeptentrioBeidou) {
+      signals |= Septentrio.RTCMSignals.Beidou;
+    }
+
+    var level = SelectedSeptentrioRtcmLevel switch {
+      "Lite" => Septentrio.RTCMLevel.Lite,
+      "Full" => Septentrio.RTCMLevel.Full,
+      _ => Septentrio.RTCMLevel.Basic,
+    };
+
+    Septentrio.SetEnabledRTCM(comm, level, signals).GetAwaiter().GetResult();
+    Septentrio.SetRTCMInterval(comm, (float)ParseDouble(SeptentrioRtcmInterval))
+        .GetAwaiter().GetResult();
+    PersistSeptentrioRtcm();
+  }
+
+  private void ApplySeptentrioPositionTo(ICommsSerial comm) {
+    if (SeptentrioFixedPosition) {
+      Septentrio.SetBasePosition(comm, (float)ParseDouble(SeptentrioLat),
+          (float)ParseDouble(SeptentrioLng), (float)ParseDouble(SeptentrioAlt))
+          .GetAwaiter().GetResult();
+    } else {
+      Septentrio.SetAutoBasePosition(comm).GetAwaiter().GetResult();
+    }
+    PersistSeptentrioPosition();
+  }
+
+  partial void OnSelectedSeptentrioRtcmLevelChanged(string value) => MaybeApplySeptentrioRtcm();
+
+  partial void OnSeptentrioGpsChanged(bool value) => MaybeApplySeptentrioRtcm();
+
+  partial void OnSeptentrioGlonassChanged(bool value) => MaybeApplySeptentrioRtcm();
+
+  partial void OnSeptentrioGalileoChanged(bool value) => MaybeApplySeptentrioRtcm();
+
+  partial void OnSeptentrioBeidouChanged(bool value) => MaybeApplySeptentrioRtcm();
+
+  private void MaybeApplySeptentrioRtcm() {
+    var comm = _comm;
+    if (comm == null || !comm.IsOpen || comm is not SerialPort || !IsSeptentrio) {
+      return;
+    }
+    try {
+      ApplySeptentrioRtcmTo(comm);
+    } catch (Exception ex) {
+      Status = "Septentrio RTCM configuration failed: " + ex.Message;
+    }
+  }
+
   private void PersistConnectSettings() {
     Settings.Instance["SerialInjectGPS_port"] = SelectedPort;
     Settings.Instance["SerialInjectGPS_baud"] = SelectedBaud;
@@ -613,6 +760,63 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
     Settings.Instance["SerialInjectGPS_m8p_130p"] = M8p130Plus.ToString();
     Settings.Instance["SerialInjectGPS_SIAcc"] = SurveyInAcc;
     Settings.Instance["SerialInjectGPS_SITime"] = SurveyInTime;
+  }
+
+  private void PersistSeptentrioRtcm() {
+    Settings.Instance["SerialInjectGPS_SeptentrioRTCMLevel"] =
+        SeptentrioRtcmLevels.IndexOf(SelectedSeptentrioRtcmLevel).ToString(CultureInfo.InvariantCulture);
+    Settings.Instance["SerialInjectGPS_SeptentrioRTCMInterval"] = SeptentrioRtcmInterval;
+    Settings.Instance["SerialInjectGPS_SeptentrioGPS"] = SeptentrioGps.ToString();
+    Settings.Instance["SerialInjectGPS_SeptentrioGLONASS"] = SeptentrioGlonass.ToString();
+    Settings.Instance["SerialInjectGPS_SeptentrioGalileo"] = SeptentrioGalileo.ToString();
+    Settings.Instance["SerialInjectGPS_SeptentrioBeiDou"] = SeptentrioBeidou.ToString();
+  }
+
+  private void PersistSeptentrioPosition() {
+    Settings.Instance["SerialInjectGPS_SeptentrioFixedPosition"] = SeptentrioFixedPosition.ToString();
+    Settings.Instance["SerialInjectGPS_SeptentrioFixedAtitude"] = SeptentrioLat;
+    Settings.Instance["SerialInjectGPS_SeptentrioFixedLongitude"] = SeptentrioLng;
+    Settings.Instance["SerialInjectGPS_SeptentrioFixedAltitude"] = SeptentrioAlt;
+  }
+
+  private void LoadSeptentrioSettings() {
+    try {
+      var s = Settings.Instance;
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioRTCMLevel") &&
+          int.TryParse(s["SerialInjectGPS_SeptentrioRTCMLevel"], NumberStyles.Any,
+              CultureInfo.InvariantCulture, out var idx) &&
+          idx >= 0 && idx < SeptentrioRtcmLevels.Count) {
+        SelectedSeptentrioRtcmLevel = SeptentrioRtcmLevels[idx];
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioRTCMInterval")) {
+        SeptentrioRtcmInterval = s["SerialInjectGPS_SeptentrioRTCMInterval"];
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioGPS")) {
+        SeptentrioGps = bool.Parse(s["SerialInjectGPS_SeptentrioGPS"]);
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioGLONASS")) {
+        SeptentrioGlonass = bool.Parse(s["SerialInjectGPS_SeptentrioGLONASS"]);
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioGalileo")) {
+        SeptentrioGalileo = bool.Parse(s["SerialInjectGPS_SeptentrioGalileo"]);
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioBeiDou")) {
+        SeptentrioBeidou = bool.Parse(s["SerialInjectGPS_SeptentrioBeiDou"]);
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioFixedPosition")) {
+        SeptentrioFixedPosition = bool.Parse(s["SerialInjectGPS_SeptentrioFixedPosition"]);
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioFixedAtitude")) {
+        SeptentrioLat = s["SerialInjectGPS_SeptentrioFixedAtitude"];
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioFixedLongitude")) {
+        SeptentrioLng = s["SerialInjectGPS_SeptentrioFixedLongitude"];
+      }
+      if (s.ContainsKey("SerialInjectGPS_SeptentrioFixedAltitude")) {
+        SeptentrioAlt = s["SerialInjectGPS_SeptentrioFixedAltitude"];
+      }
+    } catch {
+    }
   }
 
   private void LoadActiveBasePos() {

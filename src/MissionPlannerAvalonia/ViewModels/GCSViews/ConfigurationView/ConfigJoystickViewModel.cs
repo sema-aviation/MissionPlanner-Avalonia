@@ -62,6 +62,7 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
 
   public ConfigJoystickViewModel() {
     RefreshDevices();
+    LoadedConfig = "Loaded Config for " + _comPort.MAV.cs.firmware;
 
     // build a config-only joystick so the axis rows reflect any saved xml mapping
     var temp = JoystickBase.Create(() => _comPort);
