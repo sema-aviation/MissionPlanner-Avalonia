@@ -91,7 +91,7 @@
         <ItemsControl ItemsSource="{Binding Buttons}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="cv:JoyButtonRow">
-              <Grid ColumnDefinitions="60,80,80,*,80" Margin="0,2">
+              <Grid ColumnDefinitions="60,80,80,*,80,80" Margin="0,2">
                 <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl" VerticalAlignment="Center" />
                 <NumericUpDown
                   Grid.Column="1"
@@ -121,6 +121,12 @@
                   VerticalAlignment="Center"
                   Background="{Binding Pressed, Converter={x:Static cv:JoyPressedConverter.Instance}}"
                 />
+                <Button
+                  Grid.Column="5"
+                  Content="Settings"
+                  Command="{Binding $parent[ItemsControl].((cv:ConfigJoystickViewModel)DataContext).ButtonSettingsCommand}"
+                  CommandParameter="{Binding}"
+                />
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
@@ -131,6 +137,14 @@
     <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,12,0,0">
       <Button Content="{Binding EnableLabel}" Command="{Binding ToggleEnableCommand}" />
       <Button Content="Save" Command="{Binding SaveCommand}" Margin="8,0,0,0" />
+      <Button Content="Export…" Command="{Binding ExportConfigCommand}" Margin="8,0,0,0" />
+      <Button Content="Import…" Command="{Binding ImportConfigCommand}" Margin="8,0,0,0" />
+      <TextBlock
+        Text="{Binding LoadedConfig}"
+        Classes="fieldlbl"
+        VerticalAlignment="Center"
+        Margin="16,0,0,0"
+      />
     </StackPanel>
   </Grid>
 </UserControl>

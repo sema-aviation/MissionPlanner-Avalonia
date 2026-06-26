@@ -2,14 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Converters;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
+using MissionPlanner.ArduPilot;
 using MissionPlanner.Joystick;
+using MissionPlanner.Utilities;
+using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -41,6 +50,9 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
 
   [ObservableProperty]
   private string _enableLabel = "Enable";
+
+  [ObservableProperty]
+  private string _loadedConfig = "Loaded config: (default xml)";
 
   [ObservableProperty]
   private string _status =
@@ -144,6 +156,117 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     ApplyConfigTo(_joystick);
     _joystick.saveconfig();
     Status = "Joystick configuration saved.";
+  }
+
+  // Mirrors JoystickSetup.but_settings_Click: each button function has a small dialog that
+  // edits that action's Joy_* params (mode / p1..p4) directly on the live JoyButton config.
+  [RelayCommand]
+  private async Task ButtonSettings(JoyButtonRow row) {
+    if (row == null) {
+      return;
+    }
+
+    if (_joystick == null) {
+      Status = "Enable a joystick before configuring button actions.";
+      return;
+    }
+
+    // Sync this row's chosen function/buttonno into the live config first so the dialog
+    // reads/writes the JoyButton entry it is about to edit.
+    ApplyButtonToJoystick(row);
+
+    var fn = ParseFunction(row.Function);
+    switch (fn) {
+      case buttonfunction.ChangeMode:
+        await ShowModeDialog(row.Index);
+        break;
+      case buttonfunction.Mount_Mode:
+        await ShowMountModeDialog(row.Index);
+        break;
+      case buttonfunction.Do_Set_Relay:
+        await ShowParamDialog(row.Index, "Do_Set_Relay", ("Relay No#", "p1"));
+        break;
+      case buttonfunction.Do_Set_Servo:
+        await ShowParamDialog(row.Index, "Do_Set_Servo", ("Servo No#", "p1"), ("PWM", "p2"));
+        break;
+      case buttonfunction.Do_Repeat_Relay:
+        await ShowParamDialog(row.Index, "Do_Repeat_Relay",
+            ("Relay No#", "p1"), ("Repeat #", "p2"), ("Time", "p3"));
+        break;
+      case buttonfunction.Do_Repeat_Servo:
+        await ShowParamDialog(row.Index, "Do_Repeat_Servo",
+            ("Servo No#", "p1"), ("Pwm Value", "p2"), ("Rep Time", "p3"), ("Delay (ms)", "p4"));
+        break;
+      case buttonfunction.Button_axis0:
+      case buttonfunction.Button_axis1:
+        await ShowParamDialog(row.Index, "Button_axis", ("PWM 1", "p1"), ("PWM 2", "p2"));
+        break;
+      default:
+        Status = "No settings to set for " + fn + ".";
+        break;
+    }
+  }
+
+  // Export every joystickbutton*/joystickaxis* xml into a single .joycfg zip (JoystickBase.ExportConfig).
+  [RelayCommand]
+  private async Task ExportConfig() {
+    if (_joystick == null) {
+      Status = "Enable a joystick before exporting.";
+      return;
+    }
+
+    var path = await PickSaveAsync("Export joystick config", "joycfg");
+    if (string.IsNullOrEmpty(path)) {
+      return;
+    }
+
+    try {
+      ApplyConfigTo(_joystick);
+      _joystick.saveconfig();
+      _joystick.ExportConfig(path);
+      LoadedConfig = "Loaded config: " + System.IO.Path.GetFileName(path);
+      Status = "Exported joystick config to " + path;
+    } catch (Exception ex) {
+      Status = "Export failed: " + ex.Message;
+    }
+  }
+
+  // Import a .joycfg zip back into the user data dir and reload the axis rows (JoystickBase.ImportConfig).
+  [RelayCommand]
+  private async Task ImportConfig() {
+    if (!await Dialogs.Confirm("Import Joystick Config",
+            "NOTE: this will replace any existing joystick configuration.\n"
+            + "Please make sure you have saved your current configuration if needed.")) {
+      return;
+    }
+
+    var path = await PickFileAsync("Import joystick config", "*.joycfg", "Joystick config");
+    if (string.IsNullOrEmpty(path)) {
+      return;
+    }
+
+    // A live, enabled joystick holds the old config in memory; drop it so the reload wins.
+    if (_joystick != null && _joystick.enabled) {
+      ToggleEnable();
+    }
+
+    try {
+      var temp = JoystickBase.Create(() => _comPort);
+      temp.ImportConfig(path);
+      temp.loadconfig();
+      for (int a = 1; a <= MaxAxis && a - 1 < Axes.Count; a++) {
+        var cfg = temp.getChannel(a);
+        var rowidx = a - 1;
+        Axes[rowidx].Axis = cfg.axis.ToString();
+        Axes[rowidx].Expo = cfg.expo;
+        Axes[rowidx].Reverse = cfg.reverse;
+      }
+      temp.Dispose();
+      LoadedConfig = "Loaded config: " + System.IO.Path.GetFileName(path);
+      Status = "Imported. Re-enable the joystick for changes to take effect.";
+    } catch (Exception ex) {
+      Status = "Import failed: " + ex.Message;
+    }
   }
 
   [RelayCommand]
@@ -262,6 +385,199 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     }
 
     return buttonfunction.ChangeMode;
+  }
+
+  // ChangeMode dialog (mirrors Joy_ChangeMode): pick a flight mode string -> config.mode.
+  private async Task ShowModeDialog(int index) {
+    if (_joystick == null) {
+      return;
+    }
+
+    var cfg = _joystick.getButton(index);
+    List<KeyValuePair<int, string>> modes;
+    try {
+      modes = Common.getModesList(_comPort.MAV.cs.firmware);
+    } catch {
+      modes = new List<KeyValuePair<int, string>>();
+    }
+
+    var names = modes.Select(m => m.Value).ToList();
+    var combo = new ComboBox {
+      ItemsSource = names,
+      SelectedItem = names.FirstOrDefault(n => n == cfg.mode) ?? names.FirstOrDefault(),
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+    };
+
+    if (await ShowDialog("Joy_ChangeMode", new Control[] {
+      new TextBlock { Text = "Mode" }, combo,
+    })) {
+      cfg.function = buttonfunction.ChangeMode;
+      cfg.mode = combo.SelectedItem as string ?? cfg.mode;
+      _joystick.setButton(index, cfg);
+      Status = "Button " + (index + 1) + " -> ChangeMode " + cfg.mode;
+    }
+  }
+
+  // Mount_Mode dialog (mirrors Joy_Mount_Mode): pick MNT*_DEFLT_MODE option -> config.p1.
+  private async Task ShowMountModeDialog(int index) {
+    if (_joystick == null) {
+      return;
+    }
+
+    var cfg = _joystick.getButton(index);
+    List<KeyValuePair<int, string>> opts = new();
+    foreach (var name in new[] { "MNT1_DEFLT_MODE", "MNT_DEFLT_MODE", "MNT_MODE" }) {
+      try {
+        var item = ParameterMetaDataRepository.GetParameterOptionsInt(
+            name, _comPort.MAV.cs.firmware.ToString());
+        if (item != null && item.Count > 0) {
+          opts = item;
+          break;
+        }
+      } catch {
+      }
+    }
+
+    var names = opts.Select(o => o.Value).ToList();
+    var keys = opts.Select(o => o.Key).ToList();
+    var combo = new ComboBox {
+      ItemsSource = names,
+      SelectedIndex = Math.Max(0, keys.IndexOf((int)cfg.p1)),
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+    };
+
+    if (await ShowDialog("Joy_Mount_Mode", new Control[] {
+      new TextBlock { Text = "Mount Mode" }, combo,
+    })) {
+      cfg.function = buttonfunction.Mount_Mode;
+      if (combo.SelectedIndex >= 0 && combo.SelectedIndex < keys.Count) {
+        cfg.p1 = keys[combo.SelectedIndex];
+      }
+      _joystick.setButton(index, cfg);
+      Status = "Button " + (index + 1) + " -> Mount_Mode " + cfg.p1;
+    }
+  }
+
+  // Generic numeric-param dialog (mirrors the Joy_Do_* / Joy_Button_axis NumericUpDown forms).
+  private async Task ShowParamDialog(int index, string title,
+      params (string Label, string Field)[] fields) {
+    if (_joystick == null) {
+      return;
+    }
+
+    var cfg = _joystick.getButton(index);
+    var boxes = new List<(string Field, NumericUpDown Box)>();
+    var body = new List<Control>();
+    foreach (var (label, field) in fields) {
+      var box = new NumericUpDown {
+        Minimum = 0,
+        Maximum = 65535,
+        Value = (decimal)GetParam(cfg, field),
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+      };
+      body.Add(new TextBlock { Text = label });
+      body.Add(box);
+      boxes.Add((field, box));
+    }
+
+    if (await ShowDialog("Joy_" + title, body.ToArray())) {
+      foreach (var (field, box) in boxes) {
+        cfg = SetParam(cfg, field, (float)(box.Value ?? 0));
+      }
+      _joystick.setButton(index, cfg);
+      Status = "Button " + (index + 1) + " -> " + title + " saved.";
+    }
+  }
+
+  private static float GetParam(JoyButton cfg, string field) => field switch {
+    "p1" => cfg.p1,
+    "p2" => cfg.p2,
+    "p3" => cfg.p3,
+    "p4" => cfg.p4,
+    _ => 0,
+  };
+
+  private static JoyButton SetParam(JoyButton cfg, string field, float value) {
+    switch (field) {
+      case "p1": cfg.p1 = value; break;
+      case "p2": cfg.p2 = value; break;
+      case "p3": cfg.p3 = value; break;
+      case "p4": cfg.p4 = value; break;
+    }
+    return cfg;
+  }
+
+  // Minimal modal dialog (OK/Cancel) built in code, in the spirit of Services/Dialogs.cs.
+  private static Task<bool> ShowDialog(string title, Control[] body) {
+    var panel = new StackPanel { Margin = new Thickness(16), Spacing = 8 };
+    panel.Children.Add(new TextBlock {
+      Text = title,
+      FontWeight = FontWeight.Bold,
+      FontSize = 14,
+    });
+    foreach (var c in body) {
+      panel.Children.Add(c);
+    }
+
+    var ok = new Button { Content = "OK", MinWidth = 80, IsDefault = true };
+    var cancel = new Button { Content = "Cancel", MinWidth = 80, IsCancel = true };
+    var row = new StackPanel {
+      Orientation = Orientation.Horizontal,
+      HorizontalAlignment = HorizontalAlignment.Right,
+      Spacing = 8,
+      Margin = new Thickness(0, 6, 0, 0),
+    };
+    row.Children.Add(ok);
+    row.Children.Add(cancel);
+    panel.Children.Add(row);
+
+    var w = new Window {
+      Title = title,
+      Width = 320,
+      SizeToContent = SizeToContent.Height,
+      CanResize = false,
+      WindowStartupLocation = WindowStartupLocation.CenterOwner,
+      Background = new SolidColorBrush(Color.Parse("#262728")),
+      Content = panel,
+    };
+    ok.Click += (_, _) => w.Close(true);
+    cancel.Click += (_, _) => w.Close(false);
+
+    var owner = (Application.Current?.ApplicationLifetime
+                 as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    return owner != null ? w.ShowDialog<bool>(owner) : w.ShowDialog<bool>(w);
+  }
+
+  private static async Task<string?> PickFileAsync(string title, string pattern, string desc) {
+    var top = (Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return null;
+    }
+    var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+      Title = title,
+      AllowMultiple = false,
+      FileTypeFilter = new[] {
+        new FilePickerFileType(desc) { Patterns = new[] { pattern } },
+      },
+    });
+    return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+  }
+
+  private static async Task<string?> PickSaveAsync(string title, string ext) {
+    var top = (Application.Current?.ApplicationLifetime
+               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    if (top == null) {
+      return null;
+    }
+    var file = await top.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
+      Title = title,
+      DefaultExtension = ext,
+      FileTypeChoices = new[] {
+        new FilePickerFileType("Joystick config") { Patterns = new[] { "*.joycfg" } },
+      },
+    });
+    return file?.TryGetLocalPath();
   }
 
   public void Dispose() {

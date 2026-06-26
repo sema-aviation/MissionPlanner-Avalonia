@@ -4,6 +4,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:vm="using:MissionPlannerAvalonia.ViewModels.Setup"
+  xmlns:ctrl="using:MissionPlannerAvalonia.Controls"
   mc:Ignorable="d"
   d:DesignWidth="820"
   d:DesignHeight="680"
@@ -46,47 +47,135 @@
       <Button Content="Upload Firmware" Command="{Binding UploadFirmwareCommand}" IsEnabled="False" />
     </WrapPanel>
 
-    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8" Spacing="20">
-      <TextBlock Classes="fieldlbl" Text="{Binding Status, StringFormat='Status: {0}'}" />
-      <TextBlock Classes="fieldlbl" Text="{Binding LocalVersion, StringFormat='Local: {0}'}" />
-      <TextBlock Classes="fieldlbl" Text="{Binding RemoteVersion, StringFormat='Remote: {0}'}" />
-    </StackPanel>
+    <WrapPanel Grid.Row="3" Margin="0,0,0,8">
+      <TextBlock Classes="fieldlbl" Text="{Binding Status, StringFormat='Status: {0}'}" Margin="0,0,20,0" />
+      <TextBlock Classes="fieldlbl" Text="{Binding LocalVersion, StringFormat='Local: {0}'}" Margin="0,0,20,0" />
+      <TextBlock Classes="fieldlbl" Text="{Binding RemoteVersion, StringFormat='Remote: {0}'}" Margin="0,0,20,0" />
+      <TextBlock Classes="fieldlbl" Text="{Binding BoardType, StringFormat='Board (ATI2): {0}'}" Margin="0,0,20,0" />
+      <TextBlock Classes="fieldlbl" Text="{Binding FreqBand, StringFormat='Freq (ATI3): {0}'}" Margin="0,0,20,0" />
+      <TextBlock Classes="fieldlbl" Text="{Binding RssiInfo, StringFormat='RSSI (ATI7): {0}'}" />
+    </WrapPanel>
 
-    <Grid Grid.Row="4" RowDefinitions="Auto,*,160" ColumnDefinitions="*">
-      <Grid Grid.Row="0" ColumnDefinitions="2*,*,*,*" Margin="0,0,0,4">
-        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Setting" FontWeight="Bold" />
-        <TextBlock Grid.Column="1" Classes="fieldlbl" Text="Sn" FontWeight="Bold" />
-        <TextBlock Grid.Column="2" Classes="fieldlbl" Text="Local" FontWeight="Bold" />
-        <TextBlock Grid.Column="3" Classes="fieldlbl" Text="Remote" FontWeight="Bold" />
-      </Grid>
+    <TabControl Grid.Row="4">
+      <TabItem Header="Settings">
+        <Grid RowDefinitions="Auto,*,Auto,140" ColumnDefinitions="*">
+          <Grid Grid.Row="0" ColumnDefinitions="2*,0.5*,*,*" Margin="0,4,0,4">
+            <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Setting" FontWeight="Bold" />
+            <TextBlock Grid.Column="1" Classes="fieldlbl" Text="Sn" FontWeight="Bold" />
+            <TextBlock Grid.Column="2" Classes="fieldlbl" Text="Local" FontWeight="Bold" />
+            <TextBlock Grid.Column="3" Classes="fieldlbl" Text="Remote" FontWeight="Bold" />
+          </Grid>
 
-      <ScrollViewer Grid.Row="1">
-        <ItemsControl ItemsSource="{Binding Registers}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:SikRadioViewModel+SikRegister">
-              <Grid ColumnDefinitions="2*,*,*,*" Margin="0,1">
-                <TextBlock Grid.Column="0" Classes="fieldlbl" Text="{Binding Label}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Classes="fieldlbl" Text="{Binding Num}" VerticalAlignment="Center" />
-                <TextBox Grid.Column="2" Text="{Binding LocalValue}" Margin="0,0,6,0" />
-                <TextBox Grid.Column="3" Text="{Binding RemoteValue}" />
-              </Grid>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
+          <ScrollViewer Grid.Row="1">
+            <ItemsControl ItemsSource="{Binding Registers}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SikRadioViewModel+SikRegister">
+                  <Grid ColumnDefinitions="2*,0.5*,*,*" Margin="0,1">
+                    <TextBlock Grid.Column="0" Classes="fieldlbl" Text="{Binding Label}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Classes="fieldlbl" Text="{Binding Num}" VerticalAlignment="Center" />
+                    <Panel Grid.Column="2" Margin="0,0,6,0">
+                      <ComboBox
+                        IsVisible="{Binding HasOptions}"
+                        ItemsSource="{Binding Options}"
+                        SelectedItem="{Binding LocalValue}"
+                        HorizontalAlignment="Stretch"
+                      />
+                      <TextBox IsVisible="{Binding !HasOptions}" Text="{Binding LocalValue}" />
+                    </Panel>
+                    <Panel Grid.Column="3">
+                      <ComboBox
+                        IsVisible="{Binding HasOptions}"
+                        ItemsSource="{Binding Options}"
+                        SelectedItem="{Binding RemoteValue}"
+                        HorizontalAlignment="Stretch"
+                      />
+                      <TextBox IsVisible="{Binding !HasOptions}" Text="{Binding RemoteValue}" />
+                    </Panel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
 
-      <Border Grid.Row="2" Background="Black" BorderBrush="#262728" BorderThickness="1" Margin="0,8,0,0">
-        <ScrollViewer>
-          <TextBlock
-            Text="{Binding Log}"
-            Foreground="#94C11F"
-            FontFamily="Consolas,Menlo,monospace"
-            FontSize="12"
-            Padding="8"
-            TextWrapping="Wrap"
-          />
-        </ScrollViewer>
-      </Border>
-    </Grid>
+          <WrapPanel Grid.Row="2" Margin="0,8,0,4">
+            <TextBlock Classes="fieldlbl" Text="AES Key" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox
+              Text="{Binding AesKey}"
+              IsEnabled="{Binding AesEnabled}"
+              MinWidth="240"
+              Watermark="hex key (AT&amp;E)"
+              Margin="0,0,12,0"
+            />
+            <TextBlock
+              Classes="fieldlbl"
+              Text="(encryption unsupported by firmware)"
+              IsVisible="{Binding !AesEnabled}"
+              VerticalAlignment="Center"
+            />
+          </WrapPanel>
+
+          <Border Grid.Row="3" Background="Black" BorderBrush="#262728" BorderThickness="1" Margin="0,4,0,0">
+            <ScrollViewer>
+              <TextBlock
+                Text="{Binding Log}"
+                Foreground="#94C11F"
+                FontFamily="Consolas,Menlo,monospace"
+                FontSize="12"
+                Padding="8"
+                TextWrapping="Wrap"
+              />
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="RSSI Graph">
+        <Grid RowDefinitions="Auto,*">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,4,0,8">
+            <Button
+              Content="{Binding RssiButtonLabel}"
+              Command="{Binding StartRssiCommand}"
+            />
+            <TextBlock
+              Classes="fieldlbl"
+              VerticalAlignment="Center"
+              Text="Streams the modem's L/R RSSI / noise debug report (requires MAVLink disconnected)."
+            />
+          </StackPanel>
+          <ctrl:LivePlot Grid.Row="1" x:Name="RssiPlot" />
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="AT Terminal">
+        <Grid RowDefinitions="Auto,*">
+          <WrapPanel Grid.Row="0" Margin="0,4,0,8">
+            <Button
+              Content="{Binding TerminalButtonLabel}"
+              Command="{Binding OpenTerminalCommand}"
+              Margin="0,0,12,0"
+            />
+            <TextBox
+              Text="{Binding CommandText}"
+              MinWidth="220"
+              Watermark="AT command"
+              Margin="0,0,8,0"
+            />
+            <Button Content="Send" Command="{Binding SendCommandCommand}" />
+          </WrapPanel>
+          <Border Grid.Row="1" Background="Black" BorderBrush="#262728" BorderThickness="1">
+            <ScrollViewer>
+              <TextBlock
+                Text="{Binding Log}"
+                Foreground="#94C11F"
+                FontFamily="Consolas,Menlo,monospace"
+                FontSize="12"
+                Padding="8"
+                TextWrapping="Wrap"
+              />
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </TabItem>
+    </TabControl>
   </Grid>
 </UserControl>
