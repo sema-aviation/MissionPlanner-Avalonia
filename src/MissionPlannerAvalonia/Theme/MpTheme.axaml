@@ -27,11 +27,10 @@
     <Setter Property="Padding" Value="8,4" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="BorderThickness" Value="0" />
-    <!-- clipped labels end in "…"; hovering shows the full text (mirrors user request). -->
+    <!-- clipped labels ellipsize; hover shows full text -->
     <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
     <Setter Property="ToolTip.Tip" Value="{Binding $self.Content}" />
   </Style>
-  <!-- nav buttons hold an icon+text panel, not a string: no auto-tooltip. -->
   <Style Selector="Button.nav">
     <Setter Property="ToolTip.Tip" Value="{x:Null}" />
   </Style>
