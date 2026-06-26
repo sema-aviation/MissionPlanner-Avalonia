@@ -50,7 +50,6 @@ public partial class ConnectionViewModel : ViewModelBase {
     RefreshPorts();
   }
 
-  // Modal connect dialog (mirrors MP's connect progress window); null when not connecting.
   private Services.ProgressReporter? _connectDialog;
 
   private void OnProgress(int percent, string status) =>
@@ -103,11 +102,10 @@ public partial class ConnectionViewModel : ViewModelBase {
 
       _comPort.BaseStream = stream;
 
-      // All connect status + errors live in this dialog (mirrors MP) — not the thin status bar.
       var dlg = new Services.ProgressReporter("Connecting Mavlink");
       _connectDialog = dlg;
       dlg.Set(0, $"Connecting {sel}…");
-      // Cancel closes the stream, which unblocks the blocking Open() call.
+      // Cancel closes the stream, which unblocks the blocking Open() call so the user can abort.
       dlg.Token.Register(() => {
         try {
           _comPort.Close();
@@ -116,11 +114,36 @@ public partial class ConnectionViewModel : ViewModelBase {
         }
       });
       dlg.Show2();
+
+      Exception? openError = null;
       try {
         await Task.Run(() => _comPort.Open(getparams: true, skipconnectedcheck: true, showui: false));
+      } catch (Exception ex) {
+        openError = ex;
       } finally {
         _connectDialog = null;
         dlg.Close();
+      }
+
+      // User pressed Cancel: abort quietly, no error popup.
+      if (dlg.CancelRequested) {
+        try {
+          _comPort.Close();
+        } catch {
+          // already closing
+        }
+        IsConnected = false;
+        ConnectText = "CONNECT";
+        Status = "";
+        AppState.RaiseConnectionChanged();
+        return;
+      }
+
+      if (openError != null) {
+        IsConnected = false;
+        Status = "";
+        await Services.Dialogs.Alert("Connection error", openError.Message);
+        return;
       }
 
       IsConnected = _comPort.BaseStream.IsOpen;
