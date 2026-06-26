@@ -3,7 +3,9 @@ using System.Collections.ObjectModel;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MissionPlanner.ArduPilot;
+using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -33,6 +35,23 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
   public ObservableCollection<ParamField> BatteryFields { get; } = new();
 
   public FailsafeChannel[] Channels { get; }
+
+  // Live status trio (upstream lbl_currentmode / lbl_armed / lbl_gpslock).
+  [ObservableProperty]
+  private string _currentMode = "—";
+
+  [ObservableProperty]
+  private string _armedText = "Disarmed";
+
+  [ObservableProperty]
+  private string _gpsText = "GPS: No GPS";
+
+  // Mode label turns red when the throttle channel is below the failsafe threshold.
+  [ObservableProperty]
+  private IBrush _modeBrush = NormalBrush;
+
+  [RelayCommand]
+  private void OpenWiki() => Dialogs.OpenUrl(WikiUrl);
 
   public ConfigFailSafeViewModel() {
     Title = "Failsafe";
@@ -67,11 +86,14 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
       FG(RadioFields, "FS_THR_VALUE");
       // groupBox3 "GCS"
       FG(GcsFields, "FS_GCS_ENABLE", "combo");
-      // groupBox4 "Battery" (upstream prefers BATT_FS_LOW_ACT, else FS_BATT_ENABLE)
-      FG(BatteryFields, "BATT_FS_LOW_ACT", "combo");
-      FG(BatteryFields, "BATT_LOW_VOLT");
-      FG(BatteryFields, "BATT_LOW_MAH");
-      FG(BatteryFields, "BATT_LOW_TIMER");
+      // groupBox4 "Battery" — upstream picks the first param that exists, in priority order.
+      FGfirst(BatteryFields, "combo", "BATT_FS_LOW_ACT", "FS_BATT_ENABLE");
+      FGfirst(BatteryFields, null, "LOW_VOLT", "FS_BATT_VOLTAGE", "BATT_LOW_VOLT");
+      FGfirst(BatteryFields, null, "FS_BATT_MAH", "BATT_LOW_MAH");
+      // Low Timer is Copter-only; upstream omits the control when the param is absent.
+      if (comPort.MAV.param.ContainsKey("BATT_LOW_TIMER")) {
+        FG(BatteryFields, "BATT_LOW_TIMER");
+      }
     }
 
     Channels = new FailsafeChannel[16];
@@ -88,6 +110,17 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
     var f = F(name, kind);
     group.Add(f);
     return f;
+  }
+
+  // Adds the first of the candidate params that the vehicle actually exposes (mirrors upstream's
+  // BATT_FS_LOW_ACT→FS_BATT_ENABLE / LOW_VOLT→FS_BATT_VOLTAGE→BATT_LOW_VOLT fallbacks).
+  private void FGfirst(ObservableCollection<ParamField> group, string? kind, params string[] names) {
+    foreach (var n in names) {
+      if (comPort.MAV.param.ContainsKey(n)) {
+        FG(group, n, kind);
+        return;
+      }
+    }
   }
 
   private void Pump() {
@@ -111,7 +144,19 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
     }
 
     // ch3 is the throttle channel: recolor red when below the failsafe threshold.
-    Channels[2].InBrush = (fsThr > 0 && ins[2] > 0 && ins[2] < fsThr) ? ThrottleLowBrush : NormalBrush;
+    bool thrLow = fsThr > 0 && ins[2] > 0 && ins[2] < fsThr;
+    Channels[2].InBrush = thrLow ? ThrottleLowBrush : NormalBrush;
+
+    CurrentMode = cs.mode ?? "—";
+    ModeBrush = thrLow ? ThrottleLowBrush : NormalBrush;
+    ArmedText = cs.armed ? "Armed" : "Disarmed";
+    GpsText = (int)cs.gpsstatus switch {
+      0 => "GPS: No GPS",
+      1 => "GPS: No Fix",
+      2 => "GPS: 2D Fix",
+      3 => "GPS: 3D Fix",
+      _ => "GPS: 3D Fix (RTK)",
+    };
   }
 
   public void Dispose() => _timer.Stop();
