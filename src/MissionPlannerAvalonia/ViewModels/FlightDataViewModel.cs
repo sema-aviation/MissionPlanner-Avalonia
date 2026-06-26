@@ -408,6 +408,10 @@ public partial class FlightDataViewModel : ViewModelBase {
       PreflightChecks.Add(new CheckItem("Check Altitude"));
       PreflightChecks.Add(new CheckItem("Tail and wings secured?", manual: true));
       PreflightChecks.Add(new CheckItem("All servos respond to input?", manual: true));
+      PreflightChecks.Add(new CheckItem("All servos respond to pitch and roll?", manual: true));
+      PreflightChecks.Add(new CheckItem("Center of gravity at indicated point?", manual: true));
+      PreflightChecks.Add(new CheckItem("Servo linkages are secure?", manual: true));
+      PreflightChecks.Add(new CheckItem("Camera is on and ready to fly?", manual: true));
     }
     PreflightChecks[0].Set($"{cs.satcount} >= 3", cs.satcount >= 3);
     PreflightChecks[1].Set($"{cs.satcount} Sats", cs.satcount >= 3);
@@ -1540,8 +1544,9 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private int _hudBatteryCells;
 
+  // false = green HUD ground, true = brown "actual ground" (mirrors MP Ground Color toggle).
   [ObservableProperty]
-  private string _hudGroundColor = "";
+  private bool _hudGroundBrown;
 
   [ObservableProperty]
   private int _hudColumn;
@@ -1603,39 +1608,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   [RelayCommand]
   private void ToggleRussianHud() => HudRussian = !HudRussian;
 
-  [RelayCommand]
-  private async Task SetGroundColor() {
-    var top = (Avalonia.Application.Current?.ApplicationLifetime
-               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-    if (top == null) {
-      return;
-    }
-    var picker = new Avalonia.Controls.ColorPicker {
-      Color = string.IsNullOrEmpty(HudGroundColor)
-          ? Avalonia.Media.Color.Parse("#9BB824")
-          : Avalonia.Media.Color.Parse(HudGroundColor),
-    };
-    var ok = new Avalonia.Controls.Button {
-      Content = "OK",
-      HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-    };
-    var dlg = new Avalonia.Controls.Window {
-      Title = "Ground Color",
-      Width = 340,
-      Height = 420,
-      WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
-      Content = new Avalonia.Controls.StackPanel {
-        Margin = new Avalonia.Thickness(10),
-        Spacing = 8,
-        Children = { picker, ok },
-      },
-    };
-    ok.Click += (_, _) => dlg.Close(true);
-    if (await dlg.ShowDialog<bool>(top)) {
-      var c = picker.Color;
-      HudGroundColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
-    }
-  }
 
   [RelayCommand]
   private void SwapHudMap() => (HudColumn, MapColumn) = (MapColumn, HudColumn);

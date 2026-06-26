@@ -65,8 +65,8 @@ public class HudControl : Control {
       AvaloniaProperty.Register<HudControl, bool>(nameof(Russian));
   public static readonly StyledProperty<int> BatteryCellsProperty =
       AvaloniaProperty.Register<HudControl, int>(nameof(BatteryCells));
-  public static readonly StyledProperty<string> GroundColorHexProperty =
-      AvaloniaProperty.Register<HudControl, string>(nameof(GroundColorHex), "");
+  public static readonly StyledProperty<bool> GroundBrownProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(GroundBrown), false);
 
   // HUD Items submenu toggles (mirror MP HUD.display* flags)
   public static readonly StyledProperty<bool> DisplayHeadingProperty =
@@ -194,9 +194,9 @@ public class HudControl : Control {
     get => GetValue(BatteryCellsProperty);
     set => SetValue(BatteryCellsProperty, value);
   }
-  public string GroundColorHex {
-    get => GetValue(GroundColorHexProperty);
-    set => SetValue(GroundColorHexProperty, value);
+  public bool GroundBrown {
+    get => GetValue(GroundBrownProperty);
+    set => SetValue(GroundBrownProperty, value);
   }
   public bool DisplayHeading {
     get => GetValue(DisplayHeadingProperty);
@@ -341,6 +341,16 @@ public class HudControl : Control {
             new GradientStop(Color.Parse("#414F07"), 1),
         },
   };
+  // Brown "actual ground" scheme (mirrors MP groundColorToolStripMenuItem checked state).
+  private static readonly IBrush GroundBrownBrush = new LinearGradientBrush {
+    StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+    EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+    GradientStops =
+      {
+            new GradientStop(Color.Parse("#934E01"), 0),
+            new GradientStop(Color.Parse("#3C2104"), 1),
+        },
+  };
   private static readonly IBrush Tape = new SolidColorBrush(Color.FromArgb(140, 0, 0, 0));
   private static readonly IBrush TextBrush = Brushes.White;
   private static readonly Pen WhitePen = new(Brushes.White, 1.5);
@@ -364,7 +374,7 @@ public class HudControl : Control {
         ShowIconsProperty,
         RussianProperty,
         BatteryCellsProperty,
-        GroundColorHexProperty,
+        GroundBrownProperty,
         DisplayHeadingProperty,
         DisplaySpeedProperty,
         DisplayAltProperty,
@@ -399,22 +409,7 @@ public class HudControl : Control {
     );
   }
 
-  private IBrush GroundFill() {
-    if (string.IsNullOrEmpty(GroundColorHex)) {
-      return GroundBrush;
-    }
-    try {
-      var top = Color.Parse(GroundColorHex);
-      var bot = Color.FromArgb(top.A, (byte)(top.R / 2), (byte)(top.G / 2), (byte)(top.B / 2));
-      return new LinearGradientBrush {
-        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-        EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-        GradientStops = { new GradientStop(top, 0), new GradientStop(bot, 1) },
-      };
-    } catch {
-      return GroundBrush;
-    }
-  }
+  private IBrush GroundFill() => GroundBrown ? GroundBrownBrush : GroundBrush;
 
   // Faithful port of MissionPlanner HUD.cs OnPaint (ExtLibs/Controls/HUD.cs).
   public override void Render(DrawingContext context) {

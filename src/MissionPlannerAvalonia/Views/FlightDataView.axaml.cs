@@ -160,14 +160,25 @@ public partial class FlightDataView : UserControl {
     }
   }
 
+  // One live window per indicator; re-clicking focuses the existing one instead of stacking.
+  private readonly Dictionary<string, Window> _indicatorWindows = new();
+
   // Mirrors MP hud1_ekfclick / hud1_vibeclick / hud1_prearmclick.
   private void OnHudIndicatorClicked(string which) {
+    string key = which switch { "ekf" => "ekf", "vibe" => "vibe", _ => "prearm" };
+    if (_indicatorWindows.TryGetValue(key, out var existing)) {
+      existing.Activate();
+      return;
+    }
+
     var owner = TopLevel.GetTopLevel(this) as Window;
-    Window win = which switch {
+    Window win = key switch {
       "ekf" => new EKFStatusWindow(),
       "vibe" => new VibrationWindow(),
       _ => new PrearmStatusWindow(),
     };
+    _indicatorWindows[key] = win;
+    win.Closed += (_, _) => _indicatorWindows.Remove(key);
     if (owner != null) {
       win.Show(owner);
     } else {

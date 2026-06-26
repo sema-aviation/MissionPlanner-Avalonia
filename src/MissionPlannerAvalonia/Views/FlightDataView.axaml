@@ -14,7 +14,13 @@
   x:DataType="vm:FlightDataViewModel"
   Background="#434445"
 >
-  <Grid ColumnDefinitions="2*,4,3*">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <!-- MinWidth stops the splitter dragging a pane to nothing and exposing the gray backdrop -->
+      <ColumnDefinition Width="2*" MinWidth="220" />
+      <ColumnDefinition Width="4" />
+      <ColumnDefinition Width="3*" MinWidth="220" />
+    </Grid.ColumnDefinitions>
     <Grid Grid.Column="{Binding HudColumn}" RowDefinitions="*,4,*">
       <Border Grid.Row="0" Background="Black">
         <ctl:HudControl
@@ -34,7 +40,7 @@
           ShowIcons="{Binding HudShowIcons}"
           Russian="{Binding HudRussian}"
           BatteryCells="{Binding HudBatteryCells}"
-          GroundColorHex="{Binding HudGroundColor}"
+          GroundBrown="{Binding HudGroundBrown}"
           NavBearing="{Binding NavBearing}"
           CurrentAmps="{Binding BatCurrent}"
           CustomItemsText="{Binding HudCustomText}"
@@ -86,7 +92,7 @@
               <MenuItem Header="User Items" Command="{Binding HudUserItemsCommand}" />
               <MenuItem Header="Russian Hud" ToggleType="CheckBox" IsChecked="{Binding HudRussian, Mode=TwoWay}" />
               <MenuItem Header="Swap With Map" Command="{Binding SwapHudMapCommand}" />
-              <MenuItem Header="Ground Color" Command="{Binding SetGroundColorCommand}" />
+              <MenuItem Header="Ground Color" ToggleType="CheckBox" IsChecked="{Binding HudGroundBrown, Mode=TwoWay}" />
               <MenuItem Header="Battery Cell Voltage" Command="{Binding SetBatteryCellsCommand}" />
               <MenuItem Header="Show icons" ToggleType="CheckBox" IsChecked="{Binding HudShowIcons, Mode=TwoWay}" />
               <MenuItem Header="Herelink Video">
@@ -141,84 +147,112 @@
         </TabItem>
 
         <TabItem Header="Actions">
-          <!-- 5 equal star columns + uniform cells: every button/combo same size and
-               reflows automatically as the panel resizes (mirrors MP TableLayoutPanel). -->
+          <!-- Each action is a fixed-width cell that reflows in a WrapPanel as the panel
+               resizes; combo/value actions keep their input beside their own button so the
+               pair never splits or crushes (mirrors MP's ModifyandSet controls). -->
           <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <Grid Margin="6" ColumnDefinitions="*,*,*,*,*"
-                  RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="3" RowSpacing="3">
-              <Grid.Styles>
-                <Style Selector="Button">
+            <WrapPanel Margin="6" Orientation="Horizontal">
+              <WrapPanel.Styles>
+                <Style Selector="WrapPanel > Panel">
+                  <Setter Property="Width" Value="188" />
+                  <Setter Property="Height" Value="30" />
+                  <Setter Property="Margin" Value="3" />
+                </Style>
+                <Style Selector="WrapPanel > Button">
+                  <Setter Property="Width" Value="188" />
+                  <Setter Property="Height" Value="30" />
+                  <Setter Property="Margin" Value="3" />
                   <Setter Property="FontSize" Value="11" />
-                  <Setter Property="Padding" Value="2,3" />
-                  <Setter Property="MinHeight" Value="28" />
-                  <Setter Property="HorizontalAlignment" Value="Stretch" />
-                  <Setter Property="VerticalAlignment" Value="Stretch" />
                   <Setter Property="HorizontalContentAlignment" Value="Center" />
                 </Style>
-                <Style Selector="ComboBox">
+                <Style Selector="Panel Button">
                   <Setter Property="FontSize" Value="11" />
-                  <Setter Property="HorizontalAlignment" Value="Stretch" />
-                  <Setter Property="MinHeight" Value="28" />
+                  <Setter Property="HorizontalContentAlignment" Value="Center" />
                 </Style>
-                <Style Selector="NumericUpDown">
+                <Style Selector="Panel ComboBox">
+                  <Setter Property="FontSize" Value="11" />
+                </Style>
+                <Style Selector="Panel NumericUpDown">
                   <Setter Property="FontSize" Value="11" />
                   <Setter Property="MinWidth" Value="0" />
                 </Style>
-              </Grid.Styles>
+              </WrapPanel.Styles>
 
-              <!-- Row 0 -->
-              <ComboBox Grid.Row="0" Grid.Column="0" ItemsSource="{Binding Actions}"
-                        SelectedItem="{Binding SelectedAction}" />
-              <Button Grid.Row="0" Grid.Column="1" Content="Do Action" Command="{Binding DoActionCommand}" />
-              <Button Grid.Row="0" Grid.Column="2" Content="Auto" Command="{Binding QuickAutoCommand}" />
-              <Button Grid.Row="0" Grid.Column="3" Content="Set Home Alt" Command="{Binding SetHomeCommand}" />
-              <DockPanel Grid.Row="0" Grid.Column="4">
-                <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False" FormatString="0.0"
-                               Value="{Binding ChangeSpeedValue}" />
-                <Button Content="Speed" Command="{Binding ChangeSpeedCommand}" />
-              </DockPanel>
+              <!-- combo + button pairs (selector beside its own action button) -->
+              <Panel>
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Width="78" Content="Set Mode"
+                          Command="{Binding SetModeCommand}" />
+                  <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}"
+                            HorizontalAlignment="Stretch" Margin="0,0,3,0" />
+                </DockPanel>
+              </Panel>
+              <Panel>
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Width="78" Content="Set WP"
+                          Command="{Binding SetWpCommand}" />
+                  <ComboBox ItemsSource="{Binding WpNumbers}" SelectedItem="{Binding SetWpIndex}"
+                            HorizontalAlignment="Stretch" Margin="0,0,3,0" />
+                </DockPanel>
+              </Panel>
+              <Panel>
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Width="78" Content="Do Action"
+                          Command="{Binding DoActionCommand}" />
+                  <ComboBox ItemsSource="{Binding Actions}" SelectedItem="{Binding SelectedAction}"
+                            HorizontalAlignment="Stretch" Margin="0,0,3,0" />
+                </DockPanel>
+              </Panel>
+              <Panel>
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Width="78" Content="Set Mount"
+                          Command="{Binding SetMountCommand}" />
+                  <ComboBox ItemsSource="{Binding MountModes}" SelectedItem="{Binding SelectedMountMode}"
+                            HorizontalAlignment="Stretch" Margin="0,0,3,0" />
+                </DockPanel>
+              </Panel>
 
-              <!-- Row 1 -->
-              <ComboBox Grid.Row="1" Grid.Column="0" ItemsSource="{Binding WpNumbers}"
-                        SelectedItem="{Binding SetWpIndex}" />
-              <Button Grid.Row="1" Grid.Column="1" Content="Set WP" Command="{Binding SetWpCommand}" />
-              <Button Grid.Row="1" Grid.Column="2" Content="Loiter" Command="{Binding QuickLoiterCommand}" />
-              <Button Grid.Row="1" Grid.Column="3" Content="Restart Mission"
-                      Command="{Binding RestartMissionCommand}" />
-              <DockPanel Grid.Row="1" Grid.Column="4">
-                <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False" FormatString="0.0"
-                               Value="{Binding ChangeAltValue}" />
-                <Button Content="Alt" Command="{Binding ChangeAltCommand}" />
-              </DockPanel>
+              <!-- value + button pairs -->
+              <Panel>
+                <DockPanel>
+                  <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False"
+                                 FormatString="0.0" Value="{Binding ChangeSpeedValue}" />
+                  <Button Content="Speed" Command="{Binding ChangeSpeedCommand}" Margin="0,0,3,0" />
+                </DockPanel>
+              </Panel>
+              <Panel>
+                <DockPanel>
+                  <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False"
+                                 FormatString="0.0" Value="{Binding ChangeAltValue}" />
+                  <Button Content="Alt" Command="{Binding ChangeAltCommand}" Margin="0,0,3,0" />
+                </DockPanel>
+              </Panel>
+              <Panel>
+                <DockPanel>
+                  <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False"
+                                 FormatString="0" Value="{Binding LoiterRadValue}" />
+                  <Button Content="Loiter Rad" Command="{Binding SetLoiterRadCommand}" Margin="0,0,3,0" />
+                </DockPanel>
+              </Panel>
 
-              <!-- Row 2 -->
-              <ComboBox Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Modes}"
-                        SelectedItem="{Binding SelectedMode}" />
-              <Button Grid.Row="2" Grid.Column="1" Content="Set Mode" Command="{Binding SetModeCommand}" />
-              <Button Grid.Row="2" Grid.Column="2" Content="RTL" Command="{Binding QuickRtlCommand}" />
-              <Button Grid.Row="2" Grid.Column="3" Content="Raw Sensor View"
-                      Command="{Binding RawSensorViewCommand}" />
-              <DockPanel Grid.Row="2" Grid.Column="4">
-                <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False" FormatString="0"
-                               Value="{Binding LoiterRadValue}" />
-                <Button Content="Loiter Rad" Command="{Binding SetLoiterRadCommand}" />
-              </DockPanel>
+              <!-- quick mode + arm -->
+              <Button Content="Auto" Command="{Binding QuickAutoCommand}" />
+              <Button Content="RTL" Command="{Binding QuickRtlCommand}" />
+              <Button Content="Loiter" Command="{Binding QuickLoiterCommand}" />
+              <Button Content="Arm/ Disarm" Command="{Binding ToggleArmCommand}" />
 
-              <!-- Row 3 -->
-              <ComboBox Grid.Row="3" Grid.Column="0" ItemsSource="{Binding MountModes}"
-                        SelectedItem="{Binding SelectedMountMode}" />
-              <Button Grid.Row="3" Grid.Column="1" Content="Set Mount" Command="{Binding SetMountCommand}" />
-              <Button Grid.Row="3" Grid.Column="2" Content="Joystick" Command="{Binding JoystickCommand}" />
-              <Button Grid.Row="3" Grid.Column="3" Content="Arm/ Disarm" Command="{Binding ToggleArmCommand}" />
-              <Button Grid.Row="3" Grid.Column="4" Content="Clear Track" Command="{Binding ClearTrackCommand}" />
+              <!-- mission -->
+              <Button Content="Restart Mission" Command="{Binding RestartMissionCommand}" />
+              <Button Content="Resume Mission" Command="{Binding ResumeMissionCommand}" />
+              <Button Content="Abort Landing" Command="{Binding AbortLandCommand}" />
+              <Button Content="Set Home Alt" Command="{Binding SetHomeCommand}" />
 
-              <!-- Row 4 -->
-              <Button Grid.Row="4" Grid.Column="2" Content="Message" Command="{Binding ShowMessageCommand}" />
-              <Button Grid.Row="4" Grid.Column="3" Content="Resume Mission"
-                      Command="{Binding ResumeMissionCommand}" />
-              <Button Grid.Row="4" Grid.Column="4" Content="Abort Landing"
-                      Command="{Binding AbortLandCommand}" />
-            </Grid>
+              <!-- misc -->
+              <Button Content="Raw Sensor View" Command="{Binding RawSensorViewCommand}" />
+              <Button Content="Clear Track" Command="{Binding ClearTrackCommand}" />
+              <Button Content="Message" Command="{Binding ShowMessageCommand}" />
+              <Button Content="Joystick" Command="{Binding JoystickCommand}" />
+            </WrapPanel>
           </ScrollViewer>
         </TabItem>
 
@@ -313,43 +347,47 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.DataTemplates>
                 <DataTemplate DataType="vm:ServoChannel">
-                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="2,1" Width="316">
-                    <Button Content="Low" Width="38" FontSize="11" Padding="2,2"
+                  <!-- explicit Auto columns keep each button/box at a fixed slot so they never
+                       overlap when the row reflows into a 2nd column; right margin = column gap. -->
+                  <Grid Margin="2,1,14,1" ColumnSpacing="3"
+                        ColumnDefinitions="40,40,40,50,42,46,46">
+                    <Button Grid.Column="0" Content="Low" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:low'}" />
-                    <Button Content="Mid" Width="38" FontSize="11" Padding="2,2"
+                    <Button Grid.Column="1" Content="Mid" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:mid'}" />
-                    <Button Content="High" Width="38" FontSize="11" Padding="2,2"
+                    <Button Grid.Column="2" Content="High" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:high'}" />
-                    <Button Content="Toggle" Width="48" FontSize="11" Padding="2,2"
+                    <Button Grid.Column="3" Content="Toggle" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:toggle'}" />
-                    <Border Background="#5A5A5A" Width="40" Margin="4,0,0,0">
+                    <Border Grid.Column="4" Background="#5A5A5A">
                       <TextBlock Text="{Binding Number}" Foreground="White" FontSize="11"
                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
-                    <TextBox Width="42" FontSize="11" Padding="2,1" Text="{Binding Min}" />
-                    <TextBox Width="42" FontSize="11" Padding="2,1" Text="{Binding Max}" />
-                  </StackPanel>
+                    <TextBox Grid.Column="5" FontSize="11" Padding="2,1" Text="{Binding Min}" />
+                    <TextBox Grid.Column="6" FontSize="11" Padding="2,1" Text="{Binding Max}" />
+                  </Grid>
                 </DataTemplate>
                 <DataTemplate DataType="vm:RelayChannel">
-                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="2,1" Width="316">
-                    <Button Content="Low" Width="38" FontSize="11" Padding="2,2"
+                  <Grid Margin="2,1,14,1" ColumnSpacing="3"
+                        ColumnDefinitions="40,40,50,90">
+                    <Button Grid.Column="0" Content="Low" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
                             CommandParameter="{Binding Index, StringFormat='{}{0}:low'}" />
-                    <Button Content="High" Width="38" FontSize="11" Padding="2,2"
+                    <Button Grid.Column="1" Content="High" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
                             CommandParameter="{Binding Index, StringFormat='{}{0}:high'}" />
-                    <Button Content="Toggle" Width="48" FontSize="11" Padding="2,2"
+                    <Button Grid.Column="2" Content="Toggle" FontSize="11" Padding="2,2"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
                             CommandParameter="{Binding Index, StringFormat='{}{0}:toggle'}" />
-                    <Border Background="#5A5A5A" Width="86" Margin="4,0,0,0">
+                    <Border Grid.Column="3" Background="#5A5A5A">
                       <TextBlock Text="{Binding Label}" Foreground="White" FontSize="11"
                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
-                  </StackPanel>
+                  </Grid>
                 </DataTemplate>
               </ItemsControl.DataTemplates>
             </ItemsControl>
