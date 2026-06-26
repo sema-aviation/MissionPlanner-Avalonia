@@ -46,6 +46,8 @@ public class MapView : MapControl {
     map.Layers.Add(_track);
     _vehicle.Style = MavMarker.Vehicle(0);
     map.Layers.Add(_vehicle);
+    // Keep the viewport inside the world extent so you can't zoom/pan past the tiles into gray.
+    map.Navigator.Limiter = new Mapsui.Limiting.ViewportLimiterKeepWithinExtent();
     Map = map;
 
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
