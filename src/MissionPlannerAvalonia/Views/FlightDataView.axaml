@@ -147,9 +147,8 @@
         </TabItem>
 
         <TabItem Header="Actions">
-          <!-- Each action is a fixed-width cell that reflows in a WrapPanel as the panel
-               resizes; combo/value actions keep their input beside their own button so the
-               pair never splits or crushes (mirrors MP's ModifyandSet controls). -->
+          <!-- Fixed-width cells reflow in a WrapPanel; each combo/value action keeps its input
+               beside its own button so the pair never splits. -->
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <WrapPanel Margin="6" Orientation="Horizontal">
               <WrapPanel.Styles>
@@ -347,8 +346,8 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.DataTemplates>
                 <DataTemplate DataType="vm:ServoChannel">
-                  <!-- explicit Auto columns keep each button/box at a fixed slot so they never
-                       overlap when the row reflows into a 2nd column; right margin = column gap. -->
+                  <!-- fixed Auto columns so buttons/boxes never overlap on reflow -->
+
                   <Grid Margin="2,1,14,1" ColumnSpacing="3"
                         ColumnDefinitions="40,40,40,50,42,46,46">
                     <Button Grid.Column="0" Content="Low" FontSize="11" Padding="2,2"
