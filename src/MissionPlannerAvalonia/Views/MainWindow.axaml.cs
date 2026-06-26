@@ -8,6 +8,8 @@ namespace MissionPlannerAvalonia.Views;
 public partial class MainWindow : Window {
   public MainWindow() {
     InitializeComponent();
+    // Title carries the running version on every platform (e.g. "Mission Planner 2026.6.2").
+    Title = Services.AppVersion.Title;
     KeyDown += OnKeyDown;
   }
 

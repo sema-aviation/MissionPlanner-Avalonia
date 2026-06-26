@@ -18,6 +18,9 @@ public partial class HelpViewModel : ViewModelBase {
 
   private static readonly HttpClient _http = CreateClient();
 
+  // Running version + git hash, e.g. "Version 2026.6.2 (f7427a5)".
+  public string AppVersionDisplay => "Version " + Services.AppVersion.Full;
+
   [ObservableProperty]
   private string _updateStatus = "";
 
