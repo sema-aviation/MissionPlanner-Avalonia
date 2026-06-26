@@ -21,7 +21,7 @@
     <PackageVersion Include="Tmds.DBus.Protocol" Version="0.21.3" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.4.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="MetadataExtractor" Version="2.8.1" />
+    <PackageVersion Include="MetadataExtractor" Version="2.9.3" />
     <PackageVersion Include="DotNetZip.NetStandard" Version="1.12.0" />
     <PackageVersion Include="ScottPlot.Avalonia" Version="5.0.56" />
     <PackageVersion Include="MoonSharp" Version="2.0.0" />
