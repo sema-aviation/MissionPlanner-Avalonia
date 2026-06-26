@@ -64,7 +64,12 @@ jobs:
         run: |
           REF="${GITHUB_REF_NAME:-dev}"
           V="${REF#v}"
+          # Patch = 3rd CalVer field (default 0). Passed as VersionPatch so the app project's
+          # date-derived Version resolves to this; we must NOT pass a global -p:Version because
+          # it leaks into the shielded submodule's MetaDataExtractor ProjectReference.
+          IFS=. read -r _y _m _p <<< "$V"
           echo "v=$V" >> "$GITHUB_OUTPUT"
+          echo "patch=${_p:-0}" >> "$GITHUB_OUTPUT"
           echo "fv=$V.0" >> "$GITHUB_OUTPUT"
 
       - name: Package macOS (.app, self-contained)
@@ -75,7 +80,7 @@ jobs:
           rm -rf out/osx dist
           dotnet publish "$APP" -c Release -r osx-arm64 --self-contained true \
             -p:DebugType=none -p:StripSymbols=true \
-            -p:Version="$V" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
+            -p:VersionPatch="${{ steps.ver.outputs.patch }}" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
             -o out/osx
           chmod +x build/macos/make-app.sh
           ./build/macos/make-app.sh out/osx "$V" "dist/Mission Planner.app"
@@ -91,7 +96,7 @@ jobs:
           rm -rf out/win stage
           dotnet publish "$APP" -c Release -r win-x64 --self-contained true \
             -p:DebugType=none \
-            -p:Version="$V" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
+            -p:VersionPatch="${{ steps.ver.outputs.patch }}" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
             -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
             -p:EnableCompressionInSingleFile=true \
             -o out/win
@@ -109,7 +114,7 @@ jobs:
           rm -rf out/linux
           dotnet publish "$APP" -c Release -r linux-x64 --self-contained true \
             -p:DebugType=none \
-            -p:Version="$V" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
+            -p:VersionPatch="${{ steps.ver.outputs.patch }}" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
             -o out/linux
           cp build/linux/missionplanner-avalonia.desktop out/linux/
           cp build/linux/missionplanner-avalonia.png out/linux/
