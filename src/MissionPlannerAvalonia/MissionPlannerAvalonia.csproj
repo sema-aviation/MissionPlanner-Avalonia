@@ -27,6 +27,9 @@
     <PackageReference Include="Avalonia.Controls.ColorPicker" />
     <PackageReference Include="Mapsui.Avalonia" />
     <PackageReference Include="Mapsui.Tiling" />
+    <PackageReference Include="Mapsui.Nts" />
+    <PackageReference Include="Projektanker.Icons.Avalonia" />
+    <PackageReference Include="Projektanker.Icons.Avalonia.FontAwesome" />
     <PackageReference Include="System.IO.Ports" />
     <PackageReference Include="Tmds.DBus.Protocol" />
     <PackageReference Include="ScottPlot.Avalonia" />

@@ -14,6 +14,9 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.1" />
     <PackageVersion Include="Mapsui.Avalonia" Version="5.1.0" />
     <PackageVersion Include="Mapsui.Tiling" Version="5.1.0" />
+    <PackageVersion Include="Mapsui.Nts" Version="5.1.0" />
+    <PackageVersion Include="Projektanker.Icons.Avalonia" Version="9.6.2" />
+    <PackageVersion Include="Projektanker.Icons.Avalonia.FontAwesome" Version="9.6.2" />
     <PackageVersion Include="System.IO.Ports" Version="9.0.0" />
     <PackageVersion Include="Tmds.DBus.Protocol" Version="0.21.3" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.4.0" />

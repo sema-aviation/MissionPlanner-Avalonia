@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using Avalonia;
+using Projektanker.Icons.Avalonia;
+using Projektanker.Icons.Avalonia.FontAwesome;
 
 namespace MissionPlannerAvalonia;
 
@@ -10,6 +12,9 @@ sealed class Program {
     // Central crash sink (mirrors MainV2.handleException): log unhandled exceptions to a file
     // under the app data dir instead of letting them vanish.
     AppDomain.CurrentDomain.UnhandledException += (_, e) => LogCrash(e.ExceptionObject as Exception);
+    // Projektanker.Icons.Avalonia 9.x: register icon providers here (the old AppBuilder.WithIcons
+    // extension was removed in v9).
+    IconProvider.Current.Register<FontAwesomeIconProvider>();
     try {
       BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     } catch (Exception ex) {
@@ -33,5 +38,8 @@ sealed class Program {
   }
 
   public static AppBuilder BuildAvaloniaApp() =>
-      AppBuilder.Configure<App>().UsePlatformDetect().WithInterFont().LogToTrace();
+      AppBuilder.Configure<App>()
+          .UsePlatformDetect()
+          .WithInterFont()
+          .LogToTrace();
 }
