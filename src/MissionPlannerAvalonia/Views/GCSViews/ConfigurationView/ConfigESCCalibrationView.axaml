@@ -5,63 +5,91 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
   mc:Ignorable="d"
-  d:DesignWidth="800"
-  d:DesignHeight="640"
+  d:DesignWidth="820"
+  d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigESCCalibrationView"
   x:DataType="cv:ConfigESCCalibrationViewModel"
   Background="#434445"
 >
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" Margin="16">
-    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+  <UserControl.Styles>
+    <Style Selector="TextBlock.lbl">
+      <Setter Property="Foreground" Value="#E6E6E6" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.desc">
+      <Setter Property="Foreground" Value="#C8C8C8" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Margin" Value="10,0,0,0" />
+    </Style>
+    <Style Selector="NumericUpDown.spin">
+      <Setter Property="MinWidth" Value="120" />
+    </Style>
+  </UserControl.Styles>
 
-    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,4,0,10">
-      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
-      <TextBlock Text="{Binding Intro}" Classes="fieldlbl" VerticalAlignment="Center" TextWrapping="Wrap" />
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="0">
+      <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+
+      <!-- Calibrate button (left) + instructions (right), as in MP -->
+      <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0">
+        <Button Grid.Column="0" Content="{Binding CalButtonText}" Command="{Binding CalibrateEscCommand}"
+                MinWidth="120" VerticalAlignment="Top" Margin="0,2,16,0" />
+        <StackPanel Grid.Column="1">
+          <TextBlock Classes="lbl" Text="Remove Props!" FontWeight="Bold" />
+          <TextBlock Classes="lbl" Text="After pushing this button:" />
+          <TextBlock Classes="lbl" Text="-Disconnect USB and battery" />
+          <TextBlock Classes="lbl" Text="-Plug in battery" />
+          <TextBlock Classes="lbl" Text="-when LEDs flash, push Saftey Switch (if present)" />
+          <TextBlock Classes="lbl" Text="-ESCs should beep as they are calibrated" />
+          <TextBlock Classes="lbl" Text="- restart flight controller normally" />
+        </StackPanel>
+      </Grid>
+
+      <!-- Param fields: label | control | description (bound to ordered Fields[0..5]) -->
+      <Grid ColumnDefinitions="150,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,18,0,0">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="lbl" Text="ESC Type:" />
+        <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="200"
+                  ItemsSource="{Binding Fields[0].Options}" SelectedItem="{Binding Fields[0].SelectedOption}" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="lbl" Text="Output PWM Min" Margin="0,6,0,0" />
+        <NumericUpDown Grid.Row="1" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+                       Value="{Binding Fields[1].Value}" Minimum="{Binding Fields[1].Min}"
+                       Maximum="{Binding Fields[1].Max}" Increment="{Binding Fields[1].Increment}" FormatString="0.######" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="desc" Text="Leave as 0 to use RX input range" Margin="10,6,0,0" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="lbl" Text="Output PWM Max" Margin="0,6,0,0" />
+        <NumericUpDown Grid.Row="2" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+                       Value="{Binding Fields[2].Value}" Minimum="{Binding Fields[2].Min}"
+                       Maximum="{Binding Fields[2].Max}" Increment="{Binding Fields[2].Increment}" FormatString="0.######" />
+        <TextBlock Grid.Row="2" Grid.Column="2" Classes="desc" Text="Leave as 0 to use RX input range" Margin="10,6,0,0" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="lbl" Text="Spin when Armed" Margin="0,6,0,0" />
+        <NumericUpDown Grid.Row="3" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+                       Value="{Binding Fields[3].Value}" Minimum="{Binding Fields[3].Min}"
+                       Maximum="{Binding Fields[3].Max}" Increment="{Binding Fields[3].Increment}" FormatString="0.######" />
+        <TextBlock Grid.Row="3" Grid.Column="2" Classes="desc"
+                   Text="speed when motors are armed but throttle is at zero (idle)" Margin="10,6,0,0" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="lbl" Text="Spin minimum" Margin="0,6,0,0" />
+        <NumericUpDown Grid.Row="4" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+                       Value="{Binding Fields[4].Value}" Minimum="{Binding Fields[4].Min}"
+                       Maximum="{Binding Fields[4].Max}" Increment="{Binding Fields[4].Increment}" FormatString="0.######" />
+        <TextBlock Grid.Row="4" Grid.Column="2" Classes="desc"
+                   Text="minimum speed of motors while in flight (slightly higher than &quot;Spin when Armed&quot;)" Margin="10,6,0,0" />
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Classes="lbl" Text="Spin Maximum" Margin="0,6,0,0" />
+        <NumericUpDown Grid.Row="5" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+                       Value="{Binding Fields[5].Value}" Minimum="{Binding Fields[5].Min}"
+                       Maximum="{Binding Fields[5].Max}" Increment="{Binding Fields[5].Increment}" FormatString="0.######" />
+        <TextBlock Grid.Row="5" Grid.Column="2" Classes="desc"
+                   Text="maximum speed of motors while in flight (almost all escs have a deadzone at the top)" Margin="10,6,0,0" />
+      </Grid>
+
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,14,0,0">
+        <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
+        <TextBlock Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" TextWrapping="Wrap" />
+      </StackPanel>
     </StackPanel>
-
-    <ItemsControl Grid.Row="2" ItemsSource="{Binding Fields}">
-      <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="cv:ParamField">
-          <Grid ColumnDefinitions="220,200,Auto,*" Margin="0,3">
-            <TextBlock
-              Grid.Column="0"
-              Text="{Binding Label}"
-              Classes="fieldlbl"
-              ToolTip.Tip="{Binding Description}"
-              TextWrapping="Wrap"
-              Margin="0,0,8,0"
-            />
-            <ComboBox
-              Grid.Column="1"
-              IsVisible="{Binding IsCombo}"
-              MinWidth="180"
-              ItemsSource="{Binding Options}"
-              SelectedItem="{Binding SelectedOption}"
-            />
-            <NumericUpDown
-              Grid.Column="1"
-              IsVisible="{Binding IsNumeric}"
-              MinWidth="180"
-              Value="{Binding Value}"
-              Minimum="{Binding Min}"
-              Maximum="{Binding Max}"
-              Increment="{Binding Increment}"
-              FormatString="0.######"
-            />
-            <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-            <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
-          </Grid>
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
-
-    <Border Grid.Row="3" Background="#5A2D2D" CornerRadius="4" Padding="12" Margin="0,12,0,0">
-      <TextBlock Text="{Binding Instructions}" Foreground="#FFD0D0" TextWrapping="Wrap" />
-    </Border>
-
-    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
-      <Button Content="{Binding CalButtonText}" Command="{Binding CalibrateEscCommand}" MinWidth="150" />
-      <TextBlock Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" TextWrapping="Wrap" />
-    </StackPanel>
-  </Grid>
+  </ScrollViewer>
 </UserControl>

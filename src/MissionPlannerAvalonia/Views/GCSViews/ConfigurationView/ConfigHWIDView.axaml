@@ -26,12 +26,12 @@
       CanUserResizeColumns="True"
     >
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Param" Binding="{Binding ParamName}" Width="200" />
+        <DataGridTextColumn Header="ParamName" Binding="{Binding ParamName}" Width="200" />
         <DataGridTextColumn Header="DevID" Binding="{Binding DevID}" Width="120" />
-        <DataGridTextColumn Header="Bus Type" Binding="{Binding BusType}" Width="100" />
+        <DataGridTextColumn Header="BusType" Binding="{Binding BusType}" Width="100" />
         <DataGridTextColumn Header="Bus" Binding="{Binding Bus}" Width="70" />
         <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="90" />
-        <DataGridTextColumn Header="Dev Type" Binding="{Binding DevType}" Width="*" />
+        <DataGridTextColumn Header="DevType" Binding="{Binding DevType}" Width="*" />
       </DataGrid.Columns>
     </DataGrid>
   </Grid>

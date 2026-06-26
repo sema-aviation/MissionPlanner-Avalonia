@@ -13,159 +13,111 @@
   Background="#434445"
 >
   <ScrollViewer>
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="16">
-      <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
-
-      <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,4,0,10">
-        <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
-        <TextBlock Text="{Binding Intro}" Classes="fieldlbl" VerticalAlignment="Center" TextWrapping="Wrap" />
-      </StackPanel>
-
-      <ItemsControl Grid.Row="2" ItemsSource="{Binding Fields}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="cv:ParamField">
-            <Grid ColumnDefinitions="240,200,Auto,*" Margin="0,3">
-              <TextBlock
-                Grid.Column="0"
-                Text="{Binding Label}"
-                Classes="fieldlbl"
-                ToolTip.Tip="{Binding Description}"
-                TextWrapping="Wrap"
-                Margin="0,0,8,0"
-              />
-              <ComboBox
-                Grid.Column="1"
-                IsVisible="{Binding IsCombo}"
-                MinWidth="180"
-                ItemsSource="{Binding Options}"
-                SelectedItem="{Binding SelectedOption}"
-              />
-              <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
-              <NumericUpDown
-                Grid.Column="1"
-                IsVisible="{Binding IsNumeric}"
-                MinWidth="180"
-                Value="{Binding Value}"
-                Minimum="{Binding Min}"
-                Maximum="{Binding Max}"
-                Increment="{Binding Increment}"
-                FormatString="0.######"
-              />
-              <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
-            </Grid>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-
-      <Border Grid.Row="3" Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,12,0,0">
-        <StackPanel Spacing="8">
-          <TextBlock Classes="fieldlbl" FontSize="15" Text="Compass Priority" />
-          <TextBlock
-            Classes="fieldlbl"
-            TextWrapping="Wrap"
-            Text="Detected compasses in priority order (COMPASS_PRIO1/2/3). Use Up/Down to reorder. A reboot is required for changes to take effect."
-          />
-
-          <DataGrid
-            ItemsSource="{Binding Compasses}"
-            AutoGenerateColumns="False"
-            IsReadOnly="True"
-            GridLinesVisibility="All"
-            CanUserResizeColumns="True"
-            MinHeight="120"
-            MaxHeight="220"
-          >
-            <DataGrid.Columns>
-              <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="64" />
-              <DataGridTextColumn Header="DevID" Binding="{Binding DevID}" Width="90" />
-              <DataGridTextColumn Header="BusType" Binding="{Binding BusType}" Width="80" />
-              <DataGridTextColumn Header="Bus" Binding="{Binding Bus}" Width="50" />
-              <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="70" />
-              <DataGridTextColumn Header="DevType" Binding="{Binding DevType}" Width="*" />
-              <DataGridCheckBoxColumn Header="Missing" Binding="{Binding Missing}" Width="64" />
-              <DataGridCheckBoxColumn Header="External" Binding="{Binding External}" Width="64" />
-              <DataGridTextColumn Header="Orientation" Binding="{Binding Orientation}" Width="140" />
-              <DataGridTemplateColumn Header="" Width="44">
-                <DataGridTemplateColumn.CellTemplate>
-                  <DataTemplate x:DataType="cv:CompassPrioRow">
-                    <Button
-                      Content="▲"
-                      Padding="6,2"
-                      Margin="2"
-                      ToolTip.Tip="Move up"
-                      Command="{Binding $parent[DataGrid].((cv:ConfigCompassViewModel)DataContext).MoveUpCommand}"
-                      CommandParameter="{Binding}"
-                    />
-                  </DataTemplate>
-                </DataGridTemplateColumn.CellTemplate>
-              </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="" Width="44">
-                <DataGridTemplateColumn.CellTemplate>
-                  <DataTemplate x:DataType="cv:CompassPrioRow">
-                    <Button
-                      Content="▼"
-                      Padding="6,2"
-                      Margin="2"
-                      ToolTip.Tip="Move down"
-                      Command="{Binding $parent[DataGrid].((cv:ConfigCompassViewModel)DataContext).MoveDownCommand}"
-                      CommandParameter="{Binding}"
-                    />
-                  </DataTemplate>
-                </DataGridTemplateColumn.CellTemplate>
-              </DataGridTemplateColumn>
-            </DataGrid.Columns>
-          </DataGrid>
-
-          <StackPanel Orientation="Horizontal" Spacing="16">
-            <CheckBox Content="Use Compass 1" IsChecked="{Binding UseCompass1}" />
-            <CheckBox Content="Use Compass 2" IsChecked="{Binding UseCompass2}" />
-            <CheckBox Content="Use Compass 3" IsChecked="{Binding UseCompass3}" />
-          </StackPanel>
-          <CheckBox Content="Automatically learn offsets" IsChecked="{Binding LearnOffsets}" />
-
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Remove Missing" Command="{Binding RemoveMissingCommand}" />
-            <Button Content="Reboot" Command="{Binding RebootCommand}" />
-          </StackPanel>
-          <TextBlock Text="{Binding CompassStatus}" Foreground="#E0A030" TextWrapping="Wrap" IsVisible="{Binding CompassStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-        </StackPanel>
-      </Border>
-
-      <Grid Grid.Row="4" ColumnDefinitions="240,200,Auto" Margin="0,8,0,0">
-        <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Declination (deg)" VerticalAlignment="Center" />
-        <NumericUpDown
-          Grid.Column="1"
-          MinWidth="180"
-          Value="{Binding DeclinationDeg}"
-          Increment="0.1"
-          FormatString="0.###"
-        />
-        <Button Grid.Column="2" Content="Write Declination" Command="{Binding WriteDeclinationCommand}" Margin="8,0,0,0" />
+    <StackPanel Margin="16" Spacing="8">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" Classes="pagetitle" Text="{Binding Title}" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Content="Refresh Params" Command="{Binding RefreshCommand}" />
       </Grid>
 
-      <Border Grid.Row="5" Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,12,0,0">
+      <TextBlock
+        Classes="fieldlbl"
+        TextWrapping="Wrap"
+        Text="Set the Compass Priority by reordering the compasses in the table below (Highest at the top)"
+      />
+
+      <DataGrid
+        ItemsSource="{Binding Compasses}"
+        AutoGenerateColumns="False"
+        IsReadOnly="True"
+        GridLinesVisibility="All"
+        CanUserResizeColumns="True"
+        MinHeight="120"
+        MaxHeight="220"
+      >
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="64" />
+          <DataGridTextColumn Header="DevID" Binding="{Binding DevID}" Width="90" />
+          <DataGridTextColumn Header="BusType" Binding="{Binding BusType}" Width="80" />
+          <DataGridTextColumn Header="Bus" Binding="{Binding Bus}" Width="50" />
+          <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="70" />
+          <DataGridTextColumn Header="DevType" Binding="{Binding DevType}" Width="*" />
+          <DataGridCheckBoxColumn Header="Missing" Binding="{Binding Missing}" Width="64" />
+          <DataGridCheckBoxColumn Header="External" Binding="{Binding External}" Width="64" />
+          <DataGridTextColumn Header="Orientation" Binding="{Binding Orientation}" Width="140" />
+          <DataGridTemplateColumn Header="Up" Width="44">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="cv:CompassPrioRow">
+                <Button
+                  Content="▲"
+                  Padding="6,2"
+                  Margin="2"
+                  ToolTip.Tip="Move up"
+                  Command="{Binding $parent[DataGrid].((cv:ConfigCompassViewModel)DataContext).MoveUpCommand}"
+                  CommandParameter="{Binding}"
+                />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Down" Width="44">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="cv:CompassPrioRow">
+                <Button
+                  Content="▼"
+                  Padding="6,2"
+                  Margin="2"
+                  ToolTip.Tip="Move down"
+                  Command="{Binding $parent[DataGrid].((cv:ConfigCompassViewModel)DataContext).MoveDownCommand}"
+                  CommandParameter="{Binding}"
+                />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+
+      <TextBlock Classes="fieldlbl" Text="Do you want to disable any of the first 3 compasses?" Margin="0,4,0,0" />
+      <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+        <CheckBox Content="Use Compass 1" IsChecked="{Binding UseCompass1}" />
+        <CheckBox Content="Use Compass 2" IsChecked="{Binding UseCompass2}" />
+        <CheckBox Content="Use Compass 3" IsChecked="{Binding UseCompass3}" />
+        <Button Content="Remove Missing" Command="{Binding RemoveMissingCommand}" />
+        <CheckBox Content="Automatically learn offsets" IsChecked="{Binding LearnOffsets}" />
+      </StackPanel>
+
+      <TextBlock Classes="fieldlbl" Text="A reboot is required to adjust the ordering." Margin="0,4,0,0" />
+      <Button Content="Reboot" Command="{Binding RebootCommand}" HorizontalAlignment="Left" />
+
+      <TextBlock Classes="fieldlbl" Text="A mag calibration is required to remap the above changes." Margin="0,4,0,0" />
+      <TextBlock
+        Text="{Binding CompassStatus}"
+        Foreground="#E0A030"
+        TextWrapping="Wrap"
+        IsVisible="{Binding CompassStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+      />
+
+      <Border Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,8,0,0">
         <StackPanel Spacing="8">
           <TextBlock Classes="fieldlbl" FontSize="15" Text="Onboard Mag Calibration" />
-          <TextBlock
-            Classes="fieldlbl"
-            TextWrapping="Wrap"
-            Text="Press Start, then rotate the vehicle so every side points down towards the earth until each bar completes, then Accept. Cancel aborts."
-          />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Content="Start" Command="{Binding StartMagCalCommand}" MinWidth="90" />
             <Button Content="Accept" Command="{Binding AcceptMagCalCommand}" IsEnabled="{Binding CalRunning}" MinWidth="90" />
             <Button Content="Cancel" Command="{Binding CancelMagCalCommand}" IsEnabled="{Binding CalRunning}" MinWidth="90" />
           </StackPanel>
 
-          <Grid ColumnDefinitions="80,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-            <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Compass 1" />
+          <Grid ColumnDefinitions="60,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+            <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Mag 1" VerticalAlignment="Center" />
             <ProgressBar Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog1}" Height="18" />
-            <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Compass 2" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Mag 2" VerticalAlignment="Center" />
             <ProgressBar Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog2}" Height="18" />
-            <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Compass 3" />
+            <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Mag 3" VerticalAlignment="Center" />
             <ProgressBar Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog3}" Height="18" />
           </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="fieldlbl" Text="Fitness" VerticalAlignment="Center" />
+            <ComboBox MinWidth="160" ItemsSource="{Binding Fields[8].Options}" SelectedItem="{Binding Fields[8].SelectedOption}" />
+            <TextBlock Classes="fieldlbl" Text="Relax fitness if calibration fails" VerticalAlignment="Center" />
+          </StackPanel>
 
           <Grid ColumnDefinitions="*,Auto">
             <TextBox
@@ -188,19 +140,68 @@
         </StackPanel>
       </Border>
 
-      <Border Grid.Row="6" Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,12,0,0">
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0" VerticalAlignment="Center">
+        <Button Content="Large Vehicle MagCal" Command="{Binding LargeVehicleMagCalCommand}" />
+        <TextBlock Classes="fieldlbl" Text="Current heading (deg true):" VerticalAlignment="Center" />
+        <NumericUpDown MinWidth="120" Value="{Binding LargeVehicleHeading}" Increment="1" FormatString="0.#" />
+      </StackPanel>
+
+      <Border Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,8,0,0">
         <StackPanel Spacing="8">
-          <TextBlock Classes="fieldlbl" FontSize="15" Text="Quick Configuration" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Pixhawk/Cube (onboard)" Command="{Binding QuickPixhawkCommand}" />
-          </StackPanel>
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Classes="fieldlbl" Text="Large vehicle — current heading (deg true):" VerticalAlignment="Center" />
-            <NumericUpDown MinWidth="120" Value="{Binding LargeVehicleHeading}" Increment="1" FormatString="0.#" />
-            <Button Content="Calibrate (fixed yaw)" Command="{Binding LargeVehicleMagCalCommand}" />
-          </StackPanel>
+          <TextBlock Classes="fieldlbl" FontSize="15" Text="Advanced compass settings" />
+
+          <ItemsControl ItemsSource="{Binding Fields}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="cv:ParamField">
+                <Grid ColumnDefinitions="240,200,Auto,*" Margin="0,3">
+                  <TextBlock
+                    Grid.Column="0"
+                    Text="{Binding Label}"
+                    Classes="fieldlbl"
+                    ToolTip.Tip="{Binding Description}"
+                    TextWrapping="Wrap"
+                    Margin="0,0,8,0"
+                  />
+                  <ComboBox
+                    Grid.Column="1"
+                    IsVisible="{Binding IsCombo}"
+                    MinWidth="180"
+                    ItemsSource="{Binding Options}"
+                    SelectedItem="{Binding SelectedOption}"
+                  />
+                  <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
+                  <NumericUpDown
+                    Grid.Column="1"
+                    IsVisible="{Binding IsNumeric}"
+                    MinWidth="180"
+                    Value="{Binding Value}"
+                    Minimum="{Binding Min}"
+                    Maximum="{Binding Max}"
+                    Increment="{Binding Increment}"
+                    FormatString="0.######"
+                  />
+                  <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
+                  <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <Grid ColumnDefinitions="240,200,Auto" Margin="0,4,0,0">
+            <TextBlock Grid.Column="0" Classes="fieldlbl" Text="Declination (deg)" VerticalAlignment="Center" />
+            <NumericUpDown
+              Grid.Column="1"
+              MinWidth="180"
+              Value="{Binding DeclinationDeg}"
+              Increment="0.1"
+              FormatString="0.###"
+            />
+            <Button Grid.Column="2" Content="Write Declination" Command="{Binding WriteDeclinationCommand}" Margin="8,0,0,0" />
+          </Grid>
+
+          <Button Content="Pixhawk/Cube (onboard)" Command="{Binding QuickPixhawkCommand}" HorizontalAlignment="Left" />
         </StackPanel>
       </Border>
-    </Grid>
+    </StackPanel>
   </ScrollViewer>
 </UserControl>

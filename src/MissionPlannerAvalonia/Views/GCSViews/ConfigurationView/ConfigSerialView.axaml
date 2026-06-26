@@ -16,10 +16,10 @@
       <TextBlock Classes="pagetitle" Text="Serial Ports" />
 
       <Grid ColumnDefinitions="160,180,180,*" Margin="0,8,0,4">
-        <TextBlock Grid.Column="0" Text="Port" Classes="fieldlbl" FontWeight="Bold" />
-        <TextBlock Grid.Column="1" Text="Baud" Classes="fieldlbl" FontWeight="Bold" />
-        <TextBlock Grid.Column="2" Text="Protocol" Classes="fieldlbl" FontWeight="Bold" />
-        <TextBlock Grid.Column="3" Text="Options (bitmask)" Classes="fieldlbl" FontWeight="Bold" />
+        <TextBlock Grid.Column="0" Text="Port Name" Classes="fieldlbl" FontWeight="Bold" />
+        <TextBlock Grid.Column="1" Text="Speed" Classes="fieldlbl" FontWeight="Bold" />
+        <TextBlock Grid.Column="2" Text="Protcol" Classes="fieldlbl" FontWeight="Bold" />
+        <TextBlock Grid.Column="3" Text="Options" Classes="fieldlbl" FontWeight="Bold" />
       </Grid>
 
       <ItemsControl ItemsSource="{Binding Ports}">
