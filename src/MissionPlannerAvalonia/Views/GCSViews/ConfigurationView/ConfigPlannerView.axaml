@@ -100,8 +100,7 @@
 
       <!-- ===================== Telemetry rates ===================== -->
       <TextBlock Classes="grp" Text="Telemetry Rates (Hz)" />
-      <!-- label+input pairs in a WrapPanel: each NUD is a fixed, sensible width and the
-           pairs reflow together so nothing stretches or misaligns. -->
+      <!-- label+input pairs reflow together at a fixed input width -->
       <WrapPanel>
         <WrapPanel.Styles>
           <Style Selector="WrapPanel > StackPanel">
