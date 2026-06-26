@@ -15,12 +15,137 @@ public partial class LogBrowseView : UserControl {
   public LogBrowseView() {
     InitializeComponent();
     OpenBtn.Click += OnOpen;
-    GraphBtn.Click += OnGraph;
+    GraphBtn.Click += (s, e) => OnGraphAxis(false);
+    GraphRightBtn.Click += (s, e) => OnGraphAxis(true);
+    RemoveBtn.Click += OnRemove;
     ClearBtn.Click += OnClear;
+    PresetBtn.Click += OnApplyPreset;
+    ModeBtn.Click += (s, e) => OnOverlay("MODE", "Mode", ScottPlot.Colors.Yellow);
+    ErrBtn.Click += (s, e) => OnOverlay("ERR", "Subsys", ScottPlot.Colors.Red);
+    EvBtn.Click += (s, e) => OnOverlay("EV", "Id", ScottPlot.Colors.Cyan);
+    GridToggle.IsCheckedChanged += OnGridToggle;
+    ExportCsvBtn.Click += OnExportCsv;
     KmlBtn.Click += OnKml;
     GpxBtn.Click += OnGpx;
     MatlabBtn.Click += OnMatlab;
     BinLogBtn.Click += OnBinToLog;
+  }
+
+  private LogBrowseViewModel? Vm => DataContext as LogBrowseViewModel;
+
+  // Double-click a field node in the tree → graph it on the left axis.
+  private void OnTreeDoubleTapped(object? sender, RoutedEventArgs e) {
+    if (MsgTree.SelectedItem is LogFieldNode f) {
+      PlotCurve(f.Type, f.Field, false);
+    }
+  }
+
+  private void OnGraphAxis(bool rightAxis) {
+    var resolved = Vm?.ResolveField();
+    if (resolved is null) {
+      if (Vm != null) {
+        Vm.Status = "Pick a field in the tree or type TYPE.FIELD.";
+      }
+      return;
+    }
+    PlotCurve(resolved.Value.type, resolved.Value.field, rightAxis);
+  }
+
+  private async void PlotCurve(string type, string field, bool rightAxis) {
+    if (Vm is not { } vm || vm.CurrentPath is null) {
+      return;
+    }
+    vm.Busy = true;
+    vm.Status = $"Graphing {type}.{field}…";
+    try {
+      var curve = await Task.Run(() => vm.ReadCurve(type, field));
+      if (curve is null) {
+        vm.Status = $"No data for {type}.{field}.";
+        return;
+      }
+      Plot.SetSeries($"{type}.{field}{(rightAxis ? " (R)" : "")}", curve.Value.xs, curve.Value.ys,
+          rightAxis: rightAxis);
+      Plot.SetAxisLabels("Time (s)", "Value", "DataFlash");
+      vm.Status = $"Plotted {curve.Value.xs.Count} points of {type}.{field}.";
+    } catch (Exception ex) {
+      vm.Status = $"Graph failed: {ex.Message}";
+    } finally {
+      vm.Busy = false;
+    }
+  }
+
+  private void OnRemove(object? sender, RoutedEventArgs e) {
+    if (MsgTree.SelectedItem is LogFieldNode f) {
+      Plot.RemoveByLabel($"{f.Type}.{f.Field}");
+      Plot.RemoveByLabel($"{f.Type}.{f.Field} (R)");
+    }
+  }
+
+  private async void OnApplyPreset(object? sender, RoutedEventArgs e) {
+    if (Vm is not { } vm || vm.SelectedPreset is not { } preset || vm.CurrentPath is null) {
+      return;
+    }
+    Plot.ClearAll();
+    int plotted = 0, skipped = 0;
+    foreach (var curve in preset.Curves) {
+      // Only literal TYPE.FIELD curves are supported; derived-math expressions are skipped (noted).
+      var parts = curve.Expression.Split('.');
+      if (parts.Length == 2 && !curve.Expression.Any(c => "()+-*/".Contains(c))) {
+        var data = await Task.Run(() => vm.ReadCurve(parts[0], parts[1]));
+        if (data is { } d) {
+          Plot.SetSeries($"{curve.Expression}{(curve.Axis == 2 ? " (R)" : "")}", d.xs, d.ys,
+              rightAxis: curve.Axis == 2);
+          plotted++;
+          continue;
+        }
+      }
+      skipped++;
+    }
+    vm.Status = $"Preset '{preset.Name}': {plotted} plotted, {skipped} skipped (derived/missing).";
+  }
+
+  private void OnOverlay(string type, string field, ScottPlot.Color color) {
+    if (Vm is not { } vm) {
+      return;
+    }
+    var marks = vm.ReadOverlay(type, field);
+    foreach (var (x, label) in marks) {
+      Plot.AddVerticalLine(x, color, label);
+    }
+    vm.Status = $"{type}: {marks.Count} markers.";
+  }
+
+  private void OnGridToggle(object? sender, RoutedEventArgs e) {
+    if (GridToggle.IsChecked == true && Vm is { SelectedType: { } type } vm) {
+      var (columns, rows) = vm.ReadRows(type);
+      RowsGrid.Columns.Clear();
+      for (int c = 0; c < columns.Count; c++) {
+        int idx = c;
+        RowsGrid.Columns.Add(new DataGridTextColumn {
+          Header = columns[c],
+          Binding = new Avalonia.Data.Binding($"[{idx}]"),
+        });
+      }
+      RowsGrid.ItemsSource = rows;
+    }
+  }
+
+  private async void OnExportCsv(object? sender, RoutedEventArgs e) {
+    if (Vm is not { SelectedType: { } type } vm || vm.CurrentPath is null) {
+      return;
+    }
+    var outp = await PickSaveAsync("Export Visible CSV", "csv", SuggestName(vm.CurrentPath, "csv"));
+    if (outp is null) {
+      return;
+    }
+    var (columns, rows) = vm.ReadRows(type);
+    await RunExportAsync(vm, "CSV", () => {
+      using var w = new StreamWriter(outp);
+      w.WriteLine(string.Join(",", columns));
+      foreach (var r in rows) {
+        w.WriteLine(string.Join(",", r));
+      }
+    }, outp);
   }
 
   private async void OnOpen(object? sender, RoutedEventArgs e) {
