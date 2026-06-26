@@ -1,0 +1,36 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  mc:Ignorable="d"
+  d:DesignWidth="640"
+  d:DesignHeight="520"
+  x:Class="MissionPlannerAvalonia.Views.MAVLinkInspectorView"
+  x:DataType="vm:MAVLinkInspectorViewModel"
+  Background="#434445"
+>
+  <Grid Margin="8" RowDefinitions="Auto,*,Auto">
+    <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+      <Button Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" />
+      <Button Content="Clear" Command="{Binding ClearCommand}" />
+      <CheckBox Content="Show GCS Traffic" IsChecked="{Binding ShowGcsTraffic}"
+                VerticalAlignment="Center" Foreground="WhiteSmoke" />
+      <TextBlock Text="Filter:" Foreground="#BBB" VerticalAlignment="Center" Margin="6,0,0,0" />
+      <TextBox Width="180" Watermark="message type…" Text="{Binding Filter}" />
+    </WrapPanel>
+
+    <Border Grid.Row="1" Margin="0,8,0,0" BorderBrush="#666" BorderThickness="1">
+      <TreeView ItemsSource="{Binding Tree}" FontFamily="Courier New,monospace" FontSize="12">
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding Header}" />
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </Border>
+
+    <TextBlock Grid.Row="2" Margin="0,6,0,0" Foreground="#BBB" Text="{Binding Status}" />
+  </Grid>
+</UserControl>

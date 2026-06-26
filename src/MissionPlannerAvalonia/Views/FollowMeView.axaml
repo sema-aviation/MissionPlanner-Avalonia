@@ -1,0 +1,58 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  mc:Ignorable="d"
+  d:DesignWidth="480"
+  d:DesignHeight="420"
+  x:Class="MissionPlannerAvalonia.Views.FollowMeView"
+  x:DataType="vm:FollowMeViewModel"
+  Background="#434445"
+>
+  <StackPanel Margin="16" Spacing="10">
+    <TextBlock Text="Follow Me" FontSize="16" Foreground="#DDD" />
+    <TextBlock
+      Foreground="#AAA"
+      TextWrapping="Wrap"
+      Text="Streams GUIDED-mode setpoints so the vehicle chases a moving position. WARNING: the vehicle will move — only use airborne in GUIDED with a clear area."
+    />
+
+    <RadioButton Content="Manual / GCS location" GroupName="src" IsChecked="{Binding !UseSerialGps}" Foreground="#DDD" />
+    <Grid ColumnDefinitions="110,*,*,Auto" Margin="18,0,0,0">
+      <TextBlock Grid.Column="0" Text="Lat / Lng" Foreground="#DDD" VerticalAlignment="Center" />
+      <NumericUpDown Grid.Column="1" Value="{Binding ManualLat}" Increment="0.0001" FormatString="0.0000000" Margin="0,0,4,0" />
+      <NumericUpDown Grid.Column="2" Value="{Binding ManualLng}" Increment="0.0001" FormatString="0.0000000" />
+      <Button Grid.Column="3" Content="Use" Command="{Binding UseGcsLocationCommand}" Margin="6,0,0,0" />
+    </Grid>
+
+    <RadioButton Content="Serial NMEA GPS" GroupName="src" IsChecked="{Binding UseSerialGps}" Foreground="#DDD" />
+    <Grid ColumnDefinitions="110,*,Auto" RowDefinitions="Auto,Auto" RowSpacing="6" Margin="18,0,0,0">
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="Port" Foreground="#DDD" VerticalAlignment="Center" />
+      <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding Ports}" SelectedItem="{Binding SelectedPort}" />
+      <Button Grid.Row="0" Grid.Column="2" Content="Refresh" Command="{Binding RefreshPortsCommand}" Margin="6,0,0,0" />
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="Baud" Foreground="#DDD" VerticalAlignment="Center" />
+      <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding Bauds}" SelectedItem="{Binding SelectedBaud}" />
+    </Grid>
+
+    <Grid ColumnDefinitions="110,*,110,*">
+      <TextBlock Grid.Column="0" Text="Rel. alt (m)" Foreground="#DDD" VerticalAlignment="Center" />
+      <NumericUpDown Grid.Column="1" Value="{Binding RelativeAltM}" Increment="5" FormatString="0" />
+      <TextBlock Grid.Column="2" Text="Rate (Hz)" Foreground="#DDD" VerticalAlignment="Center" Margin="8,0,0,0" />
+      <ComboBox Grid.Column="3" HorizontalAlignment="Stretch" ItemsSource="{Binding Rates}" SelectedItem="{Binding UpdateRateHz}" />
+    </Grid>
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <Button Content="{Binding ConnectButtonText}" Command="{Binding ToggleConnectCommand}" MinWidth="90" />
+    </StackPanel>
+
+    <Border Background="#2D2D2D" CornerRadius="4" Padding="10">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" />
+        <TextBlock Text="Target:" Foreground="#AAA" />
+        <TextBlock Text="{Binding LocationLabel}" Foreground="#DDD" FontFamily="Consolas,monospace" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

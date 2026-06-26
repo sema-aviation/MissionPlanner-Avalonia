@@ -1,0 +1,71 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  mc:Ignorable="d"
+  d:DesignWidth="720"
+  d:DesignHeight="560"
+  x:Class="MissionPlannerAvalonia.Views.DroneCANParamsView"
+  x:DataType="vm:DroneCANParamsViewModel"
+  Background="#434445"
+>
+  <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+      <ComboBox Width="150" ItemsSource="{Binding BusOptions}"
+                SelectedIndex="{Binding SelectedBusIndex}" />
+      <TextBlock Text="Node:" Foreground="#BBB" VerticalAlignment="Center" />
+      <NumericUpDown Width="100" Minimum="0" Maximum="127" Increment="1"
+                     Value="{Binding NodeId}" />
+      <Button Content="{Binding ConnectLabel}" Command="{Binding ToggleConnectCommand}" />
+      <Button Content="Get Parameters" Command="{Binding GetParametersCommand}" />
+      <Button Content="Re-request" Command="{Binding ReRequestCommand}" />
+    </WrapPanel>
+
+    <WrapPanel Grid.Row="1" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" Margin="0,8,0,0">
+      <Button Content="Write" Command="{Binding WriteCommand}" />
+      <Button Content="Commit to Flash" Command="{Binding CommitToFlashCommand}" />
+      <Button Content="Erase to Defaults" Command="{Binding EraseCommand}" />
+      <Border Width="1" Background="#666" Margin="4,0" />
+      <Button x:Name="LoadBtn" Content="Load .param" />
+      <Button x:Name="SaveBtn" Content="Save .param" />
+      <Border Width="1" Background="#666" Margin="4,0" />
+      <TextBlock Text="Search:" Foreground="#BBB" VerticalAlignment="Center" />
+      <TextBox Width="160" Text="{Binding Search}" />
+      <CheckBox Content="Modified only" Foreground="WhiteSmoke"
+                IsChecked="{Binding ShowModifiedOnly}" VerticalAlignment="Center" />
+    </WrapPanel>
+
+    <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#BBB" Text="{Binding Status}" />
+
+    <DataGrid
+      Grid.Row="3"
+      Margin="0,8,0,0"
+      ItemsSource="{Binding Params}"
+      AutoGenerateColumns="False"
+      GridLinesVisibility="All"
+      HeadersVisibility="Column"
+    >
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Command" Binding="{Binding Name}" Width="2*" IsReadOnly="True" />
+        <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*" IsReadOnly="False" />
+        <DataGridTextColumn Header="Min" Binding="{Binding Min}" Width="*" IsReadOnly="True" />
+        <DataGridTextColumn Header="Max" Binding="{Binding Max}" Width="*" IsReadOnly="True" />
+        <DataGridTextColumn Header="Default" Binding="{Binding Default}" Width="*" IsReadOnly="True" />
+        <DataGridTemplateColumn Header="Fav" Width="50">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <CheckBox HorizontalAlignment="Center"
+                        IsChecked="{Binding IsFav, Mode=TwoWay}"
+                        Click="OnFavClicked" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <TextBlock Grid.Row="4" Margin="0,6,0,0" Foreground="#888"
+               Text="Ctrl edits Value in place; Write pushes changed rows then saves to flash." />
+  </Grid>
+</UserControl>

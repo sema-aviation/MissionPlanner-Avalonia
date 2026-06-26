@@ -1,0 +1,61 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  mc:Ignorable="d"
+  d:DesignWidth="460"
+  d:DesignHeight="320"
+  x:Class="MissionPlannerAvalonia.Views.SerialPassThroughView"
+  x:DataType="vm:SerialPassThroughViewModel"
+  Background="#434445"
+>
+  <StackPanel Margin="16" Spacing="10">
+    <TextBlock Text="Mavlink Mirror" FontSize="16" Foreground="#DDD" />
+    <TextBlock
+      Foreground="#AAA"
+      TextWrapping="Wrap"
+      Text="Forwards the vehicle's MAVLink byte stream out to a second port (and optionally back). Useful for feeding a second GCS or companion tool."
+    />
+
+    <Grid ColumnDefinitions="110,*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="Port" Foreground="#DDD" VerticalAlignment="Center" />
+      <ComboBox
+        Grid.Row="0"
+        Grid.Column="1"
+        HorizontalAlignment="Stretch"
+        ItemsSource="{Binding Ports}"
+        SelectedItem="{Binding SelectedPort}"
+      />
+      <Button Grid.Row="0" Grid.Column="2" Content="Refresh" Command="{Binding RefreshPortsCommand}" Margin="6,0,0,0" />
+
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="Baud" Foreground="#DDD" VerticalAlignment="Center" />
+      <ComboBox
+        Grid.Row="1"
+        Grid.Column="1"
+        HorizontalAlignment="Stretch"
+        ItemsSource="{Binding Bauds}"
+        SelectedItem="{Binding SelectedBaud}"
+      />
+    </Grid>
+
+    <CheckBox Content="Allow write back to vehicle" IsChecked="{Binding AllowWriteBack}" Foreground="#DDD" />
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <Button Content="{Binding ConnectButtonText}" Command="{Binding ToggleConnectCommand}" MinWidth="90" />
+    </StackPanel>
+
+    <Border Background="#2D2D2D" CornerRadius="4" Padding="10">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" />
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="Tx bytes:" Foreground="#AAA" />
+          <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TxBytes}" Foreground="#DDD" />
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="Rx bytes:" Foreground="#AAA" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RxBytes}" Foreground="#DDD" />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>
