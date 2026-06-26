@@ -126,7 +126,7 @@ jobs:
           mkdir -p upload
           tar -czf "upload/$DIR.tar.gz" -C out "$DIR"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.rid }}
           path: upload/*
