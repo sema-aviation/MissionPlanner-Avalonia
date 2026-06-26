@@ -135,6 +135,10 @@ public class HudControl : Control {
       AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayXTrack), true);
   public static readonly StyledProperty<bool> DisplayConnectionProperty =
       AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayConnection), true);
+  public static readonly StyledProperty<bool> PrearmOkProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(PrearmOk));
+  public static readonly StyledProperty<int> GpsFixTypeProperty =
+      AvaloniaProperty.Register<HudControl, int>(nameof(GpsFixType));
 
   public double Roll {
     get => GetValue(RollProperty);
@@ -324,6 +328,14 @@ public class HudControl : Control {
     get => GetValue(DisplayConnectionProperty);
     set => SetValue(DisplayConnectionProperty, value);
   }
+  public bool PrearmOk {
+    get => GetValue(PrearmOkProperty);
+    set => SetValue(PrearmOkProperty, value);
+  }
+  public int GpsFixType {
+    get => GetValue(GpsFixTypeProperty);
+    set => SetValue(GpsFixTypeProperty, value);
+  }
 
   private static readonly IBrush SkyBrush = new LinearGradientBrush {
     StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
@@ -436,6 +448,8 @@ public class HudControl : Control {
         VerticalSpeedProperty,
         SatCountProperty,
         ArmedProperty,
+        PrearmOkProperty,
+        GpsFixTypeProperty,
         ModeProperty,
         BatteryVoltageProperty,
         BatteryRemainingProperty,
@@ -537,7 +551,7 @@ public class HudControl : Control {
 
     // ---- roll/bank arc + pointer (ticks rotate with roll, pointer fixed at top) ----
     if (DisplayRollPitch) {
-      DrawRollArc(context, cx, cy, unit * 0.46, unit);
+      DrawRollArc(context, cx, cy, Math.Min(unit * 0.46, cy - headH - unit * 0.05), unit);
     }
 
     // ---- centre aircraft boresight (banks only in Russian mode) ----
@@ -561,12 +575,13 @@ public class HudControl : Control {
       DrawHeadingTape(context, w, headH, fontsize, _eYaw, NavBearing);
     }
 
-    // ---- x-track error + rate-of-turn indicator (under heading, mirrors HUD.cs displayxtrack) ----
-    if (DisplayXTrack) {
-      DrawXTrackTurn(context, w, h, headH);
+    // ---- telemetry link quality (top-right corner, like MP) ----
+    if (DisplayConnection) {
+      var lc = LinkQuality <= 0 ? Brushes.Red : LinkQuality < 50 ? Brushes.Orange : TextBrush;
+      DrawTextRight(context, $"{LinkQuality:0}%", w - 8, headH + 6, fontsize + 6, lc, outline: true);
     }
 
-    // ---- wind direction + speed arrow (top-right corner) ----
+    // ---- wind direction + speed arrow (top-left corner) ----
     DrawWind(context, w, headH, fontsize);
 
     // ---- AOA / SSA vertical bar (right) ----
@@ -587,18 +602,12 @@ public class HudControl : Control {
       // throttle % just under the air/ground readouts (mirrors HUD.cs ch3percent)
       DrawText(context, $"Thr {ThrottlePercent:0}%",
           new Point(2, speedRect.Bottom + fontsize * 2 + 12), fontsize, Brushes.White);
-      // link quality / connection just above the speed tape (mirrors HUD.cs linkqualitygcs)
-      if (DisplayConnection) {
-        var lc = LinkQuality <= 0 ? Brushes.Red : LinkQuality < 50 ? Brushes.Orange : TextBrush;
-        DrawText(context, $"{LinkQuality:0}%", new Point(2, speedRect.Top - fontsize - 4),
-            fontsize, lc);
-      }
     }
     if (DisplayAlt) {
       DrawScrollTape(context, altRect, _eAlt, TargetAlt, true, fontsize, "");
       DrawVsi(context, altRect, _eVs);
-      var modeBrush = TextBrush;
-      DrawText(context, Mode, new Point(altRect.Left - 4, altRect.Bottom + 4), fontsize, modeBrush);
+      // Right-align to the HUD edge so long mode names (e.g. "Unknown") aren't clipped.
+      DrawTextRight(context, Mode, w - 4, altRect.Bottom + 4, fontsize, TextBrush, outline: true);
     }
 
     // ---- bottom-left battery (Bat1, + optional Bat2 line above it) ----
@@ -624,9 +633,10 @@ public class HudControl : Control {
     //      centred at the bottom; AS/GS + battery bottom-left ----
     double byline = h - fontsize - 4;
     if (DisplayGps) {
-      bool gps = SatCount >= 3;
-      string g = gps ? $"GPS: 3D Fix ({SatCount:0})" : "GPS: No Fix";
-      DrawTextRight(context, g, w - 6, byline, fontsize, gps ? Brushes.LimeGreen : Brushes.Red);
+      // Use the real fix type, not just sat count (a 2D fix with >=3 sats was mislabelled "3D Fix").
+      string g = GpsFixText(GpsFixType, (int)SatCount);
+      var gpsBrush = GpsFixType >= 3 ? GpsGoodBrush : GpsFixType >= 2 ? Brushes.Orange : Brushes.Red;
+      DrawTextRight(context, g, w - 6, byline, fontsize, gpsBrush, outline: true);
     }
     _ekfRect = _vibeRect = _prearmRect = default;
     if (DisplayEkf || DisplayVibe) {
@@ -646,8 +656,10 @@ public class HudControl : Control {
     }
     if (DisplayPrearm && !Armed) {
       double py = byline - fontsize - 6;
-      DrawTextCenter(context, "Not Ready to Arm", cx, py, fontsize, Brushes.Red);
-      double pw = MakeText("Not Ready to Arm", fontsize, null).Width;
+      string ptext = PrearmOk ? "Ready to Arm" : "Not Ready to Arm";
+      var pbrush = PrearmOk ? Brushes.LimeGreen : Brushes.Red;
+      DrawTextCenter(context, ptext, cx, py, fontsize, pbrush);
+      double pw = MakeText(ptext, fontsize, null).Width;
       _prearmRect = new Rect(cx - pw / 2, py, pw, fontsize + 4);
     }
 
@@ -726,47 +738,9 @@ public class HudControl : Control {
         fontsize, Brushes.Black);
   }
 
-  // X-track error (green bar) + rate-of-turn marker under the heading tape.
-  // Faithful port of HUD.cs displayxtrack block (centred at Width/10 like upstream).
-  private void DrawXTrackTurn(DrawingContext ctx, double w, double h, double headH) {
-    double xtspace = w / 10.0 / 3.0;
-    double cx = w / 10.0;
-    double top = headH + 5;
-    double bot = headH + h / 10.0;
-    double pad = 10;
-
-    double xt = Math.Clamp(XTrackError, -40, 40);
-    double loc = xt / 20.0 * xtspace;
-    var green = new Pen(
-        new SolidColorBrush(Color.FromArgb(Math.Abs(xt) >= 40 ? (byte)128 : (byte)255, 0, 200, 0)), 2);
-    ctx.DrawLine(green, new Point(cx + loc, top), new Point(cx + loc, bot));
-    ctx.DrawLine(WhitePen, new Point(cx, top), new Point(cx, bot));
-    foreach (int s in new[] { -2, -1, 1, 2 }) {
-      ctx.DrawLine(ThinPen, new Point(cx + s * xtspace, top + pad),
-          new Point(cx + s * xtspace, bot - pad));
-    }
-
-    // rate-of-turn: three reference ticks + a green slider clamped to ±6 deg/s.
-    double trY = bot + 10;
-    var wp = new Pen(Brushes.White, 4);
-    foreach (int s in new[] { -2, 0, 2 }) {
-      double bx = cx + s * xtspace - xtspace / 2;
-      ctx.DrawLine(wp, new Point(bx, trY), new Point(bx + xtspace, trY));
-    }
-    double trwidth = (cx + 2 * xtspace - xtspace / 2) - (cx - 2 * xtspace - xtspace / 2);
-    double range = 12;
-    double tr = Math.Clamp(TurnRate, -range / 2, range / 2);
-    double tloc = tr / range * trwidth;
-    var trPen = new Pen(
-        new SolidColorBrush(Color.FromArgb(Math.Abs(tr) >= range / 2 ? (byte)128 : (byte)255, 0, 200, 0)), 4);
-    ctx.DrawLine(trPen, new Point(cx + tloc - xtspace / 2, trY + 3),
-        new Point(cx + tloc + xtspace / 2, trY + 3));
-    ctx.DrawLine(trPen, new Point(cx + tloc, trY + 3), new Point(cx + tloc, trY + 10));
-  }
-
-  // Wind direction (relative to heading) + speed, top-right corner.
+  // Wind direction (relative to heading) + speed, top-left corner.
   private void DrawWind(DrawingContext ctx, double w, double headH, double fontsize) {
-    double cx = w - fontsize * 3;
+    double cx = fontsize * 3;
     double cy = headH + fontsize * 2.5;
     double r = fontsize * 1.6;
     var ring = new Pen(new SolidColorBrush(Color.FromArgb(160, 255, 255, 255)), 1);
@@ -908,22 +882,54 @@ public class HudControl : Control {
     ctx.DrawGeometry(Brushes.Blue, null, tri);
   }
 
-  private void DrawText(DrawingContext ctx, string text, Point at, double size, IBrush? brush = null) {
+  private void DrawText(DrawingContext ctx, string text, Point at, double size, IBrush? brush = null,
+      bool outline = true) {
+    if (outline) {
+      DrawHalo(ctx, text, at, size);
+    }
     ctx.DrawText(MakeText(text, size, brush), at);
   }
 
   // Right-aligns text so rightX is the right edge; returns the text width.
   private double DrawTextRight(DrawingContext ctx, string text, double rightX, double y, double size,
-      IBrush? brush = null) {
+      IBrush? brush = null, bool outline = true) {
     var ft = MakeText(text, size, brush);
-    ctx.DrawText(ft, new Point(rightX - ft.Width, y));
+    var at = new Point(rightX - ft.Width, y);
+    if (outline) {
+      DrawHalo(ctx, text, at, size);
+    }
+    ctx.DrawText(ft, at);
     return ft.Width;
+  }
+
+  // Brighter than LimeGreen and paired with a black halo so it reads over the green ground.
+  private static readonly IBrush GpsGoodBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xFF, 0x4C));
+
+  // GPS_FIX_TYPE -> label (matches MP). 0/1 no fix, 2 = 2D, 3 = 3D, 4 = DGPS, 5 = RTK float, 6 = RTK fixed.
+  private static string GpsFixText(int fix, int sats) => fix switch {
+    <= 1 => "GPS: No Fix",
+    2 => $"GPS: 2D Fix ({sats})",
+    3 => $"GPS: 3D Fix ({sats})",
+    4 => $"GPS: 3D DGPS ({sats})",
+    5 => $"GPS: RTK Float ({sats})",
+    _ => $"GPS: RTK Fixed ({sats})",
+  };
+
+  // 1px black halo so coloured text (e.g. green GPS over green ground) stays readable.
+  private void DrawHalo(DrawingContext ctx, string text, Point at, double size) {
+    var dark = MakeText(text, size, Brushes.Black);
+    ctx.DrawText(dark, new Point(at.X - 1, at.Y));
+    ctx.DrawText(dark, new Point(at.X + 1, at.Y));
+    ctx.DrawText(dark, new Point(at.X, at.Y - 1));
+    ctx.DrawText(dark, new Point(at.X, at.Y + 1));
   }
 
   private void DrawTextCenter(DrawingContext ctx, string text, double centerX, double y, double size,
       IBrush? brush = null) {
     var ft = MakeText(text, size, brush);
-    ctx.DrawText(ft, new Point(centerX - ft.Width / 2, y));
+    var at = new Point(centerX - ft.Width / 2, y);
+    DrawHalo(ctx, text, at, size);
+    ctx.DrawText(ft, at);
   }
 
   private static FormattedText MakeText(string text, double size, IBrush? brush) {

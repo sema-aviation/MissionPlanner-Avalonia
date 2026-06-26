@@ -62,17 +62,18 @@ public partial class RawParamsViewModel : ViewModelBase {
   [RelayCommand]
   private async Task Refresh() {
     if (!IsConnected) {
-      Status = "Not connected — cannot fetch params.";
+      await Services.Dialogs.Alert("Refresh parameters", "Not connected — cannot fetch params.");
       return;
     }
 
-    Status = "Requesting parameters…";
     try {
-      await Task.Run(() => _comPort.getParamList());
+      // getParamListMavftp (what Open uses) — NOT the no-arg getParamList(), which builds a WinForms
+      // progress dialog via a static event that's unregistered here and NREs ("object reference…").
+      await Task.Run(() => _comPort.getParamListMavftp(_comPort.MAV.sysid, _comPort.MAV.compid));
       LoadFromMav();
-      Status = $"Loaded {_all.Count} parameters.";
+      await Services.Dialogs.Alert("Refresh parameters", $"Loaded {_all.Count} parameters.");
     } catch (Exception ex) {
-      Status = "Fetch failed: " + ex.Message;
+      await Services.Dialogs.Alert("Refresh failed", ex.Message);
     }
   }
 
@@ -81,7 +82,7 @@ public partial class RawParamsViewModel : ViewModelBase {
   private async Task Write() {
     var dirty = _all.Where(r => r.IsDirty).ToList();
     if (dirty.Count == 0) {
-      Status = "No changes to write.";
+      await Services.Dialogs.Alert("Write parameters", "No changes to write.");
       return;
     }
 
@@ -89,7 +90,8 @@ public partial class RawParamsViewModel : ViewModelBase {
     var pending = new List<(ParamRow row, double val)>();
     foreach (var r in dirty) {
       if (!TryEval(r.ValueText, out var v)) {
-        Status = $"Invalid value for {r.Name}: \"{r.ValueText}\"";
+        await Services.Dialogs.Alert("Invalid value",
+            $"\"{r.ValueText}\" is not a valid value for {r.Name}.");
         return;
       }
       pending.Add((r, v));
@@ -103,34 +105,48 @@ public partial class RawParamsViewModel : ViewModelBase {
         }
         row.SetCurrent(val);
       }
-      Status = $"Not connected — staged {pending.Count} change(s) into the in-memory list.";
+      await Services.Dialogs.Alert("Write parameters",
+          $"Not connected — staged {pending.Count} change(s) into the in-memory list.");
       return;
     }
 
-    Status = $"Writing {pending.Count} parameter(s)…";
     int ok = 0;
     bool reboot = false;
     var fw = _comPort.MAV.cs.firmware.ToString();
-    foreach (var (row, val) in pending) {
-      var name = row.Name;
-      bool wrote = await Task.Run(() => _comPort.setParam(name, val, true));
-      if (wrote) {
-        row.SetCurrent(val);
-        ok++;
-        try {
-          reboot |= ParameterMetaDataRepository.GetParameterRebootRequired(name, fw);
-        } catch { }
+    try {
+      foreach (var (row, val) in pending) {
+        var name = row.Name;
+        bool wrote = await Task.Run(() => _comPort.setParam(name, val, true));
+        if (wrote) {
+          row.SetCurrent(val);
+          ok++;
+          try {
+            reboot |= ParameterMetaDataRepository.GetParameterRebootRequired(name, fw);
+          } catch { }
+        }
       }
+    } catch (Exception ex) {
+      ApplyFilter();
+      await Services.Dialogs.Alert("Write failed",
+          $"Wrote {ok}/{pending.Count} before error: {ex.Message}");
+      return;
     }
+
     ApplyFilter();
-    Status = $"Wrote {ok}/{pending.Count} parameter(s)."
-        + (reboot ? " A reboot is required for some changes to take effect." : "");
+    if (ok == pending.Count) {
+      await Services.Dialogs.Alert("Write parameters",
+          $"Wrote {ok} parameter(s)."
+          + (reboot ? "\n\nA reboot is required for some changes to take effect." : ""));
+    } else {
+      await Services.Dialogs.Alert("Write parameters",
+          $"Wrote {ok} of {pending.Count}. The rest were not acknowledged — try again.");
+    }
   }
 
   [RelayCommand]
-  private void Commit() {
+  private async Task Commit() {
     if (!IsConnected) {
-      Status = "Not connected — cannot commit to flash.";
+      await Services.Dialogs.Alert("Commit to flash", "Not connected — cannot commit to flash.");
       return;
     }
     try {
@@ -138,9 +154,9 @@ public partial class RawParamsViewModel : ViewModelBase {
           _comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.PREFLIGHT_STORAGE,
           1, 0, 0, 0, 0, 0, 0
       );
-      Status = "Commit-to-flash command sent.";
+      await Services.Dialogs.Alert("Commit to flash", "Commit-to-flash command sent.");
     } catch (Exception ex) {
-      Status = "Commit failed: " + ex.Message;
+      await Services.Dialogs.Alert("Commit failed", ex.Message);
     }
   }
 
@@ -172,9 +188,10 @@ public partial class RawParamsViewModel : ViewModelBase {
     }
     try {
       ParamFile.SaveParamFile(path, table);
-      Status = $"Saved {table.Count} parameters to {System.IO.Path.GetFileName(path)}.";
+      _ = Services.Dialogs.Alert("Save parameters",
+          $"Saved {table.Count} parameters to {System.IO.Path.GetFileName(path)}.");
     } catch (Exception ex) {
-      Status = "Save failed: " + ex.Message;
+      _ = Services.Dialogs.Alert("Save failed", ex.Message);
     }
   }
 
@@ -195,7 +212,7 @@ public partial class RawParamsViewModel : ViewModelBase {
         return;
       }
       var table = new Hashtable();
-      foreach (var p in comPort.MAV.param) {
+      foreach (var p in comPort.MAV.param.ToArray()) {
         table[p.Name] = p.Value;
       }
       ParamFile.SaveParamFile(CacheFilePath, table);
@@ -229,7 +246,7 @@ public partial class RawParamsViewModel : ViewModelBase {
     try {
       fileParams = ParamFile.loadParamFile(path);
     } catch (Exception ex) {
-      Status = "Load failed: " + ex.Message;
+      _ = Services.Dialogs.Alert("Load failed", ex.Message);
       return;
     }
 
@@ -250,9 +267,10 @@ public partial class RawParamsViewModel : ViewModelBase {
       ShowModifiedOnly = true;
     }
     ApplyFilter();
-    Status = compareOnly
-        ? $"Compared {System.IO.Path.GetFileName(path)}: {differing} differing of {matched} matched (showing modified). Write to apply."
-        : $"Loaded {System.IO.Path.GetFileName(path)}: staged {differing} change(s) of {matched} matched param(s). Write to apply.";
+    _ = Services.Dialogs.Alert(compareOnly ? "Compare parameters" : "Load parameters",
+        compareOnly
+            ? $"{System.IO.Path.GetFileName(path)}: {differing} differing of {matched} matched (showing modified). Write to apply."
+            : $"{System.IO.Path.GetFileName(path)}: staged {differing} change(s) of {matched} matched param(s). Write to apply.");
   }
 
   // Called from code-behind when the Fav checkbox column is edited.
@@ -264,7 +282,10 @@ public partial class RawParamsViewModel : ViewModelBase {
   private void LoadFromMav() {
     var fw = _comPort.MAV.cs.firmware.ToString();
     var favs = Settings.Instance.GetList("fav_params").ToHashSet();
-    var rows = _comPort.MAV.param.Select(p => BuildRow(p.Name, p.Value, p.default_value, fw, favs));
+    // Snapshot the live param list first: the background reader thread Adds PARAM_VALUEs to it, and
+    // enumerating it lazily here would throw mid-iteration (collection modified) on refresh.
+    var snapshot = _comPort.MAV.param.ToArray();
+    var rows = snapshot.Select(p => BuildRow(p.Name, p.Value, p.default_value, fw, favs)).ToList();
     LoadFrom(rows);
   }
 
@@ -277,7 +298,11 @@ public partial class RawParamsViewModel : ViewModelBase {
 
     double min = double.MinValue,
         max = double.MaxValue;
-    ParameterMetaDataRepository.GetParameterRange(name, ref min, ref max, fw);
+    try {
+      ParameterMetaDataRepository.GetParameterRange(name, ref min, ref max, fw);
+    } catch {
+      // missing/!loaded metadata must not blow up the whole param list (was the refresh NRE)
+    }
 
     return new ParamRow(name, value, def, units, opts, desc, min, max) { Fav = favs.Contains(name) };
   }
@@ -407,7 +432,7 @@ public partial class ParamRow : ObservableObject {
   public double? DefaultValue { get; }
 
   public string DefaultText =>
-      DefaultValue.HasValue ? DefaultValue.Value.ToString(CultureInfo.InvariantCulture) : "NaN";
+      DefaultValue.HasValue ? DefaultValue.Value.ToString(CultureInfo.InvariantCulture) : "";
 
   [ObservableProperty]
   private double _currentValue;

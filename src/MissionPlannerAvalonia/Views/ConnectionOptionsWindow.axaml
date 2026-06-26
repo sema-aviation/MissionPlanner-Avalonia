@@ -1,0 +1,47 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="320"
+  d:DesignHeight="220"
+  x:Class="MissionPlannerAvalonia.Views.ConnectionOptionsWindow"
+  x:DataType="vm:ConnectionOptionsViewModel"
+  Background="#434445"
+  Width="340"
+  Height="230"
+  CanResize="False"
+  WindowStartupLocation="CenterOwner"
+  Title="Connection Options"
+>
+  <Grid Margin="16" RowDefinitions="Auto,Auto,Auto,*,Auto" ColumnDefinitions="Auto,*">
+    <TextBlock Grid.Row="0" Grid.Column="0" Classes="lbl" Text="Default baud rate" />
+    <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+              ItemsSource="{Binding Bauds}" SelectedItem="{Binding SelectedBaud}" />
+
+    <TextBlock Grid.Row="1" Grid.Column="0" Classes="lbl" Text="GCS system id" />
+    <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="255" Increment="1"
+                   FormatString="0" Value="{Binding GcsSysid}" />
+
+    <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+              Foreground="WhiteSmoke" Content="Send GCS heartbeat"
+              IsChecked="{Binding SendGcsHeartbeat}" />
+
+    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal"
+                HorizontalAlignment="Right" Spacing="8">
+      <TextBlock Foreground="#9AD" VerticalAlignment="Center" Text="{Binding Status}" />
+      <Button Content="Save" Command="{Binding ApplyCommand}" MinWidth="80" />
+      <Button Content="Close" Click="OnClose" MinWidth="80" />
+    </StackPanel>
+  </Grid>
+
+  <Window.Styles>
+    <Style Selector="TextBlock.lbl">
+      <Setter Property="Foreground" Value="#BBB" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,4,12,4" />
+    </Style>
+  </Window.Styles>
+</Window>

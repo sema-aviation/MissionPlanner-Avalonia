@@ -57,4 +57,33 @@ public class WpRowTests {
     Assert.False(string.IsNullOrWhiteSpace(row.Zone));
     Assert.False(string.IsNullOrWhiteSpace(row.Mgrs));
   }
+
+  [Fact]
+  public void Editing_utm_cells_converts_back_to_lat_lng() {
+    var row = new WpRow { Lat = -35.363261, Lng = 149.165230 };
+    string zone = row.Zone, easting = row.Easting, northing = row.Northing;
+
+    // Move the point away, then re-enter the saved UTM trio — should recover the original lat/lng.
+    row.Lat = 0;
+    row.Lng = 0;
+    row.Zone = zone;
+    row.Easting = easting;
+    row.Northing = northing;
+
+    Assert.Equal(-35.363261, row.Lat, 4);
+    Assert.Equal(149.165230, row.Lng, 4);
+  }
+
+  [Fact]
+  public void Editing_mgrs_cell_converts_back_to_lat_lng() {
+    var row = new WpRow { Lat = -35.363261, Lng = 149.165230 };
+    string mgrs = row.Mgrs;
+
+    row.Lat = 0;
+    row.Lng = 0;
+    row.Mgrs = mgrs;
+
+    Assert.Equal(-35.363261, row.Lat, 3);
+    Assert.Equal(149.165230, row.Lng, 3);
+  }
 }

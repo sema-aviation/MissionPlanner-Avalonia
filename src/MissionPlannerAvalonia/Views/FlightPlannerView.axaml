@@ -26,16 +26,32 @@
           <TextBlock Text="Default Alt" Classes="fieldlbl" Margin="0,0,4,0" />
           <NumericUpDown Width="92" Value="{Binding DefaultAlt}" Margin="0,0,10,0" />
           <Button Content="Add WP" Command="{Binding AddWaypointCommand}" Margin="0,0,8,0" />
+          <CheckBox Content="Spline" IsChecked="{Binding SplineDefault}" Foreground="#E0E0E0"
+                    Margin="0,0,10,0" VerticalAlignment="Center" />
+
+          <TextBlock Text="Dist" Classes="fieldlbl" Margin="0,0,3,0" />
+          <TextBlock Text="{Binding TotalDist}" Classes="fieldlbl" Margin="0,0,8,0" />
+          <TextBlock Text="Home" Classes="fieldlbl" Margin="0,0,3,0" />
+          <TextBlock Text="{Binding HomeDist}" Classes="fieldlbl" Margin="0,0,8,0" />
+          <TextBlock Text="Prev" Classes="fieldlbl" Margin="0,0,3,0" />
+          <TextBlock Text="{Binding PrevDist}" Classes="fieldlbl" Margin="0,0,10,0" />
           <TextBlock Text="{Binding Status}" Classes="fieldlbl" VerticalAlignment="Center" />
         </WrapPanel>
 
         <DataGrid
           Grid.Row="1"
+          x:Name="WpGrid"
           ItemsSource="{Binding Waypoints}"
+          SelectedItem="{Binding SelectedWaypoint}"
+          SelectionChanged="OnWpSelectionChanged"
           AutoGenerateColumns="False"
           CanUserReorderColumns="True"
           GridLinesVisibility="All"
         >
+          <DataGrid.KeyBindings>
+            <KeyBinding Gesture="Delete" Command="{Binding DeleteWaypointCommand}"
+                        CommandParameter="{Binding SelectedWaypoint}" />
+          </DataGrid.KeyBindings>
           <DataGrid.Columns>
             <DataGridTextColumn Header="#" Binding="{Binding Seq}" IsReadOnly="True" Width="40" />
             <DataGridTemplateColumn Header="Command" Width="190">
@@ -81,10 +97,10 @@
             <DataGridTextColumn Header="Angle" Binding="{Binding Angle}" IsReadOnly="True" Width="60" />
             <DataGridTextColumn Header="Dist" Binding="{Binding Dist}" IsReadOnly="True" Width="64" />
             <DataGridTextColumn Header="AZ" Binding="{Binding Az}" IsReadOnly="True" Width="50" />
-            <DataGridTextColumn Header="Zone" Binding="{Binding Zone}" IsReadOnly="True" Width="50" />
-            <DataGridTextColumn Header="Easting" Binding="{Binding Easting}" IsReadOnly="True" Width="90" />
-            <DataGridTextColumn Header="Northing" Binding="{Binding Northing}" IsReadOnly="True" Width="90" />
-            <DataGridTextColumn Header="MGRS" Binding="{Binding Mgrs}" IsReadOnly="True" Width="130" />
+            <DataGridTextColumn Header="Zone" Binding="{Binding Zone}" Width="50" />
+            <DataGridTextColumn Header="Easting" Binding="{Binding Easting}" Width="90" />
+            <DataGridTextColumn Header="Northing" Binding="{Binding Northing}" Width="90" />
+            <DataGridTextColumn Header="MGRS" Binding="{Binding Mgrs}" Width="130" />
             <DataGridTemplateColumn Header="Up" Width="44">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate x:DataType="vm:WpRow">
@@ -144,6 +160,12 @@
           <Button Content="Load File" HorizontalAlignment="Stretch" Click="OnLoadFile" />
           <Button Content="Save File" HorizontalAlignment="Stretch" Click="OnSaveFile" />
           <Separator />
+          <TextBlock Text="Mission Type" Foreground="#BBBBBB" FontSize="11" />
+          <ComboBox
+            HorizontalAlignment="Stretch"
+            ItemsSource="{Binding MissionTypes}"
+            SelectedItem="{Binding MissionType}"
+          />
           <Button Content="Read" HorizontalAlignment="Stretch" Command="{Binding ReadWaypointsCommand}" />
           <Button Content="Write" HorizontalAlignment="Stretch" Command="{Binding WriteWaypointsCommand}" />
           <Button

@@ -58,6 +58,9 @@ public partial class FlightDataViewModel : ViewModelBase {
   private double _satCount;
 
   [ObservableProperty]
+  private int _gpsFixType;
+
+  [ObservableProperty]
   private double _gpsHdop;
 
   [ObservableProperty]
@@ -132,6 +135,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
 
     InitQuickItems();
+    InitTuningFields();
 
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
     _timer.Tick += (_, _) => Pump();
@@ -158,8 +162,11 @@ public partial class FlightDataViewModel : ViewModelBase {
     VerticalSpeed = cs.verticalspeed;
     DistToHome = cs.DistToHome;
     BatteryVoltage = cs.battery_voltage;
-    BatteryRemaining = cs.battery_remaining;
+    BatteryRemaining = (int)Math.Round(EstimateBatteryPercent(
+        cs.battery_voltage, cs.current, cs.battery_usedmah, ParamValue("BATT_CAPACITY"),
+        ref _peakBattVoltage, cs.battery_remaining));
     SatCount = cs.satcount;
+    GpsFixType = (int)cs.gpsstatus;
     GpsHdop = cs.gpshdop;
     Mode = cs.mode ?? "—";
     Armed = cs.armed;
@@ -194,7 +201,8 @@ public partial class FlightDataViewModel : ViewModelBase {
     XTrackError = cs.xtrack_error;
     TurnRate = cs.turnrate;
     BatteryVoltage2 = cs.battery_voltage2;
-    BatteryRemaining2 = cs.battery_remaining2;
+    BatteryRemaining2 = (int)Math.Round(
+        Services.BatteryEstimator.EstimatePercent(cs.battery_voltage2, cs.battery_remaining2));
     BatCurrent2 = cs.current2;
     ThrottlePercent = cs.ch3percent;
     Failsafe = cs.failsafe;
@@ -204,12 +212,20 @@ public partial class FlightDataViewModel : ViewModelBase {
     TargetSpeed = cs.targetairspeed;
 
     UpdateQuickItems(cs);
+    SampleTuning(cs);
 
     // Live STATUSTEXT for the Messages tab (mirrors Messagetabtimer; last 200, newest at bottom).
+    // The reader thread mutates cs.messages (List, unlocked); a concurrent Add/RemoveAt would throw
+    // mid-enumeration on this UI thread. Snapshot under try/catch and just skip a contended frame.
     if (cs.messages != null && cs.messages.Count != _lastMsgCount) {
-      _lastMsgCount = cs.messages.Count;
-      StatusText = string.Join("\n",
-          cs.messages.TakeLast(200).Select(m => $"{m.time:HH:mm:ss}  {m.message?.TrimEnd()}"));
+      try {
+        var snapshot = cs.messages.ToArray();
+        _lastMsgCount = snapshot.Length;
+        StatusText = string.Join("\n",
+            snapshot.TakeLast(200).Select(m => $"{m.time:HH:mm:ss}  {m.message?.TrimEnd()}"));
+      } catch (InvalidOperationException) {
+        // collection modified by the reader — retry next tick
+      }
     }
 
     if (_hudUserFields.Count > 0) {
@@ -233,6 +249,45 @@ public partial class FlightDataViewModel : ViewModelBase {
 
     RefreshStatus(cs);
     RefreshPreflight(cs);
+  }
+
+  // Peak pack voltage seen this session — latches the cell count so a sagging pack can't shrink it.
+  private double _peakBattVoltage;
+
+  // Prefer coulomb counting (capacity - used mAh) when a current sensor + capacity exist; else fall
+  // back to the voltage curve with a cell count latched from the peak voltage.
+  private static double EstimateBatteryPercent(double voltage, double current, double usedMah,
+      double capacityMah, ref double peakVoltage, double firmwarePercent) {
+    if (voltage < 1.0) {
+      peakVoltage = 0; // pack gone -> forget the latched cell count for the next one
+      return firmwarePercent;
+    }
+
+    if (voltage > peakVoltage) {
+      peakVoltage = voltage;
+    }
+
+    if (current > 0) {
+      var byCapacity = Services.BatteryEstimator.FromCapacity(usedMah, capacityMah);
+      if (byCapacity.HasValue) {
+        return byCapacity.Value;
+      }
+    }
+
+    int cells = Services.BatteryEstimator.InferCells(peakVoltage);
+    return Services.BatteryEstimator.EstimatePercent(voltage, cells, firmwarePercent);
+  }
+
+  // BATT_CAPACITY etc. in mAh; 0 when the param isn't loaded (offline / not configured).
+  // try/catch covers the TOCTOU window where a concurrent getParamList Clear()/AddRange() empties
+  // the list between ContainsKey and the indexer (would NRE on this UI thread).
+  private double ParamValue(string name) {
+    try {
+      var p = _comPort.MAV?.param;
+      return p != null && p.ContainsKey(name) ? p[name].Value : 0;
+    } catch {
+      return 0;
+    }
   }
 
   // ---- Quick tab ----
@@ -1216,6 +1271,82 @@ public partial class FlightDataViewModel : ViewModelBase {
   private void ClearTrack() {
     TrackClearRequested?.Invoke();
     Log("Track cleared.");
+  }
+
+  // ---- Live map overlays (mirror MP lbl_sats / lbl_hdop / coords-under-cursor) ----
+  // Cursor lat/lng is pushed by the view from MapView.CursorMoved.
+  [ObservableProperty]
+  private double _cursorLat;
+
+  [ObservableProperty]
+  private double _cursorLng;
+
+  // ---- Tuning graph (mirrors MP CB_tuning + zg1: rolling live plot of selected cs fields) ----
+  // Rolling window length, seconds (MP tunx default ~30 s).
+  public const double TuningWindowSeconds = 30.0;
+
+  [ObservableProperty]
+  private bool _tuning;
+
+  private readonly System.Collections.Generic.HashSet<string> _tuningFields = new();
+  private long _tuningStart = Environment.TickCount64;
+
+  // Raised each Pump tick while tuning: (seconds-since-start, field->value snapshot).
+  public event Action<double, System.Collections.Generic.IReadOnlyDictionary<string, double>>? TuningSampled;
+
+  // Raised when the picked field set changes so the view can rebuild the plot's series.
+  public event Action? TuningFieldsChanged;
+
+  private void InitTuningFields() {
+    foreach (var f in new[] { "roll", "pitch", "nav_roll", "nav_pitch" }) {
+      if (StatusProps.Any(p => p.Name == f)) {
+        _tuningFields.Add(f);
+      }
+    }
+  }
+
+  partial void OnTuningChanged(bool value) {
+    if (value) {
+      _tuningStart = Environment.TickCount64;
+    }
+  }
+
+  // Numeric cs fields the Tuning picker offers (same catalogue as the QuickView picker).
+  public System.Collections.Generic.List<(string name, string desc)> TuningFieldList() => QuickFieldList();
+
+  public bool IsTuningField(string name) => _tuningFields.Contains(name);
+
+  public void SetTuningFields(System.Collections.Generic.IEnumerable<string> names) {
+    _tuningFields.Clear();
+    foreach (var n in names) {
+      _tuningFields.Add(n);
+    }
+    _tuningStart = Environment.TickCount64;
+    TuningFieldsChanged?.Invoke();
+  }
+
+  private void SampleTuning(MissionPlanner.CurrentState cs) {
+    if (!Tuning || _tuningFields.Count == 0 || TuningSampled == null) {
+      return;
+    }
+    double t = (Environment.TickCount64 - _tuningStart) / 1000.0;
+    var sample = new System.Collections.Generic.Dictionary<string, double>();
+    foreach (var name in _tuningFields) {
+      var pi = StatusProps.FirstOrDefault(p => p.Name == name);
+      if (pi == null) {
+        continue;
+      }
+      try {
+        if (pi.GetValue(cs) is IConvertible c) {
+          sample[name] = Convert.ToDouble(c, CultureInfo.InvariantCulture);
+        }
+      } catch {
+        // skip a field that can't be read/converted this tick
+      }
+    }
+    if (sample.Count > 0) {
+      TuningSampled.Invoke(t, sample);
+    }
   }
 
   // ---- Map context menu (mirrors FlightData contextMenuStripMap) ----

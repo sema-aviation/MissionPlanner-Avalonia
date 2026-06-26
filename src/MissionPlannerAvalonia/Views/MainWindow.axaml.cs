@@ -65,4 +65,17 @@ public partial class MainWindow : Window {
       Vm.Connection.ReadOnly = !Vm.Connection.ReadOnly;
     }
   }
+
+  // CTX_mainmenu "Link Stats": live throughput/packet-loss/link-quality popup.
+  private void OnLinkStats(object? sender, RoutedEventArgs e) => LinkStatsWindow.OpenWindow();
+
+  // CTX_mainmenu "Connection Options": comms settings dialog (baud memory, GCS heartbeat, sysid).
+  private void OnConnectionOptions(object? sender, RoutedEventArgs e) =>
+      ConnectionOptionsWindow.OpenWindow();
+
+  // CTX_mainmenu "Download Logs": list + download on-board dataflash logs over MAVLink.
+  private void OnDownloadLogs(object? sender, RoutedEventArgs e) => LogDownloadWindow.OpenWindow();
+
+  // CTX_mainmenu "Tlog Convert": .tlog -> KML/GPX/Matlab conversion hub.
+  private void OnMavlinkLogConvert(object? sender, RoutedEventArgs e) => MavlinkLogWindow.OpenWindow();
 }

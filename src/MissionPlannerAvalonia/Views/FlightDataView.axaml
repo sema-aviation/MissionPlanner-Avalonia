@@ -33,7 +33,9 @@
           GroundSpeed="{Binding GroundSpeed}"
           VerticalSpeed="{Binding VerticalSpeed}"
           SatCount="{Binding SatCount}"
+          GpsFixType="{Binding GpsFixType}"
           Armed="{Binding Armed}"
+          PrearmOk="{Binding PrearmOk}"
           Mode="{Binding Mode}"
           BatteryVoltage="{Binding BatteryVoltage}"
           BatteryRemaining="{Binding BatteryRemaining}"
@@ -121,7 +123,7 @@
 
       <GridSplitter Grid.Row="1" Background="#262728" ResizeDirection="Rows" />
 
-      <TabControl Grid.Row="2" Background="#434445">
+      <TabControl x:Name="FdTabs" Grid.Row="2" Background="#434445">
         <TabItem Header="Quick">
           <!-- Grid of QuickView cells; double-click a cell to pick which cs field it shows
                (mirrors MP quickView controls + quickView_DoubleClick). -->
@@ -154,26 +156,33 @@
               <WrapPanel.Styles>
                 <Style Selector="WrapPanel > Panel">
                   <Setter Property="Width" Value="188" />
-                  <Setter Property="Height" Value="30" />
+                  <Setter Property="Height" Value="34" />
                   <Setter Property="Margin" Value="3" />
                 </Style>
                 <Style Selector="WrapPanel > Button">
                   <Setter Property="Width" Value="188" />
-                  <Setter Property="Height" Value="30" />
+                  <Setter Property="Height" Value="34" />
+                  <Setter Property="MinHeight" Value="34" />
                   <Setter Property="Margin" Value="3" />
                   <Setter Property="FontSize" Value="11" />
                   <Setter Property="HorizontalContentAlignment" Value="Center" />
                 </Style>
                 <Style Selector="Panel Button">
                   <Setter Property="FontSize" Value="11" />
+                  <Setter Property="MinHeight" Value="0" />
+                  <Setter Property="VerticalAlignment" Value="Stretch" />
                   <Setter Property="HorizontalContentAlignment" Value="Center" />
                 </Style>
                 <Style Selector="Panel ComboBox">
                   <Setter Property="FontSize" Value="11" />
+                  <Setter Property="MinHeight" Value="0" />
+                  <Setter Property="VerticalAlignment" Value="Stretch" />
                 </Style>
                 <Style Selector="Panel NumericUpDown">
                   <Setter Property="FontSize" Value="11" />
                   <Setter Property="MinWidth" Value="0" />
+                  <Setter Property="MinHeight" Value="0" />
+                  <Setter Property="VerticalAlignment" Value="Stretch" />
                 </Style>
               </WrapPanel.Styles>
 
@@ -216,21 +225,24 @@
                 <DockPanel>
                   <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False"
                                  FormatString="0.0" Value="{Binding ChangeSpeedValue}" />
-                  <Button Content="Speed" Command="{Binding ChangeSpeedCommand}" Margin="0,0,3,0" />
+                  <Button Content="Speed" Command="{Binding ChangeSpeedCommand}" Margin="0,0,3,0"
+                          HorizontalAlignment="Stretch" />
                 </DockPanel>
               </Panel>
               <Panel>
                 <DockPanel>
                   <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False"
                                  FormatString="0.0" Value="{Binding ChangeAltValue}" />
-                  <Button Content="Alt" Command="{Binding ChangeAltCommand}" Margin="0,0,3,0" />
+                  <Button Content="Alt" Command="{Binding ChangeAltCommand}" Margin="0,0,3,0"
+                          HorizontalAlignment="Stretch" />
                 </DockPanel>
               </Panel>
               <Panel>
                 <DockPanel>
                   <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False"
                                  FormatString="0" Value="{Binding LoiterRadValue}" />
-                  <Button Content="Loiter Rad" Command="{Binding SetLoiterRadCommand}" Margin="0,0,3,0" />
+                  <Button Content="Loiter Rad" Command="{Binding SetLoiterRadCommand}" Margin="0,0,3,0"
+                          HorizontalAlignment="Stretch" />
                 </DockPanel>
               </Panel>
 
@@ -334,58 +346,60 @@
         </TabItem>
 
         <TabItem Header="Servo/Relay">
-          <!-- horizontal wrap: rows reflow into as many columns as the width allows,
-               vertical scroll for overflow (mirrors MP FlowLayoutPanel). -->
-          <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+          <!-- Vertical list, one row per channel. Auto-width columns size to content so buttons
+               and inputs can't overlap; horizontal scroll appears only if the pane gets narrow. -->
+          <ScrollViewer HorizontalScrollBarVisibility="Auto"
                         VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding ServoRelayItems}" Margin="4">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                  <WrapPanel Orientation="Horizontal" />
+                  <StackPanel Orientation="Vertical" Spacing="3" />
                 </ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
               <ItemsControl.DataTemplates>
                 <DataTemplate DataType="vm:ServoChannel">
-                  <!-- fixed Auto columns so buttons/boxes never overlap on reflow -->
-
-                  <Grid Margin="2,1,14,1" ColumnSpacing="3"
-                        ColumnDefinitions="40,40,40,50,42,46,46">
-                    <Button Grid.Column="0" Content="Low" FontSize="11" Padding="2,2"
+                  <Grid ColumnSpacing="6" HorizontalAlignment="Left"
+                        ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                    <Border Grid.Column="0" Background="#5A5A5A" CornerRadius="3"
+                            MinWidth="64" Padding="8,0">
+                      <TextBlock Text="{Binding Number, StringFormat='Servo {0}'}" Foreground="White"
+                                 FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Button Grid.Column="1" Content="Low" MinWidth="52" FontSize="11" Padding="8,3"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:low'}" />
-                    <Button Grid.Column="1" Content="Mid" FontSize="11" Padding="2,2"
+                    <Button Grid.Column="2" Content="Mid" MinWidth="52" FontSize="11" Padding="8,3"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:mid'}" />
-                    <Button Grid.Column="2" Content="High" FontSize="11" Padding="2,2"
+                    <Button Grid.Column="3" Content="High" MinWidth="52" FontSize="11" Padding="8,3"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:high'}" />
-                    <Button Grid.Column="3" Content="Toggle" FontSize="11" Padding="2,2"
+                    <Button Grid.Column="4" Content="Toggle" MinWidth="64" FontSize="11" Padding="8,3"
                             Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetServoChannelCommand}"
                             CommandParameter="{Binding Number, StringFormat='{}{0}:toggle'}" />
-                    <Border Grid.Column="4" Background="#5A5A5A">
-                      <TextBlock Text="{Binding Number}" Foreground="White" FontSize="11"
-                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <TextBox Grid.Column="5" FontSize="11" Padding="2,1" Text="{Binding Min}" />
-                    <TextBox Grid.Column="6" FontSize="11" Padding="2,1" Text="{Binding Max}" />
+                    <TextBox Grid.Column="5" Width="76" FontSize="11" Padding="4,2" Watermark="Min PWM"
+                             ToolTip.Tip="Minimum PWM (µs)" Text="{Binding Min}" />
+                    <TextBox Grid.Column="6" Width="76" FontSize="11" Padding="4,2" Watermark="Max PWM"
+                             ToolTip.Tip="Maximum PWM (µs)" Text="{Binding Max}" />
                   </Grid>
                 </DataTemplate>
                 <DataTemplate DataType="vm:RelayChannel">
-                  <Grid Margin="2,1,14,1" ColumnSpacing="3"
-                        ColumnDefinitions="40,40,50,90">
-                    <Button Grid.Column="0" Content="Low" FontSize="11" Padding="2,2"
-                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
-                            CommandParameter="{Binding Index, StringFormat='{}{0}:low'}" />
-                    <Button Grid.Column="1" Content="High" FontSize="11" Padding="2,2"
-                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
-                            CommandParameter="{Binding Index, StringFormat='{}{0}:high'}" />
-                    <Button Grid.Column="2" Content="Toggle" FontSize="11" Padding="2,2"
-                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
-                            CommandParameter="{Binding Index, StringFormat='{}{0}:toggle'}" />
-                    <Border Grid.Column="3" Background="#5A5A5A">
+                  <Grid ColumnSpacing="6" HorizontalAlignment="Left"
+                        ColumnDefinitions="Auto,Auto,Auto,Auto">
+                    <Border Grid.Column="0" Background="#5A5A5A" CornerRadius="3"
+                            MinWidth="64" Padding="8,0">
                       <TextBlock Text="{Binding Label}" Foreground="White" FontSize="11"
                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
+                    <Button Grid.Column="1" Content="Low" MinWidth="52" FontSize="11" Padding="8,3"
+                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
+                            CommandParameter="{Binding Index, StringFormat='{}{0}:low'}" />
+                    <Button Grid.Column="2" Content="High" MinWidth="52" FontSize="11" Padding="8,3"
+                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
+                            CommandParameter="{Binding Index, StringFormat='{}{0}:high'}" />
+                    <Button Grid.Column="3" Content="Toggle" MinWidth="64" FontSize="11" Padding="8,3"
+                            Command="{Binding $parent[ItemsControl].((vm:FlightDataViewModel)DataContext).SetRelayCommand}"
+                            CommandParameter="{Binding Index, StringFormat='{}{0}:toggle'}" />
                   </Grid>
                 </DataTemplate>
               </ItemsControl.DataTemplates>
@@ -574,26 +588,46 @@
       <Grid>
         <ctl:MapView x:Name="FdMap" />
 
-        <!-- top-left controls: Auto Pan + Clear Track -->
+        <!-- top-left controls: Auto Pan + Clear Track + live Tuning graph toggle -->
         <StackPanel Orientation="Horizontal" Spacing="8"
                     HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
           <CheckBox Content="Auto Pan" IsChecked="{Binding AutoPan}" Foreground="White" />
           <Button Content="Clear Track" Command="{Binding ClearTrackCommand}" Padding="6,2" />
+          <CheckBox Content="Tuning" IsChecked="{Binding Tuning}" Foreground="White" />
+          <Button Content="Pick…" Click="OnTuningPickClick" Padding="6,2" />
         </StackPanel>
 
-        <!-- bottom-left live readouts (mirrors lbl_hdop / lbl_sats / dist) -->
+        <!-- bottom-left live readouts (mirrors lbl_hdop / lbl_sats / dist + speed/wind/coords) -->
         <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
                 Background="#99000000" CornerRadius="4" Padding="6,3">
-          <StackPanel Orientation="Horizontal" Spacing="12">
-            <TextBlock Foreground="White" Text="{Binding SatCount, StringFormat='Sats: {0}'}" />
-            <TextBlock Foreground="White" Text="{Binding GpsHdop, StringFormat='hdop: {0:0.0}'}" />
-            <TextBlock Foreground="White" Text="{Binding DistToHome, StringFormat='Home: {0:0} m'}" />
+          <StackPanel Spacing="1">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Foreground="White" Text="{Binding SatCount, StringFormat='Sats: {0}'}" />
+              <TextBlock Foreground="White" Text="{Binding GpsHdop, StringFormat='hdop: {0:0.0}'}" />
+              <TextBlock Foreground="White" Text="{Binding DistToHome, StringFormat='Home: {0:0} m'}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Foreground="White" Text="{Binding GroundSpeed, StringFormat='GS: {0:0.0} m/s'}" />
+              <TextBlock Foreground="White"
+                         Text="{Binding WindDir, StringFormat='Wind: {0:0}°'}" />
+              <TextBlock Foreground="White" Text="{Binding WindVel, StringFormat='{}{0:0.0} m/s'}" />
+            </StackPanel>
+            <TextBlock Foreground="#CCCCCC" FontSize="11"
+                       Text="{Binding CursorLat, StringFormat='Cursor: {0:0.000000}'}" />
+            <TextBlock Foreground="#CCCCCC" FontSize="11"
+                       Text="{Binding CursorLng, StringFormat='         {0:0.000000}'}" />
           </StackPanel>
         </Border>
 
         <!-- bottom-right legend -->
         <TextBlock HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
                    Foreground="#CCCCCC" FontSize="11" Text="GPS Track (Black)" />
+
+        <!-- live Tuning graph (rolling ~30 s window of picked cs fields); double-click to pick -->
+        <Border IsVisible="{Binding Tuning}" VerticalAlignment="Bottom" Height="210"
+                Margin="0,0,0,26" Background="#CC1B1B1B">
+          <ctl:LivePlot x:Name="TuningPlot" DoubleTapped="OnTuningPickClick" />
+        </Border>
       </Grid>
     </Border>
   </Grid>

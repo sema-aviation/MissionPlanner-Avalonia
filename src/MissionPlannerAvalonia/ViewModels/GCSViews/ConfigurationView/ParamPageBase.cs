@@ -38,8 +38,19 @@ public partial class ParamPageBase : ViewModelBase {
 
   [RelayCommand]
   private async Task Refresh() {
-    if (IsConnected) {
-      await Task.Run(() => comPort.getParamList());
+    if (!IsConnected) {
+      await Services.Dialogs.Alert("Refresh parameters", "Not connected — cannot fetch params.");
+      return;
+    }
+
+    // getParamListMavftp (what Open uses); the no-arg getParamList() NREs here because it builds a
+    // WinForms progress dialog via a static event that's unregistered in this port — that null-event
+    // NRE was the ESC-calibration "Refresh Params" crash. try/catch keeps any other fault contained.
+    try {
+      await Task.Run(() => comPort.getParamListMavftp(comPort.MAV.sysid, comPort.MAV.compid));
+    } catch (System.Exception ex) {
+      await Services.Dialogs.Alert("Refresh failed", ex.Message);
+      return;
     }
 
     OnRefreshed();

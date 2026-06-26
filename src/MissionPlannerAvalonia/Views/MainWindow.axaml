@@ -34,7 +34,11 @@
           <MenuItem Header="Full Screen" Click="OnFullScreen" />
           <MenuItem Header="Readonly" Click="OnToggleReadonly" />
           <Separator />
-          <MenuItem Header="Connection Options (not ported)" IsEnabled="False" />
+          <MenuItem Header="Link Stats" Click="OnLinkStats" />
+          <MenuItem Header="Connection Options" Click="OnConnectionOptions" />
+          <MenuItem Header="Download Logs (MAVLink)" Click="OnDownloadLogs" />
+          <MenuItem Header="Tlog Convert (KML/GPX/Matlab)" Click="OnMavlinkLogConvert" />
+          <Separator />
           <MenuItem Header="Connection List (not ported)" IsEnabled="False" />
         </ContextMenu>
       </Border.ContextMenu>
@@ -161,25 +165,7 @@
       </Grid>
     </Border>
 
-    <Border DockPanel.Dock="Top" Background="#1F1F20" Height="22">
-      <Grid>
-        <ProgressBar
-          Minimum="0"
-          Maximum="100"
-          Value="{Binding Connection.Progress}"
-          Foreground="#2E7D32"
-          Background="Transparent"
-          BorderThickness="0"
-        />
-        <TextBlock
-          VerticalAlignment="Center"
-          Margin="8,0"
-          FontSize="11"
-          Foreground="#DDDDDD"
-          Text="{Binding Connection.Status}"
-        />
-      </Grid>
-    </Border>
+    <!-- Connection progress/status now lives in the connect dialog (ProgressReporter), not a strip. -->
 
     <!-- Each screen's view is built once on first show and kept alive; switching tabs only
          toggles visibility, so the Data/Plan maps never reload (mirrors MP's persistent tabs). -->

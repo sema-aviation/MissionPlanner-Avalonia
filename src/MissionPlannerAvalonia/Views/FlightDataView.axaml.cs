@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -13,6 +15,7 @@ using MissionPlannerAvalonia.ViewModels;
 namespace MissionPlannerAvalonia.Views;
 
 public partial class FlightDataView : UserControl {
+  [Obsolete]
   public FlightDataView() {
     InitializeComponent();
     var hud = this.FindControl<HudControl>("Hud");
@@ -20,10 +23,24 @@ public partial class FlightDataView : UserControl {
       hud.IndicatorClicked += OnHudIndicatorClicked;
     }
     _fdMap = this.FindControl<MapView>("FdMap");
+    _tuningPlot = this.FindControl<LivePlot>("TuningPlot");
     if (_fdMap != null) {
       _fdMap.ContextMenu = BuildMapMenu(_fdMap);
+      // Cursor coords readout over the map (mirrors MP MainMap_MouseMove coord label).
+      _fdMap.CursorMoved += (lat, lng) => {
+        if (DataContext is FlightDataViewModel vm) {
+          vm.CursorLat = lat;
+          vm.CursorLng = lng;
+        }
+      };
       BindMap();
       DataContextChanged += (_, _) => BindMap();
+    }
+    _fdTabs = this.FindControl<TabControl>("FdTabs");
+    if (_fdTabs != null) {
+      _defaultTabPanel = _fdTabs.ItemsPanel;
+      _fdTabs.ContextMenu = BuildTabMenu(_fdTabs);
+      ApplyTabSettings(_fdTabs);
     }
     ApplyGaugeSettings();
   }
@@ -134,9 +151,12 @@ public partial class FlightDataView : UserControl {
   }
 
   private MapView? _fdMap;
+  private LivePlot? _tuningPlot;
+  private TabControl? _fdTabs;
   private FlightDataViewModel? _mapVm;
 
-  // Push AutoPan + Clear-Track from the VM onto the MapView (mirrors MP CHK_autopan / Clear Track).
+  // Push AutoPan + Clear-Track from the VM onto the MapView (mirrors MP CHK_autopan / Clear Track),
+  // and wire the live Tuning-graph feed.
   private void BindMap() {
     if (_fdMap == null || ReferenceEquals(_mapVm, DataContext)) {
       return;
@@ -144,12 +164,16 @@ public partial class FlightDataView : UserControl {
     if (_mapVm != null) {
       _mapVm.TrackClearRequested -= _fdMap.ClearTrack;
       _mapVm.PropertyChanged -= OnMapVmChanged;
+      _mapVm.TuningSampled -= OnTuningSampled;
+      _mapVm.TuningFieldsChanged -= OnTuningFieldsChanged;
     }
     _mapVm = DataContext as FlightDataViewModel;
     if (_mapVm != null) {
       _fdMap.AutoPan = _mapVm.AutoPan;
       _mapVm.TrackClearRequested += _fdMap.ClearTrack;
       _mapVm.PropertyChanged += OnMapVmChanged;
+      _mapVm.TuningSampled += OnTuningSampled;
+      _mapVm.TuningFieldsChanged += OnTuningFieldsChanged;
     }
   }
 
@@ -157,6 +181,101 @@ public partial class FlightDataView : UserControl {
     if (_fdMap != null && _mapVm != null
         && e.PropertyName == nameof(FlightDataViewModel.AutoPan)) {
       _fdMap.AutoPan = _mapVm.AutoPan;
+    }
+    if (e.PropertyName == nameof(FlightDataViewModel.Tuning) && _mapVm?.Tuning != true) {
+      ResetTuningPlot();
+    }
+  }
+
+  // ---- Tuning graph (mirrors MP zg1): per-field rolling buffers trimmed to a 30 s window. ----
+  private readonly Dictionary<string, (List<double> Xs, List<double> Ys)> _tuningBuffers = new();
+
+  // Stable colour per series so a field keeps its colour as the plot redraws each tick.
+  private static readonly ScottPlot.Color[] TuningPalette = {
+    ScottPlot.Colors.Yellow, ScottPlot.Colors.Cyan, ScottPlot.Colors.OrangeRed,
+    ScottPlot.Colors.LightGreen, ScottPlot.Colors.Magenta, ScottPlot.Colors.DeepSkyBlue,
+  };
+  private readonly Dictionary<string, ScottPlot.Color> _tuningColors = new();
+
+  private ScottPlot.Color ColorFor(string label) {
+    if (!_tuningColors.TryGetValue(label, out var c)) {
+      c = TuningPalette[_tuningColors.Count % TuningPalette.Length];
+      _tuningColors[label] = c;
+    }
+    return c;
+  }
+
+  private void ResetTuningPlot() {
+    _tuningBuffers.Clear();
+    _tuningPlot?.ClearAll();
+  }
+
+  private void OnTuningFieldsChanged() => ResetTuningPlot();
+
+  private void OnTuningSampled(double t,
+      System.Collections.Generic.IReadOnlyDictionary<string, double> sample) {
+    if (_tuningPlot == null) {
+      return;
+    }
+    double cutoff = t - FlightDataViewModel.TuningWindowSeconds;
+    foreach (var (label, value) in sample) {
+      if (!_tuningBuffers.TryGetValue(label, out var buf)) {
+        buf = (new List<double>(), new List<double>());
+        _tuningBuffers[label] = buf;
+      }
+      buf.Xs.Add(t);
+      buf.Ys.Add(value);
+      // drop points older than the rolling window
+      while (buf.Xs.Count > 0 && buf.Xs[0] < cutoff) {
+        buf.Xs.RemoveAt(0);
+        buf.Ys.RemoveAt(0);
+      }
+      _tuningPlot.SetSeries(label, buf.Xs, buf.Ys, ColorFor(label));
+    }
+  }
+
+  // Field picker for the Tuning graph (checklist of numeric cs fields; mirrors MP tuning setup).
+  private async void OnTuningPickClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is not FlightDataViewModel vm
+        || TopLevel.GetTopLevel(this) is not Window owner) {
+      return;
+    }
+    var fields = vm.TuningFieldList();
+    var panel = new WrapPanel { Orientation = Orientation.Vertical, MaxHeight = 520 };
+    var boxes = new List<CheckBox>();
+    foreach (var (name, desc) in fields) {
+      var cb = new CheckBox {
+        Content = desc,
+        Tag = name,
+        IsChecked = vm.IsTuningField(name),
+        Width = 200,
+        FontSize = 11,
+      };
+      boxes.Add(cb);
+      panel.Children.Add(cb);
+    }
+    var ok = new Button { Content = "OK", HorizontalAlignment = HorizontalAlignment.Right };
+    var dlg = new Window {
+      Title = "Tuning — pick fields",
+      Width = 680,
+      Height = 600,
+      WindowStartupLocation = WindowStartupLocation.CenterOwner,
+      Content = new DockPanel {
+        Margin = new Avalonia.Thickness(10),
+        Children = {
+          ok,
+          new ScrollViewer {
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            Content = panel,
+          },
+        },
+      },
+    };
+    DockPanel.SetDock(ok, Dock.Bottom);
+    ok.Click += (_, _) => dlg.Close(true);
+    if (await dlg.ShowDialog<bool>(owner)) {
+      vm.SetTuningFields(boxes.Where(b => b.IsChecked == true).Select(b => (string)b.Tag!));
+      vm.Tuning = true;
     }
   }
 
@@ -212,5 +331,100 @@ public partial class FlightDataView : UserControl {
     menu.Items.Add(Item("TakeOff", vm => vm.TakeOffHere()));
     menu.Items.Add(Item("Jump To Tag", vm => vm.JumpToTag()));
     return menu;
+  }
+
+  // ---- Tab bar right-click menu: Customize (visibility) + MultiLine (wrap) ----
+  // Mirrors MP FlightData contextMenuStrip on the tab control (tabcontrolactions setting).
+  private ITemplate<Panel?>? _defaultTabPanel;
+
+  private static IEnumerable<TabItem> TabItemsOf(TabControl tabs) => tabs.Items.OfType<TabItem>();
+
+  private static string HeaderOf(TabItem ti) => ti.Header?.ToString() ?? "";
+
+  private void ApplyTabSettings(TabControl tabs) {
+    var hidden = HiddenTabSet();
+    foreach (var ti in TabItemsOf(tabs)) {
+      ti.IsVisible = !hidden.Contains(HeaderOf(ti));
+    }
+    if (TabMultiLineSetting()) {
+      SetTabMultiLine(tabs, true);
+    }
+  }
+
+  private static HashSet<string> HiddenTabSet() {
+    var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    if (Settings.Instance.ContainsKey("tabcontrolactions")) {
+      foreach (var h in (Settings.Instance["tabcontrolactions"] ?? "")
+                   .Split(';', StringSplitOptions.RemoveEmptyEntries)) {
+        set.Add(h.Trim());
+      }
+    }
+    return set;
+  }
+
+  private static bool TabMultiLineSetting() =>
+      Settings.Instance.ContainsKey("tabcontrolmultiline")
+      && bool.TryParse(Settings.Instance["tabcontrolmultiline"], out var b) && b;
+
+  // Best-effort wrap: swap the tab strip's panel to a WrapPanel (multi-line) or restore the theme
+  // default (single line). Avalonia has no native MultiLine flag, so this reproduces the effect.
+  private void SetTabMultiLine(TabControl tabs, bool on) {
+    tabs.ItemsPanel = on ? new FuncTemplate<Panel?>(() => new WrapPanel()) : _defaultTabPanel;
+  }
+
+  private ContextMenu BuildTabMenu(TabControl tabs) {
+    var customize = new MenuItem { Header = "Customize" };
+    customize.Click += async (_, _) => await CustomizeTabsAsync(tabs);
+    var multiline = new MenuItem {
+      Header = "MultiLine",
+      ToggleType = MenuItemToggleType.CheckBox,
+      IsChecked = TabMultiLineSetting(),
+    };
+    multiline.Click += (_, _) => {
+      SetTabMultiLine(tabs, multiline.IsChecked);
+      Settings.Instance["tabcontrolmultiline"] = multiline.IsChecked.ToString();
+    };
+    var menu = new ContextMenu();
+    menu.Items.Add(customize);
+    menu.Items.Add(multiline);
+    return menu;
+  }
+
+  private async Task CustomizeTabsAsync(TabControl tabs) {
+    if (TopLevel.GetTopLevel(this) is not Window owner) {
+      return;
+    }
+    var panel = new StackPanel { Spacing = 2, Margin = new Avalonia.Thickness(4) };
+    var map = new List<(TabItem Ti, CheckBox Cb)>();
+    foreach (var ti in TabItemsOf(tabs)) {
+      var cb = new CheckBox { Content = HeaderOf(ti), IsChecked = ti.IsVisible };
+      map.Add((ti, cb));
+      panel.Children.Add(cb);
+    }
+    var ok = new Button { Content = "OK", HorizontalAlignment = HorizontalAlignment.Right };
+    var dlg = new Window {
+      Title = "Customize Tabs",
+      Width = 280,
+      Height = 480,
+      WindowStartupLocation = WindowStartupLocation.CenterOwner,
+      Content = new DockPanel {
+        Margin = new Avalonia.Thickness(10),
+        Children = { ok, new ScrollViewer { Content = panel } },
+      },
+    };
+    DockPanel.SetDock(ok, Dock.Bottom);
+    ok.Click += (_, _) => dlg.Close(true);
+    if (!await dlg.ShowDialog<bool>(owner)) {
+      return;
+    }
+    var hidden = new List<string>();
+    foreach (var (ti, cb) in map) {
+      bool vis = cb.IsChecked == true;
+      ti.IsVisible = vis;
+      if (!vis) {
+        hidden.Add(HeaderOf(ti));
+      }
+    }
+    Settings.Instance["tabcontrolactions"] = string.Join(";", hidden);
   }
 }

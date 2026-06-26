@@ -109,6 +109,7 @@ public partial class FollowMeViewModel : ViewModelBase, IDisposable {
   }
 
   [RelayCommand]
+  [Obsolete]
   private void ToggleConnect() {
     if (_run) {
       Stop();

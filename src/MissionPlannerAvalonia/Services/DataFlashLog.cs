@@ -72,7 +72,12 @@ public class DataFlashLog {
   }
 
   public static void ExportMatlab(string binPath, Action<string>? progress = null) {
-    MatLab.ProcessLog(binPath, progress);
+    // tlogs use the telemetry-log Matlab writer; dataflash .bin/.log use the DF writer.
+    if (binPath.EndsWith(".tlog", StringComparison.OrdinalIgnoreCase)) {
+      MatLab.tlog(binPath);
+    } else {
+      MatLab.ProcessLog(binPath, progress);
+    }
   }
 
   public static void ConvertBinToLog(string binPath, string outTextLogPath) {

@@ -62,7 +62,31 @@ public partial class LogBrowseViewModel : ViewModelBase {
   // GPS track for the map panel; raised after a load so the view can draw it.
   public IReadOnlyList<(double lat, double lng)> Track { get; private set; } =
       Array.Empty<(double, double)>();
+
+  // Same track but tagged with the plot-X time (seconds) so a clicked plot X can be correlated to a
+  // GPS sample. Time base matches DataFlashLog.ReadField (timems/1000), NOT ReadTrack's DateTime.
+  public IReadOnlyList<(double time, double lat, double lng)> TimedTrack { get; private set; } =
+      Array.Empty<(double, double, double)>();
+
   public event Action? TrackChanged;
+
+  // Nearest GPS track sample to a plot-X time (seconds); null when the log has no GPS track.
+  public (double lat, double lng)? NearestTrackSample(double timeSec) {
+    var tt = TimedTrack;
+    if (tt.Count == 0) {
+      return null;
+    }
+    double best = double.MaxValue;
+    (double lat, double lng) found = default;
+    foreach (var p in tt) {
+      var d = Math.Abs(p.time - timeSec);
+      if (d < best) {
+        best = d;
+        found = (p.lat, p.lng);
+      }
+    }
+    return found;
+  }
 
   public LogBrowseViewModel() {
     foreach (var p in LoadPresets()) {
@@ -85,7 +109,7 @@ public partial class LogBrowseViewModel : ViewModelBase {
     Busy = true;
     Status = "Parsing log…";
     try {
-      var (summary, formats, types, track) = await Task.Run(() => Parse(path));
+      var (summary, formats, types, track, timedTrack) = await Task.Run(() => Parse(path));
       _formats.Clear();
       foreach (var kv in formats) {
         _formats[kv.Key] = kv.Value;
@@ -101,6 +125,7 @@ public partial class LogBrowseViewModel : ViewModelBase {
         Tree.Add(node);
       }
       Track = track;
+      TimedTrack = timedTrack;
       Info = summary;
       SelectedType = MessageTypes.FirstOrDefault();
       Status = $"Loaded {types.Count} message types.";
@@ -123,6 +148,73 @@ public partial class LogBrowseViewModel : ViewModelBase {
       return null;
     }
     return (series.Select(s => s.time).ToList(), series.Select(s => s.value).ToList());
+  }
+
+  // Matches TYPE.FIELD tokens inside a derived-math expression (e.g. "BAT.Volt*BAT.Curr").
+  private static readonly System.Text.RegularExpressions.Regex FieldRef =
+      new(@"[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*",
+          System.Text.RegularExpressions.RegexOptions.Compiled);
+
+  public static bool IsExpression(string s) => s.IndexOfAny(new[] { '(', ')', '+', '-', '*', '/' }) >= 0;
+
+  // Evaluate a derived-math curve (e.g. "ATT.Roll-ATT.Pitch", "BAT.Volt*BAT.Curr"). All referenced
+  // fields must share ONE message type (so samples align row-for-row); multi-type expressions return
+  // null (cross-type time-alignment not supported). Mirrors MP's expression curves.
+  public (IReadOnlyList<double> xs, IReadOnlyList<double> ys)? ReadExpressionCurve(string expr) {
+    if (CurrentPath == null) {
+      return null;
+    }
+    var refs = FieldRef.Matches(expr).Select(m => m.Value).Distinct().ToList();
+    if (refs.Count == 0) {
+      return null;
+    }
+    var types = refs.Select(r => r.Split('.', 2)[0]).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    if (types.Count != 1) {
+      return null; // cross-type alignment unsupported
+    }
+    var series = new Dictionary<string, IReadOnlyList<(double time, double value)>>();
+    foreach (var r in refs) {
+      var parts = r.Split('.', 2);
+      var s = DataFlashLog.ReadField(CurrentPath, parts[0], parts[1]);
+      if (s.Count == 0) {
+        return null;
+      }
+      series[r] = s;
+    }
+    int n = series.Values.Min(s => s.Count);
+    var xs = new List<double>(n);
+    var ys = new List<double>(n);
+    var time = series[refs[0]];
+    var sample = new Dictionary<string, double>(refs.Count);
+    for (int i = 0; i < n; i++) {
+      foreach (var r in refs) {
+        sample[r] = series[r][i].value;
+      }
+      if (EvalExpression(expr, refs, sample) is { } v) {
+        xs.Add(time[i].time);
+        ys.Add(v);
+      }
+      // else skip samples the expression can't evaluate (e.g. divide-by-zero rows)
+    }
+    return xs.Count > 0 ? (xs, ys) : null;
+  }
+
+  // Evaluate one derived-math sample: substitute each TYPE.FIELD ref with its (parenthesised) value
+  // then arithmetic-evaluate via DataTable.Compute. Returns null if the row can't be evaluated.
+  public static double? EvalExpression(string expr, IReadOnlyList<string> refs,
+      IReadOnlyDictionary<string, double> values) {
+    string e = expr;
+    foreach (var r in refs) {
+      e = e.Replace(r,
+          "(" + values[r].ToString(System.Globalization.CultureInfo.InvariantCulture) + ")");
+    }
+    try {
+      using var dt = new System.Data.DataTable();
+      var v = Convert.ToDouble(dt.Compute(e, null), System.Globalization.CultureInfo.InvariantCulture);
+      return double.IsFinite(v) ? v : null; // drop NaN/±Inf (e.g. divide-by-zero) rows
+    } catch {
+      return null;
+    }
   }
 
   public (string type, string field)? ResolveField() {
@@ -171,7 +263,8 @@ public partial class LogBrowseViewModel : ViewModelBase {
   }
 
   private static (string summary, Dictionary<string, string[]> formats, List<string> types,
-      IReadOnlyList<(double lat, double lng)> track) Parse(string path) {
+      IReadOnlyList<(double lat, double lng)> track,
+      IReadOnlyList<(double time, double lat, double lng)> timedTrack) Parse(string path) {
     var formats = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
     List<string> types;
 
@@ -191,8 +284,31 @@ public partial class LogBrowseViewModel : ViewModelBase {
 
     var fullTrack = DataFlashLog.ReadTrack(path);
     var track = fullTrack.Select(p => (p.lat, p.lng)).ToList();
+    var timedTrack = ReadTimedTrack(path, types);
     var summary = BuildSummary(path, types.Count, fullTrack);
-    return (summary, formats, types, track);
+    return (summary, formats, types, track, timedTrack);
+  }
+
+  // Build a plot-X-aligned lat/lng track by reading GPS.Lat/GPS.Lng on the ReadField time base
+  // (seconds), so a clicked plot X maps to a GPS sample. Robust to logs without a GPS message.
+  private static IReadOnlyList<(double time, double lat, double lng)> ReadTimedTrack(
+      string path, IReadOnlyCollection<string> types) {
+    if (!types.Contains("GPS", StringComparer.OrdinalIgnoreCase)) {
+      return Array.Empty<(double, double, double)>();
+    }
+    var lats = DataFlashLog.ReadField(path, "GPS", "Lat");
+    var lngs = DataFlashLog.ReadField(path, "GPS", "Lng");
+    int n = Math.Min(lats.Count, lngs.Count);
+    var timed = new List<(double, double, double)>(n);
+    for (int i = 0; i < n; i++) {
+      var lat = lats[i].value;
+      var lng = lngs[i].value;
+      if ((lat == 0 && lng == 0) || lat is < -90 or > 90 || lng is < -180 or > 180) {
+        continue;
+      }
+      timed.Add((lats[i].time, lat, lng));
+    }
+    return timed;
   }
 
   private static string BuildSummary(

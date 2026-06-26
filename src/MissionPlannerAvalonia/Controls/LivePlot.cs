@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Input;
 using Avalonia.Threading;
 
 namespace MissionPlannerAvalonia.Controls;
@@ -9,6 +10,22 @@ public class LivePlot : ScottPlot.Avalonia.AvaPlot {
   private readonly Dictionary<string, ScottPlot.Plottables.Scatter> _series = new();
   private readonly Dictionary<string, List<double>> _appendXs = new();
   private readonly Dictionary<string, List<double>> _appendYs = new();
+
+  // Raised on a pointer press with the clicked plot X (the curve's time axis, seconds). Lets the
+  // view correlate a click to a GPS track sample (LogBrowse plot ↔ map sync). Best-effort: the X is
+  // derived from the most recent render, so it is only meaningful once a curve has been drawn.
+  public event Action<double>? PointClicked;
+
+  protected override void OnPointerPressed(PointerPressedEventArgs e) {
+    base.OnPointerPressed(e);  // keep ScottPlot's own pan/zoom interaction
+    if (PointClicked is not { } handler) {
+      return;
+    }
+    var pos = e.GetPosition(this);
+    // Avalonia gives device-independent pixels; ScottPlot renders at DisplayScale, so scale up.
+    var pixel = new ScottPlot.Pixel(pos.X * DisplayScale, pos.Y * DisplayScale);
+    handler(Plot.GetCoordinates(pixel).X);
+  }
 
   public void SetSeries(string label, IReadOnlyList<double> xs, IReadOnlyList<double> ys,
                         ScottPlot.Color? color = null, bool rightAxis = false) {

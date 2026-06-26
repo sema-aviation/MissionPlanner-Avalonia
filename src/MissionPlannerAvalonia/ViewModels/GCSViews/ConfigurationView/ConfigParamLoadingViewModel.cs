@@ -45,7 +45,9 @@ public partial class ConfigParamLoadingViewModel : ViewModelBase, IDisposable {
   [RelayCommand]
   private async Task Retry() {
     Status = "Requesting parameters…";
-    await Task.Run(() => _comPort.getParamList());
+    // getParamListMavftp (what Open uses) — the no-arg getParamList() NREs on macOS because it
+    // builds a WinForms progress dialog via the unregistered CreateIProgressReporterDialogue event.
+    await Task.Run(() => _comPort.getParamListMavftp(_comPort.MAV.sysid, _comPort.MAV.compid));
   }
 
   public void Dispose() {

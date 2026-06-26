@@ -20,6 +20,17 @@
       <Button x:Name="RemoveBtn" Content="Remove Item" />
       <Button x:Name="ClearBtn" Content="Clear graph" />
       <Border Width="1" Background="#666" Margin="4,0" />
+      <TextBlock Text="×" Foreground="#BBB" VerticalAlignment="Center"
+                 ToolTip.Tip="Multiplicative scale applied to the next graphed curve" />
+      <NumericUpDown x:Name="ScaleBox" Width="110" Value="1" Increment="0.1"
+                     FormatString="0.###"
+                     ToolTip.Tip="Scale: y = y × scale + offset" />
+      <TextBlock Text="+" Foreground="#BBB" VerticalAlignment="Center"
+                 ToolTip.Tip="Additive offset applied to the next graphed curve" />
+      <NumericUpDown x:Name="OffsetBox" Width="110" Value="0" Increment="1"
+                     FormatString="0.###"
+                     ToolTip.Tip="Offset: y = y × scale + offset" />
+      <Border Width="1" Background="#666" Margin="4,0" />
       <TextBlock Text="Preset:" Foreground="#BBB" VerticalAlignment="Center" />
       <ComboBox x:Name="PresetCombo" Width="240"
                 ItemsSource="{Binding Presets}"
@@ -36,6 +47,7 @@
       <Button x:Name="ErrBtn" Content="Errors" />
       <Button x:Name="EvBtn" Content="Events" />
       <ToggleButton x:Name="GridToggle" Content="Data Table" />
+      <ToggleButton x:Name="MapToggle" Content="Map" />
       <Border Width="1" Background="#666" Margin="4,0" />
       <Button x:Name="KmlBtn" Content="Create KML" />
       <Button x:Name="GpxBtn" Content="Create GPX" />
@@ -66,12 +78,16 @@
         </StackPanel>
       </Grid>
 
-      <!-- right: plot over an optional data grid -->
-      <Grid Grid.Column="1" RowDefinitions="*,Auto">
-        <ctrl:LivePlot x:Name="Plot" Grid.Row="0" />
-        <DataGrid x:Name="RowsGrid" Grid.Row="1" Height="160"
-                  IsVisible="{Binding #GridToggle.IsChecked}"
-                  IsReadOnly="True" AutoGenerateColumns="False" />
+      <!-- right: plot over an optional data grid, with an optional GPS-track map panel -->
+      <Grid Grid.Column="1" ColumnDefinitions="*,Auto">
+        <Grid Grid.Column="0" RowDefinitions="*,Auto">
+          <ctrl:LivePlot x:Name="Plot" Grid.Row="0" />
+          <DataGrid x:Name="RowsGrid" Grid.Row="1" Height="160"
+                    IsVisible="{Binding #GridToggle.IsChecked}"
+                    IsReadOnly="True" AutoGenerateColumns="False" />
+        </Grid>
+        <ctrl:MapView x:Name="TrackMap" Grid.Column="1" Width="340" Margin="10,0,0,0"
+                      IsVisible="{Binding #MapToggle.IsChecked}" />
       </Grid>
     </Grid>
 

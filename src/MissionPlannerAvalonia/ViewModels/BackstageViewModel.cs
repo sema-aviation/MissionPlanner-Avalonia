@@ -65,9 +65,24 @@ public partial class BackstageViewModel : ViewModelBase {
   // Settings key under which the last-selected page header is remembered (per backstage).
   private readonly string? _persistKey;
 
+  // Transient "parameters still loading" page (mirrors ConfigParamLoading) — overlaid on the content
+  // area while connected but params haven't all arrived, since the config/setup pages need them.
+  public GCSViews.ConfigurationView.ConfigParamLoadingViewModel ParamLoading { get; } = new();
+
+  [ObservableProperty]
+  private bool _showParamLoading;
+
+  private readonly Avalonia.Threading.DispatcherTimer _paramLoadTimer;
+
   protected BackstageViewModel(string? persistKey = null) {
     _persistKey = persistKey;
     AppState.ConnectionChanged += OnConnectionChanged;
+    _paramLoadTimer = new Avalonia.Threading.DispatcherTimer {
+      Interval = TimeSpan.FromMilliseconds(300),
+    };
+    _paramLoadTimer.Tick += (_, _) =>
+        ShowParamLoading = AppState.IsConnected && !ParamLoading.GotAllParams;
+    _paramLoadTimer.Start();
   }
 
   private void OnConnectionChanged() {

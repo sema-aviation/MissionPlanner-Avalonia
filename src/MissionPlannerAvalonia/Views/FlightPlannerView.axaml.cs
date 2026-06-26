@@ -9,6 +9,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
+using MissionPlanner;
 using MissionPlannerAvalonia.Controls;
 using MissionPlannerAvalonia.ViewModels;
 using SharpKml.Dom;
@@ -18,15 +19,70 @@ namespace MissionPlannerAvalonia.Views;
 
 public partial class FlightPlannerView : UserControl {
   private FlightPlannerViewModel? _wired;
+  private bool _polygonDrawMode;
 
+  // Index of the first P-column in the grid (# , Command, P1, P2, P3, P4, …).
+  private const int PColIndex = 2;
+
+  [Obsolete]
   public FlightPlannerView() {
     InitializeComponent();
     Map.WaypointDragMoved += OnWaypointDragged;
     Map.WaypointDragCommitted += OnWaypointDragged;
-    Map.MapClicked += (lat, lng) => Vm?.AddWaypointAt(lat, lng);
+    Map.MapClicked += OnMapClicked;
+    Map.MidpointInsertRequested += (afterSeq, lat, lng) =>
+        Vm?.InsertWaypointAfterSeq(afterSeq, lat, lng);
     Map.ContextMenu = BuildMapMenu();
     DataContextChanged += (_, _) => WireViewModel();
     WireViewModel();
+  }
+
+  // Left-click on empty map: add a polygon vertex while drawing, else add a waypoint.
+  private void OnMapClicked(double lat, double lng) {
+    if (Vm == null) {
+      return;
+    }
+    if (_polygonDrawMode) {
+      Vm.AddPolygonPoint(lat, lng);
+    } else {
+      Vm.AddWaypointAt(lat, lng);
+    }
+  }
+
+  // Per-command P1–P4 labels (mirrors FlightPlanner's per-MAV_CMD parameter captions).
+  private static readonly string[] DefaultParamLabels = { "P1", "P2", "P3", "P4" };
+  [Obsolete]
+  private static readonly Dictionary<MAVLink.MAV_CMD, string[]> ParamLabels = new() {
+    [MAVLink.MAV_CMD.WAYPOINT] = new[] { "Delay", "—", "—", "Yaw" },
+    [MAVLink.MAV_CMD.SPLINE_WAYPOINT] = new[] { "Delay", "—", "—", "—" },
+    [MAVLink.MAV_CMD.LOITER_UNLIM] = new[] { "—", "—", "Radius", "Yaw" },
+    [MAVLink.MAV_CMD.LOITER_TURNS] = new[] { "Turns", "—", "Radius", "—" },
+    [MAVLink.MAV_CMD.LOITER_TIME] = new[] { "Time", "—", "Radius", "—" },
+    [MAVLink.MAV_CMD.RETURN_TO_LAUNCH] = new[] { "—", "—", "—", "—" },
+    [MAVLink.MAV_CMD.LAND] = new[] { "Abort", "—", "—", "Yaw" },
+    [MAVLink.MAV_CMD.TAKEOFF] = new[] { "—", "—", "—", "Yaw" },
+    [MAVLink.MAV_CMD.DO_JUMP] = new[] { "WP#", "Repeat", "—", "—" },
+    [MAVLink.MAV_CMD.DO_CHANGE_SPEED] = new[] { "Type", "Speed", "Throttle", "—" },
+    [MAVLink.MAV_CMD.DO_SET_ROI] = new[] { "—", "—", "—", "—" },
+    [MAVLink.MAV_CMD.DO_DIGICAM_CONTROL] = new[] { "Shoot", "—", "—", "—" },
+    [MAVLink.MAV_CMD.DO_SET_SERVO] = new[] { "Ch", "PWM", "—", "—" },
+    [MAVLink.MAV_CMD.DO_SET_RELAY] = new[] { "Relay", "On/Off", "—", "—" },
+    [MAVLink.MAV_CMD.CONDITION_DELAY] = new[] { "Time", "—", "—", "—" },
+  };
+
+  // Relabel the four P columns from the selected row's command.
+  private void OnWpSelectionChanged(object? sender, SelectionChangedEventArgs e) {
+    if (sender is not DataGrid grid || grid.SelectedItem is not WpRow row) {
+      return;
+    }
+    var labels = ParamLabels.TryGetValue((MAVLink.MAV_CMD)row.Command, out var l)
+        ? l : DefaultParamLabels;
+    for (int i = 0; i < 4; i++) {
+      int col = PColIndex + i;
+      if (col < grid.Columns.Count) {
+        grid.Columns[col].Header = labels[i];
+      }
+    }
   }
 
   // Mirrors FlightPlanner contextMenuStrip1 (Mission mode). Acts at Map.LastClickLatLng.
@@ -43,23 +99,55 @@ public partial class FlightPlannerView : UserControl {
       return mi;
     }
     var menu = new ContextMenu();
-    menu.Items.Add(Item("Insert WP", (vm, lat, lng) => vm.InsertWaypointAt(lat, lng)));
-    menu.Items.Add(Item("Delete WP", (vm, lat, lng) => vm.DeleteNearest(lat, lng)));
-    menu.Items.Add(new Separator());
-    menu.Items.Add(Item("Takeoff", (vm, lat, lng) => _ = vm.AddTakeoff(lat, lng)));
-    menu.Items.Add(Item("Land", (vm, lat, lng) => vm.AddLand(lat, lng)));
-    menu.Items.Add(Item("RTL", (vm, _, _) => vm.AddRtl()));
-    menu.Items.Add(Item("DO_SET_ROI", (vm, lat, lng) => vm.AddRoi(lat, lng)));
+    menu.Items.Add(Item("Insert Point", (vm, lat, lng) => vm.InsertWaypointAt(lat, lng)));
+    menu.Items.Add(Item("Delete Point", (vm, lat, lng) => vm.DeleteNearest(lat, lng)));
+    // Mission-only command items — hidden when editing a Fence or Rally (mirrors upstream gating
+    // mission commands out of the Fence/Rally context menus).
+    var missionOnly = new List<Control>();
+    void AddMissionOnly(Control c) {
+      missionOnly.Add(c);
+      menu.Items.Add(c);
+    }
+    // Fence-only items (shown only in Fence mode).
+    var fenceOnly = new List<Control>();
+    void AddFenceOnly(Control c) {
+      fenceOnly.Add(c);
+      menu.Items.Add(c);
+    }
+    AddFenceOnly(Item("Set Return Location", (vm, lat, lng) => vm.SetFenceReturn(lat, lng)));
+    AddMissionOnly(new Separator());
+    AddMissionOnly(Item("Insert at Current Position", (vm, _, _) => vm.InsertAtCurrentPosition()));
+    AddMissionOnly(Item("Insert Spline WP", (vm, lat, lng) => vm.AddSplineWp(lat, lng)));
+    AddMissionOnly(Item("Takeoff", (vm, lat, lng) => _ = vm.AddTakeoff(lat, lng)));
+    AddMissionOnly(Item("Land", (vm, lat, lng) => vm.AddLand(lat, lng)));
+    AddMissionOnly(Item("RTL", (vm, _, _) => vm.AddRtl()));
+    AddMissionOnly(Item("DO_SET_ROI", (vm, lat, lng) => vm.AddRoi(lat, lng)));
     var loiter = new MenuItem { Header = "Loiter" };
     loiter.Items.Add(Item("Forever", (vm, lat, lng) => vm.AddLoiterForever(lat, lng)));
     loiter.Items.Add(Item("Time", (vm, lat, lng) => _ = vm.AddLoiterTime(lat, lng)));
     loiter.Items.Add(Item("Circles", (vm, lat, lng) => _ = vm.AddLoiterCircles(lat, lng)));
-    menu.Items.Add(loiter);
-    menu.Items.Add(Item("Jump", (vm, _, _) => _ = vm.AddJump()));
+    AddMissionOnly(loiter);
+    AddMissionOnly(Item("Jump", (vm, _, _) => _ = vm.AddJump()));
     menu.Items.Add(new Separator());
-    menu.Items.Add(Item("Clear Mission", (vm, _, _) => vm.ClearMissionCommand.Execute(null)));
-    menu.Items.Add(Item("Reverse WPs", (vm, _, _) => vm.ReverseWaypointsCommand.Execute(null)));
-    menu.Items.Add(Item("Modify Alt", (vm, _, _) => _ = vm.ModifyAllAlt()));
+    menu.Items.Add(Item("Clear", (vm, _, _) => vm.ClearMissionCommand.Execute(null)));
+    AddMissionOnly(Item("Reverse WPs", (vm, _, _) => vm.ReverseWaypointsCommand.Execute(null)));
+    AddMissionOnly(Item("Modify Alt", (vm, _, _) => _ = vm.ModifyAllAlt()));
+    menu.Opening += (_, _) => {
+      bool mission = Vm?.MissionType is null or "Mission";
+      foreach (var c in missionOnly) {
+        c.IsVisible = mission;
+      }
+      foreach (var c in fenceOnly) {
+        c.IsVisible = Vm?.MissionType == "Fence";
+      }
+    };
+    menu.Items.Add(new Separator());
+    var poi = new MenuItem { Header = "POI" };
+    poi.Items.Add(Item("Add POI", (vm, lat, lng) => _ = vm.AddPoi(lat, lng)));
+    poi.Items.Add(Item("Delete POI", (vm, lat, lng) => vm.DeleteNearestPoi(lat, lng)));
+    poi.Items.Add(Item("POI at Coords", (vm, _, _) => _ = vm.AddPoiAtCoords()));
+    poi.Items.Add(Item("Clear POIs", (vm, _, _) => vm.ClearPois()));
+    menu.Items.Add(poi);
     menu.Items.Add(new Separator());
     var nofly = new MenuItem { Header = "Load NoFly Overlay…" };
     nofly.Click += OnLoadNoFly;
@@ -67,6 +155,23 @@ public partial class FlightPlannerView : UserControl {
     var noflyClear = new MenuItem { Header = "Clear NoFly Overlay" };
     noflyClear.Click += (_, _) => Map.SetNoFlyLayer(null);
     menu.Items.Add(noflyClear);
+    menu.Items.Add(new Separator());
+    var poly = new MenuItem { Header = "Polygon" };
+    var draw = new MenuItem { Header = "Draw" };
+    draw.Click += (_, _) => {
+      _polygonDrawMode = !_polygonDrawMode;
+      draw.Header = _polygonDrawMode ? "Draw (on)" : "Draw";
+      if (Vm != null) {
+        Vm.Status = _polygonDrawMode
+            ? "Polygon draw: click the map to add vertices."
+            : "Polygon draw off.";
+      }
+    };
+    poly.Items.Add(draw);
+    poly.Items.Add(Item("Clear", (vm, _, _) => vm.ClearPolygon()));
+    poly.Items.Add(Item("From Current Waypoints", (vm, _, _) => vm.BuildPolygonFromWaypoints()));
+    poly.Items.Add(Item("Area", (vm, _, _) => vm.PolygonArea()));
+    menu.Items.Add(poly);
     return menu;
   }
 
@@ -116,6 +221,8 @@ public partial class FlightPlannerView : UserControl {
     if (_wired != null) {
       _wired.WaypointsChanged -= OnWaypointsChanged;
       _wired.PropertyChanged -= OnVmPropertyChanged;
+      _wired.PoiChanged -= OnPoiChanged;
+      _wired.DrawnPolygonChanged -= OnDrawnPolygonChanged;
     }
 
     _wired = Vm;
@@ -125,10 +232,22 @@ public partial class FlightPlannerView : UserControl {
 
     _wired.WaypointsChanged += OnWaypointsChanged;
     _wired.PropertyChanged += OnVmPropertyChanged;
+    _wired.PoiChanged += OnPoiChanged;
+    _wired.DrawnPolygonChanged += OnDrawnPolygonChanged;
     OnWaypointsChanged();
+    OnPoiChanged();
+    OnDrawnPolygonChanged();
     Map.SetGraticuleVisible(_wired.ShowGrid);
     Map.SetMapType(_wired.MapType);
   }
+
+  private void OnPoiChanged() =>
+      Map.ShowPois(Services.PoiStore.All.Select(p => (p.Lat, p.Lng, p.Name)).ToList());
+
+  private void OnDrawnPolygonChanged() =>
+      Map.ShowDrawnPolygon(Vm == null
+          ? new List<(double, double)>()
+          : Vm.DrawnPolygon.Select(p => (p.Lat, p.Lng)).ToList());
 
   private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e) {
     if (Vm == null) {
@@ -142,6 +261,8 @@ public partial class FlightPlannerView : UserControl {
     } else if (e.PropertyName == nameof(FlightPlannerViewModel.HomeLat)
                || e.PropertyName == nameof(FlightPlannerViewModel.HomeLng)) {
       Map.SetHome(Vm.HomeLat, Vm.HomeLng);
+    } else if (e.PropertyName == nameof(FlightPlannerViewModel.MissionType)) {
+      Map.SetRenderMode(Vm.MissionType);
     }
   }
 

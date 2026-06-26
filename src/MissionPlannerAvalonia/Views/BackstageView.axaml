@@ -38,6 +38,10 @@
       </ItemsControl>
     </ScrollViewer>
 
-    <ContentControl Grid.Column="1" Content="{Binding CurrentContent}" />
+    <Grid Grid.Column="1">
+      <ContentControl Content="{Binding CurrentContent}" />
+      <!-- "Parameters still loading" overlay (mirrors ConfigParamLoading) -->
+      <ContentControl Content="{Binding ParamLoading}" IsVisible="{Binding ShowParamLoading}" />
+    </Grid>
   </Grid>
 </UserControl>

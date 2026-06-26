@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,14 +26,100 @@ public partial class LogBrowseView : UserControl {
     ErrBtn.Click += (s, e) => OnOverlay("ERR", "Subsys", ScottPlot.Colors.Red);
     EvBtn.Click += (s, e) => OnOverlay("EV", "Id", ScottPlot.Colors.Cyan);
     GridToggle.IsCheckedChanged += OnGridToggle;
+    Plot.PointClicked += OnPlotPointClicked;
+    RowsGrid.SelectionChanged += OnRowSelected;
     ExportCsvBtn.Click += OnExportCsv;
     KmlBtn.Click += OnKml;
     GpxBtn.Click += OnGpx;
     MatlabBtn.Click += OnMatlab;
     BinLogBtn.Click += OnBinToLog;
+    TrackMap.LiveVehicle = false; // LogBrowse shows a static recorded track, not a live link
+    DataContextChanged += OnDataContextChanged;
+    OnDataContextChanged(this, EventArgs.Empty);
+  }
+
+  private LogBrowseViewModel? _wiredVm;
+
+  // Draw the recorded GPS track on the map panel whenever a new log loads.
+  private void OnDataContextChanged(object? sender, EventArgs e) {
+    if (ReferenceEquals(_wiredVm, Vm)) {
+      return;
+    }
+    if (_wiredVm != null) {
+      _wiredVm.TrackChanged -= OnTrackChanged;
+    }
+    _wiredVm = Vm;
+    if (_wiredVm != null) {
+      _wiredVm.TrackChanged += OnTrackChanged;
+    }
+  }
+
+  private void OnTrackChanged() {
+    if (Vm is { } vm) {
+      Dispatcher.UIThread.Post(() => TrackMap.ShowStaticTrack(vm.Track));
+    }
   }
 
   private LogBrowseViewModel? Vm => DataContext as LogBrowseViewModel;
+
+  // Columns currently shown in the data grid (kept so a row selection can find Lat/Lng by name).
+  private IReadOnlyList<string> _gridColumns = Array.Empty<string>();
+
+  // GoToSample (plot → map): a click on the plot moves the map marker to the nearest GPS sample.
+  private void OnPlotPointClicked(double x) {
+    if (Vm?.NearestTrackSample(x) is { } p) {
+      TrackMap.ShowSampleMarker(p.lat, p.lng);
+    }
+  }
+
+  // GoToSample (grid → map): selecting a data-table row moves the marker to that sample, when the
+  // selected message type carries Lat/Lng columns. No-op for types without a position.
+  private void OnRowSelected(object? sender, SelectionChangedEventArgs e) {
+    if (RowsGrid.SelectedItem is not IReadOnlyList<string> row) {
+      return;
+    }
+    int latIdx = IndexOfColumn("Lat");
+    int lngIdx = IndexOfColumn("Lng");
+    if (latIdx < 0 || lngIdx < 0 || latIdx >= row.Count || lngIdx >= row.Count) {
+      return;
+    }
+    if (double.TryParse(row[latIdx], NumberStyles.Any, CultureInfo.InvariantCulture, out var lat) &&
+        double.TryParse(row[lngIdx], NumberStyles.Any, CultureInfo.InvariantCulture, out var lng) &&
+        !(lat == 0 && lng == 0)) {
+      TrackMap.ShowSampleMarker(lat, lng);
+    }
+  }
+
+  private int IndexOfColumn(string name) {
+    for (int i = 0; i < _gridColumns.Count; i++) {
+      if (string.Equals(_gridColumns[i], name, StringComparison.OrdinalIgnoreCase)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  // Per-field scaler/offset read from the toolbar; applied as y = y*scale + offset before plotting.
+  private (double scale, double offset) ReadTransform() =>
+      ((double)(ScaleBox.Value ?? 1m), (double)(OffsetBox.Value ?? 0m));
+
+  private static IReadOnlyList<double> ApplyTransform(
+      IReadOnlyList<double> ys, double scale, double offset) {
+    if (scale == 1 && offset == 0) {
+      return ys;
+    }
+    var outp = new double[ys.Count];
+    for (int i = 0; i < ys.Count; i++) {
+      outp[i] = ys[i] * scale + offset;
+    }
+    return outp;
+  }
+
+  // Annotate the series label with the applied transform when it is non-default.
+  private static string TransformSuffix(double scale, double offset) =>
+      (scale == 1 && offset == 0)
+          ? string.Empty
+          : $" [×{scale:0.###}{(offset >= 0 ? "+" : "")}{offset:0.###}]";
 
   // Double-click a field node in the tree → graph it on the left axis.
   private void OnTreeDoubleTapped(object? sender, RoutedEventArgs e) {
@@ -40,12 +128,35 @@ public partial class LogBrowseView : UserControl {
     }
   }
 
-  private void OnGraphAxis(bool rightAxis) {
-    var resolved = Vm?.ResolveField();
-    if (resolved is null) {
-      if (Vm != null) {
-        Vm.Status = "Pick a field in the tree or type TYPE.FIELD.";
+  private async void OnGraphAxis(bool rightAxis) {
+    if (Vm is not { } vm) {
+      return;
+    }
+    // A typed derived-math expression (e.g. "BAT.Volt*BAT.Curr") is evaluated; otherwise TYPE.FIELD.
+    var expr = vm.FieldExpression?.Trim();
+    if (!string.IsNullOrEmpty(expr) && LogBrowseViewModel.IsExpression(expr)) {
+      vm.Busy = true;
+      vm.Status = $"Graphing {expr}…";
+      try {
+        var curve = await Task.Run(() => vm.ReadExpressionCurve(expr));
+        if (curve is { } c) {
+          var (scale, offset) = ReadTransform();
+          var ys = ApplyTransform(c.ys, scale, offset);
+          Plot.SetSeries($"{expr}{(rightAxis ? " (R)" : "")}{TransformSuffix(scale, offset)}",
+              c.xs, ys, rightAxis: rightAxis);
+          Plot.SetAxisLabels("Time (s)", "Value", "DataFlash");
+          vm.Status = $"Plotted {c.xs.Count} points of {expr}.";
+        } else {
+          vm.Status = $"Could not evaluate '{expr}' (single message type only).";
+        }
+      } finally {
+        vm.Busy = false;
       }
+      return;
+    }
+    var resolved = vm.ResolveField();
+    if (resolved is null) {
+      vm.Status = "Pick a field in the tree or type TYPE.FIELD.";
       return;
     }
     PlotCurve(resolved.Value.type, resolved.Value.field, rightAxis);
@@ -63,8 +174,10 @@ public partial class LogBrowseView : UserControl {
         vm.Status = $"No data for {type}.{field}.";
         return;
       }
-      Plot.SetSeries($"{type}.{field}{(rightAxis ? " (R)" : "")}", curve.Value.xs, curve.Value.ys,
-          rightAxis: rightAxis);
+      var (scale, offset) = ReadTransform();
+      var ys = ApplyTransform(curve.Value.ys, scale, offset);
+      Plot.SetSeries($"{type}.{field}{(rightAxis ? " (R)" : "")}{TransformSuffix(scale, offset)}",
+          curve.Value.xs, ys, rightAxis: rightAxis);
       Plot.SetAxisLabels("Time (s)", "Value", "DataFlash");
       vm.Status = $"Plotted {curve.Value.xs.Count} points of {type}.{field}.";
     } catch (Exception ex) {
@@ -88,20 +201,23 @@ public partial class LogBrowseView : UserControl {
     Plot.ClearAll();
     int plotted = 0, skipped = 0;
     foreach (var curve in preset.Curves) {
-      // Only literal TYPE.FIELD curves are supported; derived-math expressions are skipped (noted).
-      var parts = curve.Expression.Split('.');
-      if (parts.Length == 2 && !curve.Expression.Any(c => "()+-*/".Contains(c))) {
-        var data = await Task.Run(() => vm.ReadCurve(parts[0], parts[1]));
-        if (data is { } d) {
-          Plot.SetSeries($"{curve.Expression}{(curve.Axis == 2 ? " (R)" : "")}", d.xs, d.ys,
-              rightAxis: curve.Axis == 2);
-          plotted++;
-          continue;
+      // Literal TYPE.FIELD curves read directly; expressions (containing ()+-*/) are evaluated.
+      var data = await Task.Run(() => {
+        if (LogBrowseViewModel.IsExpression(curve.Expression)) {
+          return vm.ReadExpressionCurve(curve.Expression);
         }
+        var parts = curve.Expression.Split('.');
+        return parts.Length == 2 ? vm.ReadCurve(parts[0], parts[1]) : null;
+      });
+      if (data is { } d) {
+        Plot.SetSeries($"{curve.Expression}{(curve.Axis == 2 ? " (R)" : "")}", d.xs, d.ys,
+            rightAxis: curve.Axis == 2);
+        plotted++;
+      } else {
+        skipped++;
       }
-      skipped++;
     }
-    vm.Status = $"Preset '{preset.Name}': {plotted} plotted, {skipped} skipped (derived/missing).";
+    vm.Status = $"Preset '{preset.Name}': {plotted} plotted, {skipped} skipped (missing/cross-type).";
   }
 
   private void OnOverlay(string type, string field, ScottPlot.Color color) {
@@ -118,6 +234,7 @@ public partial class LogBrowseView : UserControl {
   private void OnGridToggle(object? sender, RoutedEventArgs e) {
     if (GridToggle.IsChecked == true && Vm is { SelectedType: { } type } vm) {
       var (columns, rows) = vm.ReadRows(type);
+      _gridColumns = columns;
       RowsGrid.Columns.Clear();
       for (int c = 0; c < columns.Count; c++) {
         int idx = c;

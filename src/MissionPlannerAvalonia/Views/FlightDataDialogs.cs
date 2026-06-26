@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -62,11 +63,13 @@ public class MessagesWindow : Window {
       Foreground = Brushes.WhiteSmoke,
     };
     var cs = AppState.comPort.MAV?.cs;
-    if (cs?.messages != null && cs.messages.Count > 0) {
-      box.Text = string.Join(Environment.NewLine,
-          cs.messages.TakeLast(200)
-              .Select(m => $"{m.time:HH:mm:ss}  {m.message?.TrimEnd()}"));
-    } else {
+    try {
+      var msgs = cs?.messages?.ToArray() ?? Array.Empty<(DateTime, string)>();
+      box.Text = msgs.Length > 0
+          ? string.Join(Environment.NewLine,
+              msgs.TakeLast(200).Select(m => $"{m.time:HH:mm:ss}  {m.message?.TrimEnd()}"))
+          : "No messages received.";
+    } catch (InvalidOperationException) {
       box.Text = "No messages received.";
     }
     Content = box;
@@ -197,25 +200,29 @@ public class VibrationWindow : Window {
 // Live prearm status + last high-severity message, mirrors MP PrearmStatus.
 public class PrearmStatusWindow : Window {
   private readonly DispatcherTimer _timer;
-  private readonly TextBlock _state = new() { FontSize = 16, FontWeight = FontWeight.Bold };
-  private readonly TextBlock _msg = new() {
-    Foreground = Brushes.WhiteSmoke,
-    TextWrapping = TextWrapping.Wrap,
-    FontSize = 12,
-  };
+  private readonly TextBlock _state = new() { FontSize = 18, FontWeight = FontWeight.Bold };
+  private readonly TextBlock _summary = new() { Foreground = Brushes.Gray, FontSize = 12 };
+  private readonly ItemsControl _checks = new();
 
   public PrearmStatusWindow() {
-    Title = "Prearm Status";
-    Width = 360;
-    Height = 200;
+    Title = "Arming Checks";
+    Width = 460;
+    Height = 320;
     Background = new SolidColorBrush(Color.Parse("#1F1F20"));
     WindowStartupLocation = WindowStartupLocation.CenterOwner;
-    Content = new StackPanel {
-      Margin = new Avalonia.Thickness(14),
-      Spacing = 10,
-      Children = { _state, _msg },
+
+    var header = new StackPanel { Spacing = 2, Children = { _state, _summary } };
+    var list = new ScrollViewer {
+      Content = _checks,
+      VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
     };
-    _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+    var root = new DockPanel { Margin = new Avalonia.Thickness(14) };
+    DockPanel.SetDock(header, Avalonia.Controls.Dock.Top);
+    root.Children.Add(header);
+    root.Children.Add(list);
+    Content = root;
+
+    _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
     _timer.Tick += (_, _) => Refresh();
     _timer.Start();
     Closed += (_, _) => _timer.Stop();
@@ -225,13 +232,61 @@ public class PrearmStatusWindow : Window {
   private void Refresh() {
     var cs = AppState.comPort.MAV?.cs;
     if (cs == null) {
-      _state.Text = "No vehicle.";
+      _state.Text = "No vehicle";
       _state.Foreground = Brushes.Gray;
+      _summary.Text = "Not connected.";
+      _checks.ItemsSource = null;
       return;
     }
-    var ok = cs.prearmstatus;
+
+    bool ok = cs.prearmstatus;
     _state.Text = ok ? "Ready to Arm" : "Not Ready to Arm";
     _state.Foreground = ok ? Brushes.LimeGreen : Brushes.OrangeRed;
-    _msg.Text = string.IsNullOrEmpty(cs.messageHigh) ? "" : cs.messageHigh;
+
+    // Pull the actual failing checks out of the STATUSTEXT stream (ArduPilot emits "PreArm: ..."
+    // / "Arm: ..." per failed check). Keep the latest line per distinct check, newest first.
+    var failures = new List<TextBlock>();
+    // Snapshot first: the reader thread mutates cs.messages (unlocked List) and enumerating it
+    // live would throw on this UI thread.
+    (DateTime time, string message)[] msgs;
+    try {
+      msgs = cs.messages?.ToArray() ?? Array.Empty<(DateTime, string)>();
+    } catch (InvalidOperationException) {
+      return; // contended — refresh again on the next tick
+    }
+    {
+      var seen = new HashSet<string>();
+      foreach (var m in msgs.Reverse()) {
+        var text = m.message?.Trim();
+        if (string.IsNullOrEmpty(text)) {
+          continue;
+        }
+
+        if (text.IndexOf("arm", StringComparison.OrdinalIgnoreCase) < 0 ||
+            text.IndexOf("disarm", StringComparison.OrdinalIgnoreCase) >= 0) {
+          continue; // keep PreArm:/Arm: lines, drop "DISARMED" etc.
+        }
+
+        if (seen.Add(text)) {
+          failures.Add(new TextBlock {
+            Text = "•  " + text,
+            Foreground = Brushes.OrangeRed,
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 13,
+            Margin = new Avalonia.Thickness(0, 2, 0, 2),
+          });
+        }
+      }
+    }
+
+    if (failures.Count == 0) {
+      _summary.Text = ok ? "All prearm checks passing." : "No prearm messages received yet.";
+      _checks.ItemsSource = ok
+          ? null
+          : new[] { new TextBlock { Text = "Waiting for check results…", Foreground = Brushes.Gray } };
+    } else {
+      _summary.Text = $"{failures.Count} failing check(s):";
+      _checks.ItemsSource = failures;
+    }
   }
 }
