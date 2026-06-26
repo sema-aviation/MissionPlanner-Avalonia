@@ -12,7 +12,32 @@ env:
   APP: src/MissionPlannerAvalonia/MissionPlannerAvalonia.csproj
 
 jobs:
+  validate-version:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check tag matches current year.month (UTC)
+        shell: bash
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          if [[ ! "$V" =~ ^[0-9]{4}\.[0-9]{1,2}(\..+)?$ ]]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' is not CalVer (expected vYYYY.M or vYYYY.M.patch)."
+            exit 1
+          fi
+          TAG_YEAR="${V%%.*}"
+          REST="${V#*.}"
+          TAG_MONTH="${REST%%.*}"
+          NOW_YEAR="$(date -u +%Y)"
+          NOW_MONTH="$(date -u +%-m)"
+          if [[ "$TAG_YEAR" != "$NOW_YEAR" || "$TAG_MONTH" != "$NOW_MONTH" ]]; then
+            echo "::error::CalVer mismatch: tag is ${TAG_YEAR}.${TAG_MONTH} but current UTC date is ${NOW_YEAR}.${NOW_MONTH}. Re-tag with v${NOW_YEAR}.${NOW_MONTH}."
+            exit 1
+          fi
+          echo "OK: ${TAG_YEAR}.${TAG_MONTH} matches current UTC month."
+
   package:
+    needs: validate-version
+    if: always() && (needs.validate-version.result == 'success' || needs.validate-version.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
@@ -112,18 +137,18 @@ jobs:
         with:
           files: artifacts/**/*
           generate_release_notes: true
-          prerelease: true
+          prerelease: false
           body: |
-            **Preview / early-access.** Native Avalonia port of the ArduPilot Mission Planner UI.
-            Many screens are wired to the real MAVLink API; several pages are still stubs and the app
+            **Stable release.** Native Avalonia port of the ArduPilot Mission Planner UI.
+            Many screens are wired to the real MAVLink API; some pages are still stubs and the app
             has not yet been verified end-to-end against a real vehicle or SITL. Expect rough edges.
 
-            All three downloads are self-contained — no .NET runtime needed. macOS is **Apple Silicon only**.
+            All three downloads are self-contained, no .NET runtime needed. macOS is **Apple Silicon only**.
 
             **macOS** (unsigned): right-click -> Open, or
             `xattr -dr com.apple.quarantine "Mission Planner.app"`.
 
-            **Windows** (unsigned): SmartScreen will warn — **More info** -> **Run anyway**.
+            **Windows** (unsigned): SmartScreen will warn. **More info** -> **Run anyway**.
 
             **Linux**: extract, run `./install.sh` for a launcher entry, then `./MissionPlannerAvalonia`.
             Serial access needs the `dialout` group (`sudo usermod -aG dialout $USER`, then re-login).
