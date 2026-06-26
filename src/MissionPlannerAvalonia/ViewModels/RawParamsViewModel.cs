@@ -43,6 +43,14 @@ public partial class RawParamsViewModel : ViewModelBase {
 
   public bool IsConnected => _comPort.BaseStream?.IsOpen == true;
 
+  public RawParamsViewModel() {
+    // Offline: show the last connected vehicle's params from disk so they're viewable
+    // without reconnecting (snapshot is written on connect by SaveSnapshot).
+    if (!IsConnected && System.IO.File.Exists(CacheFilePath)) {
+      LoadSnapshotFile(CacheFilePath);
+    }
+  }
+
   partial void OnSearchTextChanged(string value) => ApplyFilter();
 
   partial void OnSelectedCategoryChanged(string value) => ApplyFilter();
@@ -168,6 +176,52 @@ public partial class RawParamsViewModel : ViewModelBase {
     } catch (Exception ex) {
       Status = "Save failed: " + ex.Message;
     }
+  }
+
+  // Cached snapshot of the last connected vehicle's params (viewable offline).
+  public static string CacheFilePath {
+    get {
+      var dir = System.IO.Path.Combine(
+          Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MissionPlannerAvalonia");
+      System.IO.Directory.CreateDirectory(dir);
+      return System.IO.Path.Combine(dir, "last_params.param");
+    }
+  }
+
+  // Write the live param set to disk; called on connect so a later offline session can view them.
+  public static void SaveSnapshot(MAVLinkInterface comPort) {
+    try {
+      if (comPort?.MAV?.param == null || comPort.MAV.param.Count == 0) {
+        return;
+      }
+      var table = new Hashtable();
+      foreach (var p in comPort.MAV.param) {
+        table[p.Name] = p.Value;
+      }
+      ParamFile.SaveParamFile(CacheFilePath, table);
+    } catch {
+      // best-effort cache; never block connect on a write failure
+    }
+  }
+
+  // Build the grid directly from a .param file (offline view path; no live vehicle to merge into).
+  private void LoadSnapshotFile(string path) {
+    Dictionary<string, double> fileParams;
+    try {
+      fileParams = ParamFile.loadParamFile(path);
+    } catch (Exception ex) {
+      Status = "Snapshot load failed: " + ex.Message;
+      return;
+    }
+    if (fileParams.Count == 0) {
+      return;
+    }
+
+    var fw = _comPort.MAV.cs.firmware.ToString();
+    var favs = Settings.Instance.GetList("fav_params").ToHashSet();
+    var rows = fileParams.OrderBy(k => k.Key).Select(p => BuildRow(p.Key, p.Value, null, fw, favs));
+    LoadFrom(rows);
+    Status = $"Offline: {_all.Count} parameters from the last connected session. Connect to edit/write.";
   }
 
   private void MergeFromFile(string path, bool compareOnly) {
