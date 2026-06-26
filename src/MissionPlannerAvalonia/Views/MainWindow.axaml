@@ -3,6 +3,7 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
   xmlns:local="using:MissionPlannerAvalonia"
+  xmlns:i="https://github.com/projektanker/icons.avalonia"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
@@ -51,7 +52,8 @@
               CommandParameter="DATA"
             >
               <StackPanel>
-                <TextBlock Classes="navicon" Text="&#x1F4CA;" />
+                <i:Icon Value="fa-solid fa-chart-line" FontSize="20" Foreground="#E0E0E0"
+                        HorizontalAlignment="Center" />
                 <TextBlock Classes="navtxt" Text="DATA" />
               </StackPanel>
             </Button>
@@ -62,7 +64,8 @@
               CommandParameter="PLAN"
             >
               <StackPanel>
-                <TextBlock Classes="navicon" Text="&#x1F310;" />
+                <i:Icon Value="fa-solid fa-map-location-dot" FontSize="20" Foreground="#E0E0E0"
+                        HorizontalAlignment="Center" />
                 <TextBlock Classes="navtxt" Text="PLAN" />
               </StackPanel>
             </Button>
@@ -73,7 +76,8 @@
               CommandParameter="SETUP"
             >
               <StackPanel>
-                <TextBlock Classes="navicon" Text="&#x2699;" />
+                <i:Icon Value="fa-solid fa-screwdriver-wrench" FontSize="20" Foreground="#E0E0E0"
+                        HorizontalAlignment="Center" />
                 <TextBlock Classes="navtxt" Text="SETUP" />
               </StackPanel>
             </Button>
@@ -84,7 +88,8 @@
               CommandParameter="CONFIG"
             >
               <StackPanel>
-                <TextBlock Classes="navicon" Text="&#x1F527;" />
+                <i:Icon Value="fa-solid fa-sliders" FontSize="20" Foreground="#E0E0E0"
+                        HorizontalAlignment="Center" />
                 <TextBlock Classes="navtxt" Text="CONFIG" />
               </StackPanel>
             </Button>
@@ -95,7 +100,8 @@
               CommandParameter="SIMULATION"
             >
               <StackPanel>
-                <TextBlock Classes="navicon" Text="&#x1F5A5;" />
+                <i:Icon Value="fa-solid fa-gamepad" FontSize="20" Foreground="#E0E0E0"
+                        HorizontalAlignment="Center" />
                 <TextBlock Classes="navtxt" Text="SIMULATION" />
               </StackPanel>
             </Button>
@@ -106,7 +112,8 @@
               CommandParameter="HELP"
             >
               <StackPanel>
-                <TextBlock Classes="navicon" Text="&#x2753;" />
+                <i:Icon Value="fa-solid fa-circle-question" FontSize="20" Foreground="#E0E0E0"
+                        HorizontalAlignment="Center" />
                 <TextBlock Classes="navtxt" Text="HELP" />
               </StackPanel>
             </Button>
@@ -174,6 +181,21 @@
       </Grid>
     </Border>
 
-    <ContentControl Content="{Binding CurrentScreen}" />
+    <!-- Each screen's view is built once on first show and kept alive; switching tabs only
+         toggles visibility, so the Data/Plan maps never reload (mirrors MP's persistent tabs). -->
+    <Grid>
+      <ContentControl Content="{Binding FlightData}"
+        IsVisible="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=DATA}" />
+      <ContentControl Content="{Binding FlightPlanner}"
+        IsVisible="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=PLAN}" />
+      <ContentControl Content="{Binding Setup}"
+        IsVisible="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=SETUP}" />
+      <ContentControl Content="{Binding Config}"
+        IsVisible="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=CONFIG}" />
+      <ContentControl Content="{Binding Simulation}"
+        IsVisible="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=SIMULATION}" />
+      <ContentControl Content="{Binding Help}"
+        IsVisible="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=HELP}" />
+    </Grid>
   </DockPanel>
 </Window>

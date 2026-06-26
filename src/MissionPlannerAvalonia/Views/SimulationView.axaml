@@ -4,6 +4,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
+  xmlns:i="https://github.com/projektanker/icons.avalonia"
   mc:Ignorable="d"
   d:DesignWidth="1100"
   d:DesignHeight="640"
@@ -29,25 +30,29 @@
       <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
         <RadioButton Classes="firmware" GroupName="firmware" IsChecked="{Binding IsPlane}">
           <StackPanel>
-            <TextBlock Text="&#x2708;" FontSize="44" HorizontalAlignment="Center" />
+            <i:Icon Value="fa-solid fa-plane" FontSize="44" Foreground="#E0E0E0"
+                    HorizontalAlignment="Center" />
             <TextBlock Text="Plane" HorizontalAlignment="Center" />
           </StackPanel>
         </RadioButton>
         <RadioButton Classes="firmware" GroupName="firmware" IsChecked="{Binding IsRover}">
           <StackPanel>
-            <TextBlock Text="&#x1F697;" FontSize="44" HorizontalAlignment="Center" />
+            <i:Icon Value="fa-solid fa-car" FontSize="44" Foreground="#E0E0E0"
+                    HorizontalAlignment="Center" />
             <TextBlock Text="Rover" HorizontalAlignment="Center" />
           </StackPanel>
         </RadioButton>
         <RadioButton Classes="firmware" GroupName="firmware" IsChecked="{Binding IsCopter}">
           <StackPanel>
-            <TextBlock Text="&#x1F681;" FontSize="44" HorizontalAlignment="Center" />
+            <i:Icon Value="fa-solid fa-fan" FontSize="44" Foreground="#E0E0E0"
+                    HorizontalAlignment="Center" />
             <TextBlock Text="Multirotor" HorizontalAlignment="Center" />
           </StackPanel>
         </RadioButton>
         <RadioButton Classes="firmware" GroupName="firmware" IsChecked="{Binding IsHeli}">
           <StackPanel>
-            <TextBlock Text="&#x1F681;" FontSize="44" HorizontalAlignment="Center" />
+            <i:Icon Value="fa-solid fa-helicopter" FontSize="44" Foreground="#E0E0E0"
+                    HorizontalAlignment="Center" />
             <TextBlock Text="Helicopter" HorizontalAlignment="Center" />
           </StackPanel>
         </RadioButton>

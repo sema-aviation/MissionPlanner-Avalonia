@@ -64,17 +64,17 @@ public partial class InstallFirmwareViewModel : ViewModelBase {
   private string _channelLabel = "Channel: OFFICIAL (stable)";
 
   public InstallFirmwareViewModel() {
-    Tiles.Add(new FirmwareTile("rover", "Rover", "GROUND_ROVER", "🚙"));
-    Tiles.Add(new FirmwareTile("plane", "Plane", "FIXED_WING", "✈"));
-    Tiles.Add(new FirmwareTile("quad", "Copter Quad", "Copter", "✚"));
-    Tiles.Add(new FirmwareTile("hexa", "Copter Hexa", "Copter", "✳"));
-    Tiles.Add(new FirmwareTile("octo", "Copter Octo", "Copter", "✷"));
-    Tiles.Add(new FirmwareTile("y6", "Copter Y6", "Copter", "⅄"));
-    Tiles.Add(new FirmwareTile("tri", "Copter Tri", "Copter", "△"));
-    Tiles.Add(new FirmwareTile("octaquad", "Copter OctaQuad", "Copter", "✿"));
-    Tiles.Add(new FirmwareTile("heli", "Heli", "HELICOPTER", "🚁"));
-    Tiles.Add(new FirmwareTile("sub", "Sub", "SUBMARINE", "🛥"));
-    Tiles.Add(new FirmwareTile("tracker", "AntennaTracker", "ANTENNA_TRACKER", "📡"));
+    Tiles.Add(new FirmwareTile("rover", "Rover", "GROUND_ROVER", "fa-solid fa-car"));
+    Tiles.Add(new FirmwareTile("plane", "Plane", "FIXED_WING", "fa-solid fa-plane"));
+    Tiles.Add(new FirmwareTile("quad", "Copter Quad", "Copter", "fa-solid fa-fan"));
+    Tiles.Add(new FirmwareTile("hexa", "Copter Hexa", "Copter", "fa-solid fa-fan"));
+    Tiles.Add(new FirmwareTile("octo", "Copter Octo", "Copter", "fa-solid fa-fan"));
+    Tiles.Add(new FirmwareTile("y6", "Copter Y6", "Copter", "fa-solid fa-fan"));
+    Tiles.Add(new FirmwareTile("tri", "Copter Tri", "Copter", "fa-solid fa-fan"));
+    Tiles.Add(new FirmwareTile("octaquad", "Copter OctaQuad", "Copter", "fa-solid fa-fan"));
+    Tiles.Add(new FirmwareTile("heli", "Heli", "HELICOPTER", "fa-solid fa-helicopter"));
+    Tiles.Add(new FirmwareTile("sub", "Sub", "SUBMARINE", "fa-solid fa-ship"));
+    Tiles.Add(new FirmwareTile("tracker", "AntennaTracker", "ANTENNA_TRACKER", "fa-solid fa-satellite-dish"));
 
     _ = RefreshTiles();
   }
