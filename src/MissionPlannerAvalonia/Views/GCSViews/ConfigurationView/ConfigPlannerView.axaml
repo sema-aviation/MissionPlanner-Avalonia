@@ -11,114 +11,158 @@
   x:DataType="cv:ConfigPlannerViewModel"
   Background="#434445"
 >
+  <UserControl.Styles>
+    <Style Selector="TextBlock.lbl">
+      <Setter Property="Foreground" Value="#D8D8D8" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,6,10,6" />
+    </Style>
+    <Style Selector="TextBlock.grp">
+      <Setter Property="Foreground" Value="#94C11F" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Margin" Value="0,14,0,4" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="MinWidth" Value="180" />
+    </Style>
+    <Style Selector="CheckBox">
+      <Setter Property="Foreground" Value="#D8D8D8" />
+    </Style>
+  </UserControl.Styles>
+
   <ScrollViewer>
-    <Grid
-      Margin="16"
-      RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
-      ColumnDefinitions="130,*"
-    >
-      <Grid.Styles>
-        <Style Selector="TextBlock.lbl">
-          <Setter Property="Foreground" Value="#D8D8D8" />
-          <Setter Property="VerticalAlignment" Value="Center" />
-          <Setter Property="Margin" Value="0,6,10,6" />
-        </Style>
-        <Style Selector="ComboBox">
-          <Setter Property="MinWidth" Value="200" />
-        </Style>
-      </Grid.Styles>
+    <StackPanel Margin="16" Spacing="2">
+      <TextBlock Classes="pagetitle" Text="Planner Settings" />
 
-      <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Classes="pagetitle" Text="Planner Settings" />
+      <!-- ===================== Units / language / theme ===================== -->
+      <TextBlock Classes="grp" Text="Display" />
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="140,*">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="lbl" Text="UI Language" />
+        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+          <ComboBox HorizontalAlignment="Left" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}" />
+          <TextBlock Classes="lbl" Foreground="#E0A030" Text="{Binding LanguageNote}" />
+        </StackPanel>
 
-      <TextBlock Grid.Row="1" Grid.Column="0" Classes="lbl" Text="Speech" />
-      <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="lbl" Text="Units" />
+        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <TextBlock Classes="lbl" Text="Dist" />
+          <ComboBox MinWidth="110" ItemsSource="{Binding DistUnitsOptions}" SelectedItem="{Binding DistUnits}" />
+          <TextBlock Classes="lbl" Text="Alt" />
+          <ComboBox MinWidth="110" ItemsSource="{Binding DistUnitsOptions}" SelectedItem="{Binding AltUnits}" />
+          <TextBlock Classes="lbl" Text="Speed" />
+          <ComboBox MinWidth="160" ItemsSource="{Binding SpeedUnitsOptions}" SelectedItem="{Binding SpeedUnits}" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="lbl" Text="Theme / Layout" />
+        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" />
+          <ComboBox ItemsSource="{Binding LayoutOptions}" SelectedItem="{Binding Layout}" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="lbl" Text="HUD / OSD" />
+        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+          <CheckBox Content="Enable HUD Overlay" IsChecked="{Binding EnableHudOverlay, Mode=TwoWay}" />
+          <TextBlock Classes="lbl" Text="OSD Color" />
+          <ComboBox MinWidth="140" ItemsSource="{Binding OsdColorOptions}" SelectedItem="{Binding OsdColor}" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="lbl" Text="Message Severity" />
+        <ComboBox Grid.Row="4" Grid.Column="1" HorizontalAlignment="Left" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding Severity}" />
+      </Grid>
+
+      <!-- ===================== Speech ===================== -->
+      <TextBlock Classes="grp" Text="Speech" />
+      <StackPanel Orientation="Horizontal" Spacing="10">
         <CheckBox Content="Enable Speech" IsChecked="{Binding EnableSpeech, Mode=TwoWay}" />
         <ComboBox ItemsSource="{Binding SpeechOptions}" SelectedItem="{Binding SpeechLevel}" />
       </StackPanel>
+      <WrapPanel IsVisible="{Binding SpeechSubOptionsVisible}">
+        <CheckBox Content="Armed Only" IsChecked="{Binding SpeechArmedOnly, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Waypoint" IsChecked="{Binding SpeechWaypoint, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Mode" IsChecked="{Binding SpeechMode, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Custom" IsChecked="{Binding SpeechCustom, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Battery" IsChecked="{Binding SpeechBattery, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Alt Warning" IsChecked="{Binding SpeechAltWarning, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Arm/Disarm" IsChecked="{Binding SpeechArmDisarm, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Low Speed" IsChecked="{Binding SpeechLowSpeed, Mode=TwoWay}" Margin="0,0,14,0" />
+      </WrapPanel>
 
-      <TextBlock Grid.Row="2" Grid.Column="0" Classes="lbl" Text="UI Language" />
-      <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="10">
-        <ComboBox
-          HorizontalAlignment="Left"
-          ItemsSource="{Binding LanguageOptions}"
-          SelectedItem="{Binding Language}"
-        />
-        <TextBlock Classes="lbl" Foreground="#E0A030" Text="{Binding LanguageNote}" />
-      </StackPanel>
+      <!-- ===================== Waypoints / connect ===================== -->
+      <TextBlock Classes="grp" Text="Waypoints / Connect" />
+      <WrapPanel>
+        <CheckBox Content="Load Waypoints on connect" IsChecked="{Binding LoadWaypointsOnConnect, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Display dist-to-home in Flightdata" IsChecked="{Binding DisplayInFlightData, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Map follows plane (rotation)" IsChecked="{Binding MapFollowPlane, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="Reset on USB Connect" IsChecked="{Binding ResetOnUsbConnect, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="RTS resets ESP32" IsChecked="{Binding RtsResetEsp32, Mode=TwoWay}" Margin="0,0,14,0" />
+        <CheckBox Content="No RC Receiver" IsChecked="{Binding NoRcReceiver, Mode=TwoWay}" Margin="0,0,14,0" />
+      </WrapPanel>
 
-      <TextBlock Grid.Row="3" Grid.Column="0" Classes="lbl" Text="Units" />
-      <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-        <TextBlock Classes="lbl" Text="Dist" />
-        <ComboBox
-          MinWidth="110"
-          ItemsSource="{Binding DistUnitsOptions}"
-          SelectedItem="{Binding DistUnits}"
-        />
-        <TextBlock Classes="lbl" Text="Alt" />
-        <ComboBox MinWidth="110" ItemsSource="{Binding DistUnitsOptions}" SelectedItem="{Binding AltUnits}" />
-        <TextBlock Classes="lbl" Text="Speed" />
-        <ComboBox
-          MinWidth="170"
-          ItemsSource="{Binding SpeedUnitsOptions}"
-          SelectedItem="{Binding SpeedUnits}"
-        />
-      </StackPanel>
-
-      <TextBlock Grid.Row="4" Grid.Column="0" Classes="lbl" Text="Telemetry Rates" />
-      <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="6">
+      <!-- ===================== Telemetry rates ===================== -->
+      <TextBlock Classes="grp" Text="Telemetry Rates (Hz)" />
+      <StackPanel Orientation="Horizontal" Spacing="6">
         <TextBlock Classes="lbl" Text="Attitude" />
         <NumericUpDown Width="90" Value="{Binding TelemAttitude}" />
         <TextBlock Classes="lbl" Text="Position" />
         <NumericUpDown Width="90" Value="{Binding TelemPosition}" />
-        <TextBlock Classes="lbl" Text="Mode" />
+        <TextBlock Classes="lbl" Text="Mode/Status" />
         <NumericUpDown Width="90" Value="{Binding TelemModeStatus}" />
         <TextBlock Classes="lbl" Text="RC" />
         <NumericUpDown Width="90" Value="{Binding TelemRc}" />
         <TextBlock Classes="lbl" Text="Sensor" />
         <NumericUpDown Width="90" Value="{Binding TelemSensor}" />
       </StackPanel>
-
-      <TextBlock Grid.Row="5" Grid.Column="0" Classes="lbl" Text="Track Length" />
-      <NumericUpDown
-        Grid.Row="5"
-        Grid.Column="1"
-        Width="120"
-        HorizontalAlignment="Left"
-        Value="{Binding TrackLength}"
-      />
-
-      <TextBlock Grid.Row="6" Grid.Column="0" Classes="lbl" Text="Waypoints / HUD" />
-      <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Spacing="14">
-        <CheckBox Content="Load Waypoints on connect?" IsChecked="{Binding LoadWaypointsOnConnect, Mode=TwoWay}" />
-        <CheckBox Content="Display in Flightdata" IsChecked="{Binding DisplayInFlightData, Mode=TwoWay}" />
-        <CheckBox Content="Map follows plane" IsChecked="{Binding MapFollowPlane, Mode=TwoWay}" />
-        <CheckBox Content="Enable HUD Overlay" IsChecked="{Binding EnableHudOverlay, Mode=TwoWay}" />
-      </StackPanel>
-
-      <TextBlock Grid.Row="7" Grid.Column="0" Classes="lbl" Text="Theme / Layout" />
-      <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-        <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" />
-        <ComboBox ItemsSource="{Binding LayoutOptions}" SelectedItem="{Binding Layout}" />
-        <TextBlock Classes="lbl" Text="GCS ID" />
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
+        <TextBlock Classes="lbl" Text="Track Length" />
+        <NumericUpDown Width="110" Value="{Binding TrackLength}" />
+        <TextBlock Classes="lbl" Text="GCS sysid" />
         <NumericUpDown Width="100" Value="{Binding GcsId}" />
+        <Button Content="Re-request Params" Command="{Binding RerequestParamsCommand}" />
       </StackPanel>
 
-      <TextBlock Grid.Row="8" Grid.Column="0" Classes="lbl" Text="Aircraft Icon" />
-      <WrapPanel Grid.Row="8" Grid.Column="1">
+      <!-- ===================== Aircraft icon / map markers ===================== -->
+      <TextBlock Classes="grp" Text="Aircraft Icon / Map" />
+      <WrapPanel>
         <CheckBox Content="Display COG" IsChecked="{Binding DisplayCog, Mode=TwoWay}" Margin="0,0,12,0" />
         <CheckBox Content="Display Heading" IsChecked="{Binding DisplayHeading, Mode=TwoWay}" Margin="0,0,12,0" />
         <CheckBox Content="Display Nav Bearing" IsChecked="{Binding DisplayNavBearing, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Display Radius" IsChecked="{Binding DisplayRadius, Mode=TwoWay}" Margin="0,0,12,0" />
         <CheckBox Content="Display Target" IsChecked="{Binding DisplayTarget, Mode=TwoWay}" Margin="0,0,12,0" />
         <CheckBox Content="Display ToolTip" IsChecked="{Binding DisplayTooltip, Mode=TwoWay}" Margin="0,0,12,0" />
       </WrapPanel>
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+        <TextBlock Classes="lbl" Text="Line Length" />
+        <NumericUpDown Width="110" Value="{Binding LineLength}" />
+        <TextBlock Classes="lbl" Text="Secondary Style" />
+        <ComboBox MinWidth="140" ItemsSource="{Binding SecondaryDisplayStyleOptions}" SelectedItem="{Binding SecondaryDisplayStyle}" />
+        <TextBlock Classes="lbl" Text="Map Cache" />
+        <ComboBox MinWidth="150" ItemsSource="{Binding MapCacheOptions}" SelectedItem="{Binding MapCache}" />
+      </StackPanel>
+      <WrapPanel Margin="0,6,0,0">
+        <CheckBox Content="Show Airports" IsChecked="{Binding ShowAirports, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Show No-Fly Zones" IsChecked="{Binding ShowNoFly, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Show TFR" IsChecked="{Binding ShowTfr, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Enable ADSB" IsChecked="{Binding EnableAdsb, Mode=TwoWay}" Margin="0,0,12,0" />
+      </WrapPanel>
 
-      <TextBlock Grid.Row="9" Grid.Column="0" Classes="lbl" Text="Connect Reset" />
-      <CheckBox
-        Grid.Row="9"
-        Grid.Column="1"
-        Content="Reset on USB Connect (toggle DTR)"
-        IsChecked="{Binding ResetOnUsbConnect, Mode=TwoWay}"
-      />
-    </Grid>
+      <!-- ===================== Logging ===================== -->
+      <TextBlock Classes="grp" Text="Logs" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Classes="lbl" Text="Log Directory" />
+        <TextBox Width="420" Text="{Binding LogDir, Mode=TwoWay}" />
+      </StackPanel>
+
+      <!-- ===================== Advanced ===================== -->
+      <TextBlock Classes="grp" Text="Advanced" />
+      <WrapPanel>
+        <CheckBox Content="Beta Updates" IsChecked="{Binding BetaUpdates, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Password Protect" IsChecked="{Binding PasswordProtect, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Auto Param Commit" IsChecked="{Binding AutoParamCommit, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Params Background Load" IsChecked="{Binding ParamsBg, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Slow Machine" IsChecked="{Binding SlowMachine, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Use GDI+ (restart)" IsChecked="{Binding GdiPlus, Mode=TwoWay}" Margin="0,0,12,0" />
+        <CheckBox Content="Analytics Opt-Out" IsChecked="{Binding AnalyticsOptOut, Mode=TwoWay}" Margin="0,0,12,0" />
+      </WrapPanel>
+    </StackPanel>
   </ScrollViewer>
 </UserControl>

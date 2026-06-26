@@ -11,30 +11,70 @@
   x:DataType="cv:ConfigFailSafeViewModel"
   Background="#434445"
 >
+  <UserControl.Resources>
+    <DataTemplate x:Key="FieldTemplate" x:DataType="cv:ParamField">
+      <Grid ColumnDefinitions="200,180,Auto,*" Margin="0,3">
+        <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl" ToolTip.Tip="{Binding Description}" TextWrapping="Wrap" Margin="0,0,8,0" />
+        <ComboBox Grid.Column="1" IsVisible="{Binding IsCombo}" MinWidth="160" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
+        <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
+        <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="160" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
+        <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
+        <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="Border.group">
+      <Setter Property="BorderBrush" Value="#5A5A5A" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="10" />
+      <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+    <Style Selector="TextBlock.grouptitle">
+      <Setter Property="Foreground" Value="#94C11F" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+  </UserControl.Styles>
+
   <ScrollViewer>
     <Grid ColumnDefinitions="*,320" Margin="16">
-      <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,12,0">
+      <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,12,0">
         <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+        <TextBlock Classes="fieldlbl" Text="{Binding Vehicle, StringFormat='Vehicle: {0}'}" FontWeight="Bold" />
         <TextBlock Classes="fieldlbl" Text="{Binding Intro}" TextWrapping="Wrap" />
-        <Button Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
+          <TextBlock Classes="fieldlbl" Text="{Binding WikiUrl}" Foreground="CornflowerBlue" VerticalAlignment="Center" />
+        </StackPanel>
 
-        <ItemsControl ItemsSource="{Binding Fields}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="cv:ParamField">
-              <Grid ColumnDefinitions="220,200,Auto,*" Margin="0,3">
-                <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl" ToolTip.Tip="{Binding Description}" TextWrapping="Wrap" Margin="0,0,8,0" />
-                <ComboBox Grid.Column="1" IsVisible="{Binding IsCombo}" MinWidth="180" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
-                <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
-                <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="180" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
-                <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-                <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
-              </Grid>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <!-- groupBox2 Radio -->
+        <Border Classes="group">
+          <StackPanel>
+            <TextBlock Classes="grouptitle" Text="Radio" />
+            <ItemsControl ItemsSource="{Binding RadioFields}" ItemTemplate="{StaticResource FieldTemplate}" />
+          </StackPanel>
+        </Border>
+
+        <!-- groupBox3 GCS -->
+        <Border Classes="group">
+          <StackPanel>
+            <TextBlock Classes="grouptitle" Text="GCS" />
+            <ItemsControl ItemsSource="{Binding GcsFields}" ItemTemplate="{StaticResource FieldTemplate}" />
+          </StackPanel>
+        </Border>
+
+        <!-- groupBox4 Battery -->
+        <Border Classes="group">
+          <StackPanel>
+            <TextBlock Classes="grouptitle" Text="Battery" />
+            <ItemsControl ItemsSource="{Binding BatteryFields}" ItemTemplate="{StaticResource FieldTemplate}" />
+          </StackPanel>
+        </Border>
       </StackPanel>
 
-      <Border Grid.Column="1" BorderBrush="#5A5A5A" BorderThickness="1" Padding="10" VerticalAlignment="Top">
+      <Border Grid.Column="1" Classes="group" VerticalAlignment="Top">
         <StackPanel Spacing="4">
           <TextBlock Text="Live RC Input / Output" Classes="fieldlbl" FontWeight="Bold" Margin="0,0,0,6" />
           <ItemsControl ItemsSource="{Binding Channels}">

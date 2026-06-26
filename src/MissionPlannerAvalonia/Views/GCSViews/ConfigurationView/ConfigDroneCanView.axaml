@@ -11,7 +11,7 @@
   x:DataType="cv:ConfigDroneCanViewModel"
   Background="#434445"
 >
-  <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="16">
+  <Grid RowDefinitions="Auto,Auto,Auto,2*,Auto,Auto,Auto,3*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="DroneCAN / UAVCAN" />
 
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,8">
@@ -23,6 +23,7 @@
       />
       <Button Content="{Binding ConnectLabel}" Command="{Binding ToggleConnectCommand}" />
       <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+      <Button Name="BusInspectorBtn" Content="Bus Inspector" />
     </StackPanel>
 
     <TextBlock
@@ -36,6 +37,7 @@
     <DataGrid
       Grid.Row="3"
       ItemsSource="{Binding Nodes}"
+      SelectedItem="{Binding SelectedNode}"
       AutoGenerateColumns="False"
       IsReadOnly="True"
       GridLinesVisibility="All"
@@ -49,6 +51,39 @@
         <DataGridTextColumn Header="Uptime" Binding="{Binding Uptime}" Width="120" />
         <DataGridTextColumn Header="SW" Binding="{Binding SoftwareVersion}" Width="120" />
         <DataGridTextColumn Header="HW" Binding="{Binding HardwareVersion}" Width="80" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" Margin="0,8,0,4">
+      <Button Content="Get Parameters" Command="{Binding GetParametersCommand}" />
+      <Button Content="Restart Node" Command="{Binding RestartNodeCommand}" />
+      <Button Name="FirmwareUpdateBtn" Content="Update Firmware…" />
+      <Button Content="Write" Command="{Binding WriteParametersCommand}" />
+      <Button Content="Save to Flash" Command="{Binding SaveConfigCommand}" />
+      <Button Content="Erase" Command="{Binding EraseConfigCommand}" />
+    </StackPanel>
+
+    <TextBlock
+      Grid.Row="5"
+      Text="{Binding NodeStatus}"
+      Classes="fieldlbl"
+      TextWrapping="Wrap"
+      Margin="0,0,0,8"
+    />
+
+    <DataGrid
+      Grid.Row="7"
+      ItemsSource="{Binding NodeParams}"
+      AutoGenerateColumns="False"
+      GridLinesVisibility="All"
+      HeadersVisibility="Column"
+    >
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" IsReadOnly="True" />
+        <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*" IsReadOnly="False" />
+        <DataGridTextColumn Header="Min" Binding="{Binding Min}" Width="*" IsReadOnly="True" />
+        <DataGridTextColumn Header="Max" Binding="{Binding Max}" Width="*" IsReadOnly="True" />
+        <DataGridTextColumn Header="Default" Binding="{Binding Default}" Width="*" IsReadOnly="True" />
       </DataGrid.Columns>
     </DataGrid>
   </Grid>

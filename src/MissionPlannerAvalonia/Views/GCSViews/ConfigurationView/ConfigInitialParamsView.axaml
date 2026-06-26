@@ -1,0 +1,63 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="640"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigInitialParamsView"
+  x:DataType="cv:ConfigInitialParamsViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="Initial Parameters" />
+
+      <TextBlock Classes="fieldlbl" TextWrapping="Wrap"
+        Text="This screen calculates a sensible set of initial tuning parameters from your prop size and battery. Use it on a fresh build, then verify before flight." />
+
+      <Grid ColumnDefinitions="220,120,160" RowDefinitions="Auto,Auto,Auto,Auto" >
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Airscrew size in inch:" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding PropSize}" Margin="0,4" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Battery cellcount:" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CellCount}" Margin="0,4" />
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Battery cell fully charged voltage:" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding CellMax}" Margin="0,4" />
+        <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,4,0,4">
+          <TextBlock Classes="fieldlbl" Text="Chemistry" VerticalAlignment="Center" />
+          <ComboBox Width="100" ItemsSource="{Binding BatteryTypes}" SelectedItem="{Binding BatteryType}" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Battery cell fully discharged voltage:" VerticalAlignment="Center" Margin="0,4" />
+        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding CellMin}" Margin="0,4" />
+      </Grid>
+
+      <CheckBox Content="Using T-Motor Flame ESC?" IsChecked="{Binding TMotor}" />
+      <CheckBox Content="Add suggested settings for 4.0 and up (Battery failsafe and Fence) ?" IsChecked="{Binding Suggested}" />
+
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="Calculate Initial Parameters" Command="{Binding CalculateCommand}" />
+        <Button Content="Write to FC" Command="{Binding WriteToFcCommand}" IsEnabled="{Binding HasResults}" />
+      </StackPanel>
+
+      <TextBlock Classes="fieldlbl" Text="{Binding Status}" TextWrapping="Wrap" Foreground="#94C11F" />
+
+      <DataGrid ItemsSource="{Binding Results}" AutoGenerateColumns="False" IsVisible="{Binding HasResults}"
+                CanUserResizeColumns="True" Height="280" MinHeight="160">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Parameter" Binding="{Binding Name}" Width="*" />
+          <DataGridTextColumn Header="Current" Binding="{Binding Current}" Width="120" />
+          <DataGridTextColumn Header="New" Binding="{Binding NewValue}" Width="120" />
+        </DataGrid.Columns>
+      </DataGrid>
+
+      <TextBlock Classes="fieldlbl" TextWrapping="Wrap"
+        Text="You can find a detailed description of initial parameter settings and tuning here. PLEASE READ IT!" />
+      <TextBlock Classes="fieldlbl" Text="{Binding DocsUrl}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

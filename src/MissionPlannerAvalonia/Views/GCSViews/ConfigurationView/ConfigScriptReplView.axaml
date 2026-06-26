@@ -42,11 +42,11 @@
       Margin="0,8,0,8"
     />
 
-    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto">
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto,Auto">
       <TextBox
         Grid.Column="0"
         Text="{Binding Input}"
-        Watermark="Enter a Python statement..."
+        Watermark="Enter a Lua statement..."
         AcceptsReturn="False"
         FontFamily="Consolas,Menlo,Monospace"
         Margin="0,0,8,0"
@@ -59,6 +59,12 @@
       />
       <Button
         Grid.Column="2"
+        Content="Abort"
+        Command="{Binding AbortCommand}"
+        Margin="0,0,8,0"
+      />
+      <Button
+        Grid.Column="3"
         Content="Clear"
         Command="{Binding ClearCommand}"
       />

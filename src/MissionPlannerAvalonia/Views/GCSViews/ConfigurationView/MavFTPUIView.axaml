@@ -1,0 +1,85 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="820"
+  d:DesignHeight="600"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.MavFTPUIView"
+  x:DataType="vm:MavFTPUIViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="MAVFTP — Remote Files" />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,8">
+      <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+      <Button Name="DownloadBtn" Content="Download" />
+      <Button Name="UploadBtn" Content="Upload" />
+      <Button Content="Delete" Command="{Binding DeleteCommand}" />
+      <TextBox
+        Width="160"
+        Watermark="New folder name"
+        Text="{Binding NewFolderName}"
+        VerticalAlignment="Center"
+      />
+      <Button Content="Mkdir" Command="{Binding MakeDirectoryCommand}" />
+    </StackPanel>
+
+    <Grid Grid.Row="2" ColumnDefinitions="260,*">
+      <TreeView
+        Grid.Column="0"
+        Margin="0,0,8,0"
+        ItemsSource="{Binding Roots}"
+        SelectedItem="{Binding SelectedDir}"
+      >
+        <TreeView.Styles>
+          <Style Selector="TreeViewItem">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay, DataType=vm:FtpDirNode}" />
+          </Style>
+        </TreeView.Styles>
+        <TreeView.DataTemplates>
+          <TreeDataTemplate DataType="vm:FtpDirNode" ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding Name}" />
+          </TreeDataTemplate>
+        </TreeView.DataTemplates>
+      </TreeView>
+
+      <DataGrid
+        Grid.Column="1"
+        Name="EntriesGrid"
+        ItemsSource="{Binding Entries}"
+        SelectedItem="{Binding SelectedEntry}"
+        AutoGenerateColumns="False"
+        IsReadOnly="True"
+        GridLinesVisibility="All"
+        HeadersVisibility="Column"
+      >
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
+          <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="120" />
+          <DataGridTextColumn Header="Size" Binding="{Binding SizeText}" Width="120" />
+        </DataGrid.Columns>
+      </DataGrid>
+    </Grid>
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+      <TextBlock
+        Grid.Column="0"
+        Text="{Binding Status}"
+        Classes="fieldlbl"
+        TextWrapping="Wrap"
+        VerticalAlignment="Center"
+      />
+      <ProgressBar
+        Grid.Column="1"
+        Width="200"
+        Minimum="0"
+        Maximum="100"
+        Value="{Binding Progress}"
+      />
+    </Grid>
+  </Grid>
+</UserControl>

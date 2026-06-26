@@ -1,0 +1,97 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="900"
+  d:DesignHeight="640"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigOSDView"
+  x:DataType="cv:ConfigOSDViewModel"
+  Background="#434445"
+>
+  <Grid RowDefinitions="Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,6,0,8">
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
+      <TextBlock Text="Screen:" Classes="fieldlbl" VerticalAlignment="Center" />
+      <ComboBox MinWidth="80" ItemsSource="{Binding Screens}" SelectedItem="{Binding SelectedScreen}" />
+      <Button Content="Enable All" Command="{Binding EnableAllCommand}" />
+      <Button Content="Disable All" Command="{Binding DisableAllCommand}" />
+      <TextBlock Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,300">
+      <!-- Screen-rectangle preview with draggable items. -->
+      <Border
+        Grid.Column="0"
+        BorderBrush="#666"
+        BorderThickness="1"
+        Background="#111417"
+        HorizontalAlignment="Left"
+        VerticalAlignment="Top"
+      >
+        <Canvas
+          Name="OsdCanvas"
+          Width="{Binding CanvasWidth}"
+          Height="{Binding CanvasHeight}"
+          Background="Transparent"
+        >
+          <ItemsControl ItemsSource="{Binding Items}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <Canvas />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.Styles>
+              <Style Selector="ContentPresenter" x:DataType="cv:OsdItemVm">
+                <Setter Property="Canvas.Left" Value="{Binding CanvasLeft}" />
+                <Setter Property="Canvas.Top" Value="{Binding CanvasTop}" />
+              </Style>
+            </ItemsControl.Styles>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="cv:OsdItemVm">
+                <Border
+                  Background="#1E3A5F"
+                  BorderBrush="#4A90D9"
+                  BorderThickness="1"
+                  CornerRadius="2"
+                  Padding="3,1"
+                  Opacity="{Binding Opacity}"
+                  ToolTip.Tip="{Binding Name}"
+                  Cursor="Hand"
+                >
+                  <TextBlock Text="{Binding Name}" Foreground="#E0F0FF" FontSize="11" FontFamily="Consolas,monospace" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Canvas>
+      </Border>
+
+      <!-- Per-item Enable + X/Y precise editors. -->
+      <ScrollViewer Grid.Column="1" Margin="12,0,0,0">
+        <ItemsControl ItemsSource="{Binding Items}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="cv:OsdItemVm">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,2" ColumnSpacing="4">
+                <CheckBox Grid.Column="0" IsChecked="{Binding Enabled}" />
+                <TextBlock
+                  Grid.Column="1"
+                  Text="{Binding Name}"
+                  Classes="fieldlbl"
+                  VerticalAlignment="Center"
+                  TextTrimming="CharacterEllipsis"
+                />
+                <NumericUpDown Grid.Column="2" Width="90" Minimum="0" Value="{Binding X}" FormatString="0" />
+                <NumericUpDown Grid.Column="3" Width="90" Minimum="0" Value="{Binding Y}" FormatString="0" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

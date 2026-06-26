@@ -13,6 +13,27 @@ public record ParamOption(int Value, string Text) {
   public override string ToString() => Text;
 }
 
+// One bit in a bitmask parameter (mirrors the upstream Bitmask metadata: "bit:Name").
+public partial class BitOption : ObservableObject {
+  private readonly ParamField _owner;
+
+  public int Bit { get; }
+  public long Mask => 1L << Bit;
+  public string Label { get; }
+
+  [ObservableProperty]
+  private bool _isSet;
+
+  public BitOption(ParamField owner, int bit, string label) {
+    _owner = owner;
+    Bit = bit;
+    Label = $"{bit}: {label}";
+  }
+
+  [Obsolete]
+  partial void OnIsSetChanged(bool value) => _owner.OnBitToggled();
+}
+
 public partial class ParamField : ObservableObject {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private bool _suppress;
@@ -24,15 +45,25 @@ public partial class ParamField : ObservableObject {
 
   public bool IsCombo { get; }
   public bool IsBool { get; }
-  public bool IsNumeric => !IsCombo && !IsBool;
+  public bool IsBitmask { get; }
+  public bool IsNumeric => !IsCombo && !IsBool && !IsBitmask;
 
   public double Min { get; } = double.MinValue;
   public double Max { get; } = double.MaxValue;
   public double Increment { get; } = 0.01;
+  private bool _hasRange;
 
   public ObservableCollection<ParamOption> Options { get; } = new();
+  public ObservableCollection<BitOption> BitOptions { get; } = new();
 
   public bool Exists => _comPort.MAV.param.ContainsKey(Name);
+
+  // Out-of-range highlight: value below Min or above Max (only when a range is published).
+  public bool IsOutOfRange => Exists && _hasRange && (Value < Min || Value > Max);
+
+  // Favourite flag (used by friendly-param ordering/persistence). Additive; default false.
+  [ObservableProperty]
+  private bool _fav;
 
   [ObservableProperty]
   private double _value;
@@ -46,6 +77,16 @@ public partial class ParamField : ObservableObject {
   [ObservableProperty]
   private string _status = "";
 
+  public string BitmaskSummary {
+    get {
+      var on = BitOptions.Where(b => b.IsSet).Select(b => b.Label).ToList();
+      if (on.Count == 0) {
+        return "(none)";
+      }
+      return on.Count <= 3 ? string.Join(", ", on) : $"{on.Count} bits set";
+    }
+  }
+
   public ParamField(string name, string? kind = null) {
     Name = name;
     var fw = _comPort.MAV.cs.firmware.ToString();
@@ -55,7 +96,15 @@ public partial class ParamField : ObservableObject {
     Description = Meta(ParameterMetaDataConstants.Description, fw);
 
     var opts = SafeOptions(name, fw);
-    if (kind == "combo" || (kind == null && opts.Count > 0)) {
+    var bits = SafeBitmask(name, fw);
+    // Bitmask is opt-in via kind=="bitmask" so existing pages (whose templates have no bitmask
+    // control) keep their numeric/combo editors. Callers that own a bitmask-aware view request it.
+    if (kind == "bitmask" && bits.Count > 0) {
+      IsBitmask = true;
+      foreach (var kv in bits) {
+        BitOptions.Add(new BitOption(this, kv.Key, kv.Value));
+      }
+    } else if (kind == "combo" || (kind == null && opts.Count > 0)) {
       IsCombo = true;
       foreach (var kv in opts) {
         Options.Add(new ParamOption(kv.Key, kv.Value));
@@ -70,6 +119,7 @@ public partial class ParamField : ObservableObject {
     if (ParameterMetaDataRepository.GetParameterRange(name, ref min, ref max, fw)) {
       Min = min;
       Max = max;
+      _hasRange = true;
     }
     if (ParameterMetaDataRepository.GetParameterIncrement(name, ref inc, fw)) {
       Increment = inc;
@@ -85,15 +135,44 @@ public partial class ParamField : ObservableObject {
       Value = v;
       Checked = v != 0;
       SelectedOption = Options.FirstOrDefault(o => o.Value == (int)Math.Round(v));
+      if (IsBitmask) {
+        long iv = (long)Math.Round(v);
+        foreach (var b in BitOptions) {
+          b.IsSet = (iv & b.Mask) != 0;
+        }
+        OnPropertyChanged(nameof(BitmaskSummary));
+      }
       Status = "";
     } else {
       Status = "n/a";
     }
     _suppress = false;
+    OnPropertyChanged(nameof(IsOutOfRange));
+  }
+
+  // Called by BitOption when a checkbox toggles; recompute the numeric value and push it.
+  [Obsolete]
+  internal void OnBitToggled() {
+    if (_suppress) {
+      return;
+    }
+    long v = 0;
+    foreach (var b in BitOptions) {
+      if (b.IsSet) {
+        v |= b.Mask;
+      }
+    }
+    _suppress = true;
+    Value = v;
+    _suppress = false;
+    OnPropertyChanged(nameof(BitmaskSummary));
+    OnPropertyChanged(nameof(IsOutOfRange));
+    Push(v);
   }
 
   [Obsolete]
   partial void OnValueChanged(double value) {
+    OnPropertyChanged(nameof(IsOutOfRange));
     if (IsNumeric)
       Push(value);
   }
@@ -148,4 +227,15 @@ public partial class ParamField : ObservableObject {
       return new();
     }
   }
+
+  private static List<KeyValuePair<int, string>> SafeBitmask(string name, string fw) {
+    try {
+      return ParameterMetaDataRepository.GetParameterBitMaskInt(name, fw) ?? new();
+    } catch {
+      return new();
+    }
+  }
+
+  // Lets a bitmask-aware page decide whether to request kind=="bitmask" for a param.
+  public static bool HasBitmask(string name, string fw) => SafeBitmask(name, fw).Count > 0;
 }

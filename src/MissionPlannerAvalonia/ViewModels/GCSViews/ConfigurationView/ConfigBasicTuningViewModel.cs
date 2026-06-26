@@ -64,6 +64,7 @@ public partial class ConfigBasicTuningViewModel : ViewModelBase {
 
   private bool Connected => _comPort.BaseStream?.IsOpen == true;
 
+  [Obsolete]
   public ConfigBasicTuningViewModel() {
     Load();
   }
@@ -102,6 +103,7 @@ public partial class ConfigBasicTuningViewModel : ViewModelBase {
      new[] { new SimpleRelation("ACCEL_Z_I", 2) }),
   };
 
+  [Obsolete]
   private void Load() {
     Items.Clear();
     var fw = _comPort.MAV.cs.firmware.ToString();
@@ -169,6 +171,7 @@ public partial class ConfigBasicTuningViewModel : ViewModelBase {
   private void Append(string line) => Info += line + "\r\n";
 
   [RelayCommand]
+  [Obsolete]
   private async Task Refresh() {
     if (Connected) {
       await Task.Run(() => _comPort.getParamList());

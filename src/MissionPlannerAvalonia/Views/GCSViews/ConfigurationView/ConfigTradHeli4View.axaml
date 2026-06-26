@@ -1,0 +1,97 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="980"
+  d:DesignHeight="820"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigTradHeli4View"
+  x:DataType="cv:ConfigTradHeli4ViewModel"
+  Background="#434445"
+>
+  <UserControl.Resources>
+    <DataTemplate x:Key="fieldTemplate" x:DataType="cv:ParamField">
+      <Grid ColumnDefinitions="240,200,Auto,*" Margin="0,3">
+        <TextBlock Grid.Column="0" Text="{Binding Label}" Classes="fieldlbl"
+                   ToolTip.Tip="{Binding Description}" TextWrapping="Wrap" Margin="0,0,8,0" />
+        <ComboBox Grid.Column="1" IsVisible="{Binding IsCombo}" MinWidth="180"
+                  ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
+        <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
+        <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="180"
+                       Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}"
+                       Increment="{Binding Increment}" FormatString="0.######" />
+        <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
+        <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <Grid RowDefinitions="Auto,Auto,*" Margin="16">
+    <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
+      <TextBlock Text="{Binding Intro}" Classes="fieldlbl" TextWrapping="Wrap" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="2">
+      <StackPanel Spacing="14">
+        <!-- Servo outputs -->
+        <StackPanel Spacing="4">
+          <TextBlock Text="Servo Outputs" Classes="fieldlbl" FontWeight="Bold" />
+          <Grid ColumnDefinitions="60,80,200,110,110,110">
+            <TextBlock Grid.Column="0" Text="Servo" Classes="fieldlbl" />
+            <TextBlock Grid.Column="1" Text="Reverse" Classes="fieldlbl" />
+            <TextBlock Grid.Column="2" Text="Function" Classes="fieldlbl" />
+            <TextBlock Grid.Column="3" Text="Min" Classes="fieldlbl" />
+            <TextBlock Grid.Column="4" Text="Trim" Classes="fieldlbl" />
+            <TextBlock Grid.Column="5" Text="Max" Classes="fieldlbl" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Servos}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="cv:HeliServoRow">
+                <Grid ColumnDefinitions="60,80,200,110,110,110" Margin="0,2">
+                  <TextBlock Grid.Column="0" Text="{Binding Index}" Classes="fieldlbl" VerticalAlignment="Center" />
+                  <CheckBox Grid.Column="1" IsChecked="{Binding Reversed.Checked}" />
+                  <ComboBox Grid.Column="2" MinWidth="180" ItemsSource="{Binding Function.Options}"
+                            SelectedItem="{Binding Function.SelectedOption}" />
+                  <NumericUpDown Grid.Column="3" Width="100" Value="{Binding Min.Value}"
+                                 Minimum="{Binding Min.Min}" Maximum="{Binding Min.Max}"
+                                 Increment="1" FormatString="0" />
+                  <NumericUpDown Grid.Column="4" Width="100" Value="{Binding Trim.Value}"
+                                 Minimum="{Binding Trim.Min}" Maximum="{Binding Trim.Max}"
+                                 Increment="1" FormatString="0" />
+                  <NumericUpDown Grid.Column="5" Width="100" Value="{Binding Max.Value}"
+                                 Minimum="{Binding Max.Min}" Maximum="{Binding Max.Max}"
+                                 Increment="1" FormatString="0" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+          <TextBlock Text="Swashplate" Classes="fieldlbl" FontWeight="Bold" />
+          <ItemsControl ItemsSource="{Binding Swashplate}" ItemTemplate="{StaticResource fieldTemplate}" />
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+          <TextBlock Text="Rotor Speed Control" Classes="fieldlbl" FontWeight="Bold" />
+          <ItemsControl ItemsSource="{Binding Throttle}" ItemTemplate="{StaticResource fieldTemplate}" />
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+          <TextBlock Text="Governor" Classes="fieldlbl" FontWeight="Bold" />
+          <ItemsControl ItemsSource="{Binding Governor}" ItemTemplate="{StaticResource fieldTemplate}" />
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+          <TextBlock Text="Miscellaneous" Classes="fieldlbl" FontWeight="Bold" />
+          <ItemsControl ItemsSource="{Binding Misc}" ItemTemplate="{StaticResource fieldTemplate}" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

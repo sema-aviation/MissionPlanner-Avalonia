@@ -1,12 +1,19 @@
 using System;
 using System.Text;
+using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
+// Port of the Mission Planner Script REPL. Upstream embeds an IronPython console; this
+// build substitutes the Lua engine (Services/LuaScriptHost) — that swap is intentional.
+// Input box -> run Lua via the host -> stream output/errors into the console.
 public partial class ConfigScriptReplViewModel : ViewModelBase {
   private readonly StringBuilder _buffer = new();
+  private readonly LuaScriptHost _host = new();
 
   [ObservableProperty]
   private string _input = "";
@@ -17,27 +24,58 @@ public partial class ConfigScriptReplViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _autoScroll = true;
 
+  [ObservableProperty]
+  [NotifyCanExecuteChangedFor(nameof(RunCommand))]
+  [NotifyCanExecuteChangedFor(nameof(AbortCommand))]
+  private bool _running;
+
   public ConfigScriptReplViewModel() {
-    AppendLine("Mission Planner Script REPL (IronPython)");
-    AppendLine("Engine status: the embedded Python (IronPython) engine is not available in this build.");
+    _host.Output += OnHostOutput;
+    AppendLine("Mission Planner Script REPL (Lua / MoonSharp)");
+    AppendLine("Bound globals: comPort (MAVLinkInterface), cs (current state).");
+    AppendLine("Use mp_should_abort() / mp_check_abort() inside loops to honour Abort.");
+    AppendLine("");
   }
 
-  [RelayCommand]
-  private void Run() {
+  private bool NotRunning => !Running;
+
+  [RelayCommand(CanExecute = nameof(NotRunning))]
+  private async Task Run() {
     string code = Input ?? "";
     if (code.Length == 0) {
       return;
     }
 
-    AppendLine(">>> " + code);
-    AppendLine("Python scripting is not available in this build (IronPython engine not bundled).");
+    AppendLine("> " + code);
     Input = "";
+    Running = true;
+    try {
+      await _host.RunAsync(code);
+    } catch (Exception ex) {
+      AppendLine("Error: " + ex.Message);
+    } finally {
+      Running = false;
+    }
+  }
+
+  [RelayCommand(CanExecute = nameof(Running))]
+  private void Abort() {
+    _host.Abort();
+    AppendLine("(abort requested)");
   }
 
   [RelayCommand]
   private void Clear() {
     _buffer.Clear();
     Output = "";
+  }
+
+  private void OnHostOutput(string text) {
+    if (Dispatcher.UIThread.CheckAccess()) {
+      AppendLine(text);
+    } else {
+      Dispatcher.UIThread.Post(() => AppendLine(text));
+    }
   }
 
   private void AppendLine(string text) {

@@ -1,0 +1,43 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="560"
+  d:DesignHeight="480"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFrameClassTypeView"
+  x:DataType="cv:ConfigFrameClassTypeViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10" IsEnabled="{Binding IsAvailable}">
+      <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+      <Button Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" />
+
+      <Grid ColumnDefinitions="160,260" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Frame Class" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="240"
+          ItemsSource="{Binding ClassOptions}" SelectedItem="{Binding SelectedClass}" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Frame Type" VerticalAlignment="Center" Margin="0,4,8,4" />
+        <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="240" IsEnabled="{Binding TypeEnabled}"
+          ItemsSource="{Binding TypeOptions}" SelectedItem="{Binding SelectedType}" />
+      </Grid>
+
+      <!-- Frame diagram. ponytail: source bitmaps not yet imported into Assets/ - placeholder box + caption. -->
+      <Border BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,8,0,0"
+        HorizontalAlignment="Left" Width="260" Height="200">
+        <Grid>
+          <Image Source="{Binding FrameImage}" Stretch="Uniform" />
+          <TextBlock Text="{Binding FrameImageCaption}" Classes="fieldlbl"
+            HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
+            TextAlignment="Center" />
+        </Grid>
+      </Border>
+
+      <TextBlock Text="{Binding Status}" Foreground="#94C11F" Margin="0,4,0,0" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

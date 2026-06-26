@@ -4,6 +4,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  xmlns:ctrl="using:MissionPlannerAvalonia.Controls"
   mc:Ignorable="d"
   d:DesignWidth="820"
   d:DesignHeight="720"
@@ -92,13 +93,24 @@
             <ProgressBar Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog3}" Height="18" />
           </Grid>
 
-          <TextBox
-            Text="{Binding MagResult}"
-            IsReadOnly="True"
-            AcceptsReturn="True"
-            TextWrapping="Wrap"
-            MinHeight="80"
-          />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBox
+              Grid.Column="0"
+              Text="{Binding MagResult}"
+              IsReadOnly="True"
+              AcceptsReturn="True"
+              TextWrapping="Wrap"
+              MinHeight="80"
+            />
+            <Border Grid.Column="1" Margin="10,0,0,0" BorderBrush="#555" BorderThickness="1" CornerRadius="3">
+              <ctrl:MagCalSphere
+                x:Name="MagSphere"
+                Width="220"
+                Height="220"
+                ToolTip.Tip="Live mag-sample cloud (orthographic projection, not GL 3D). Drag to rotate."
+              />
+            </Border>
+          </Grid>
         </StackPanel>
       </Border>
 

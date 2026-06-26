@@ -16,18 +16,38 @@
       <TextBlock Classes="pagetitle" Text="{Binding Title}" />
       <Button Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" />
 
-      <Grid ColumnDefinitions="220,200,Auto" RowDefinitions="Auto,Auto,Auto" Margin="0,6,0,0">
+      <Grid ColumnDefinitions="220,200,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,6,0,0">
         <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Type" VerticalAlignment="Center" Margin="0,0,8,4" />
         <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="180" ItemsSource="{Binding Type.Options}" SelectedItem="{Binding Type.SelectedOption}" />
         <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Type.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Min (cm)" VerticalAlignment="Center" Margin="0,0,8,4" />
-        <NumericUpDown Grid.Row="1" Grid.Column="1" MinWidth="180" Value="{Binding Min.Value}" Increment="1" FormatString="0.######" />
-        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Min.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Pin" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="180" ItemsSource="{Binding Pin.Options}" SelectedItem="{Binding Pin.SelectedOption}" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Pin.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Max (cm)" VerticalAlignment="Center" Margin="0,0,8,4" />
-        <NumericUpDown Grid.Row="2" Grid.Column="1" MinWidth="180" Value="{Binding Max.Value}" Increment="1" FormatString="0.######" />
-        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Max.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Scaling" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="2" Grid.Column="1" MinWidth="180" Value="{Binding Scaling.Value}" Increment="0.01" FormatString="0.######" />
+        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Scaling.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Offset" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="3" Grid.Column="1" MinWidth="180" Value="{Binding Offset.Value}" Increment="1" FormatString="0.######" />
+        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Offset.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Function" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="4" Grid.Column="1" MinWidth="180" ItemsSource="{Binding Function.Options}" SelectedItem="{Binding Function.SelectedOption}" />
+        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding Function.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Classes="fieldlbl" Text="Ratiometric" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <ComboBox Grid.Row="5" Grid.Column="1" MinWidth="180" ItemsSource="{Binding Rmetric.Options}" SelectedItem="{Binding Rmetric.SelectedOption}" />
+        <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding Rmetric.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Classes="fieldlbl" Text="Min (cm)" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="6" Grid.Column="1" MinWidth="180" Value="{Binding Min.Value}" Increment="1" FormatString="0.######" />
+        <TextBlock Grid.Row="6" Grid.Column="2" Text="{Binding Min.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="7" Grid.Column="0" Classes="fieldlbl" Text="Max (cm)" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="7" Grid.Column="1" MinWidth="180" Value="{Binding Max.Value}" Increment="1" FormatString="0.######" />
+        <TextBlock Grid.Row="7" Grid.Column="2" Text="{Binding Max.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
       </Grid>
 
       <Button Content="TeraRangerOne-I2C preset" Command="{Binding TeraRangerPresetCommand}" HorizontalAlignment="Left" />

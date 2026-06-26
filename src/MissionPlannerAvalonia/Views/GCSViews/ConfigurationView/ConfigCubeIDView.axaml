@@ -1,0 +1,47 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="560"
+  d:DesignHeight="420"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigCubeIDView"
+  x:DataType="cv:ConfigCubeIDViewModel"
+  Background="#434445"
+>
+  <ScrollViewer>
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Classes="pagetitle" Text="CubeID" />
+
+      <TextBlock Classes="fieldlbl" TextWrapping="Wrap"
+        Text="To use this feature&#10;Please enable serial passthough to the port the CubeID is connected to.&#10;Set param SERIAL_PASSTIMO to 0&#10;Set param SERIAL_PASS2 to the telem port" />
+
+      <Grid ColumnDefinitions="140,160" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowPassthrough}">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="SERIAL_PASSTIMO" VerticalAlignment="Center" Margin="0,4" />
+        <NumericUpDown Grid.Row="0" Grid.Column="1" Margin="0,4"
+                       Value="{Binding SerialPassTimo.Value}" Minimum="{Binding SerialPassTimo.Min}"
+                       Maximum="{Binding SerialPassTimo.Max}" Increment="1" FormatString="0" />
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="SERIAL_PASS2" VerticalAlignment="Center" Margin="0,4" />
+        <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="150" Margin="0,4"
+                  ItemsSource="{Binding SerialPass2.Options}" SelectedItem="{Binding SerialPass2.SelectedOption}" />
+      </Grid>
+
+      <CheckBox Content="Force 57600 baud" IsChecked="{Binding ForceBaud}" />
+
+      <TextBlock Classes="fieldlbl" TextWrapping="Wrap"
+        Text="Select the ODID device from the dropdown in the top right corner then click the Upload Firmware button" />
+
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="Upload Firmware" Command="{Binding UploadFirmwareCommand}"
+                IsEnabled="{Binding CanUpload}" Name="UploadBtn" />
+        <Button Content="Upload Custom Firmware" Name="CustomBtn" />
+        <Button Content="Cancel" Command="{Binding CancelCommand}" IsEnabled="{Binding IsBusy}" />
+      </StackPanel>
+
+      <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="18" />
+      <TextBlock Classes="fieldlbl" Text="{Binding Status}" TextWrapping="Wrap" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

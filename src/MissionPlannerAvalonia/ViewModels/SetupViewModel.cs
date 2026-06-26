@@ -4,7 +4,7 @@ using MissionPlannerAvalonia.ViewModels.Setup;
 namespace MissionPlannerAvalonia.ViewModels;
 
 public class SetupViewModel : BackstageViewModel {
-  public SetupViewModel() {
+  public SetupViewModel() : base(persistKey: "setup_lastpage") {
     Add("Install Firmware", () => new InstallFirmwareViewModel());
     Add("Install Firmware Legacy", () => new ConfigFirmwareLegacyViewModel());
     Add("Secure", () => new ConfigSecureApViewModel());
@@ -34,10 +34,13 @@ public class SetupViewModel : BackstageViewModel {
     Add("RTK/GPS Inject", () => new ConfigGpsInjectViewModel(), sub: true);
     Add("Sik Radio", () => new SikRadioViewModel(), sub: true);
     Add("DroneCAN/UAVCAN", () => new ConfigDroneCanViewModel(), sub: true);
+    Add("CubeID", () => new ConfigCubeIDViewModel(), sub: true);
+    Add("MAVFtp", () => new MavFTPUIViewModel(), sub: true, requiresConnection: true);
     Add("Joystick", () => new ConfigJoystickViewModel(), sub: true);
     Add("PX4Flow", () => new ConfigPX4FlowViewModel(), sub: true);
     Add("Bluetooth Setup", () => new ConfigHWBTViewModel(), sub: true);
     Add("Antenna Tracker", () => new ConfigAntennaTrackerViewModel(), sub: true);
+    Add("Antenna Tracker (Live)", () => new AntennaTrackerUIViewModel(), sub: true);
     Add("ADSB", () => new ConfigADSBViewModel(), sub: true, requiresConnection: true);
     Add("CAN GPS Order", () => new ConfigGPSOrderViewModel(), sub: true, requiresConnection: true);
     Add("Battery Monitor", () => new ConfigBatteryMonitoringViewModel(), sub: true, requiresConnection: true);

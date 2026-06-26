@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -8,6 +9,10 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto.Signers;
+using Org.BouncyCastle.OpenSsl;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -16,6 +21,10 @@ public partial class ConfigSecureViewModel : ViewModelBase {
   private uint _sequence = 1;
   private byte[]? _sessionKey;
 
+  // Trusted Ed25519 private key used to sign SET/REMOVE_PUBLIC_KEYS. Its public key must
+  // already be in the autopilot's bootloader key set or the target rejects the command.
+  private Ed25519PrivateKeyParameters? _signingKey;
+
   public ObservableCollection<SecureKeySlot> Keys { get; } = new();
 
   [ObservableProperty]
@@ -23,6 +32,9 @@ public partial class ConfigSecureViewModel : ViewModelBase {
 
   [ObservableProperty]
   private string _sessionKeyText = "(none)";
+
+  [ObservableProperty]
+  private string _signingKeyText = "(none)";
 
   public bool IsConnected => _comPort.BaseStream?.IsOpen == true;
 
@@ -37,7 +49,7 @@ public partial class ConfigSecureViewModel : ViewModelBase {
 
     AppendLog("Requesting session key...");
     var reply = await Task.Run(() =>
-        SendSecureCommand((uint)MAVLink.SECURE_COMMAND_OP.SECURE_COMMAND_GET_SESSION_KEY, Array.Empty<byte>(), 0));
+        SendSecureCommand((uint)MAVLink.SECURE_COMMAND_OP.SECURE_COMMAND_GET_SESSION_KEY, Array.Empty<byte>(), sign: false));
 
     if (reply == null) {
       AppendLog("No reply (timeout).");
@@ -66,7 +78,7 @@ public partial class ConfigSecureViewModel : ViewModelBase {
       for (byte idx = 0; idx < 10; idx++) {
         // request 1 key at a time: data = [key_idx, num_keys]
         var reply = SendSecureCommand((uint)MAVLink.SECURE_COMMAND_OP.SECURE_COMMAND_GET_PUBLIC_KEYS,
-            new byte[] { idx, 1 }, 0);
+            new byte[] { idx, 1 }, sign: false);
 
         if (reply == null) {
           AppendLog($"Slot {idx}: no reply (timeout). Stopping.");
@@ -137,19 +149,44 @@ public partial class ConfigSecureViewModel : ViewModelBase {
         new byte[] { 0, num });
   }
 
+  // Load the trusted Ed25519 private key (PRIVATE_KEYV1:.. / .dat / PEM) used to sign commands.
+  // Called from code-behind after a file picker.
+  public async Task LoadSigningKeyFromFileAsync(string path) {
+    if (!Ensure()) {
+      return;
+    }
+
+    try {
+      _signingKey = await Task.Run(() => LoadPrivateKey(path));
+      var pub = Convert.ToBase64String(_signingKey.GeneratePublicKey().GetEncoded());
+      SigningKeyText = pub;
+      AppendLog($"Loaded signing key ({Path.GetFileName(path)}). Public key: {pub}");
+    } catch (Exception ex) {
+      _signingKey = null;
+      SigningKeyText = "(none)";
+      AppendLog("Failed to load signing key: " + ex.Message);
+    }
+  }
+
   private async Task SendSignedAsync(uint op, byte[] data) {
-    // SET/REMOVE require the command be signed over
-    // sequence(LE) | operation(LE) | data | session_key with a private key whose public
-    // key is already trusted by the target. No Ed25519 signer is available in the reachable
-    // assemblies, so the command is sent unsigned (sig_length = 0); the target will reject it
-    // if it requires a signature. This mirrors the wire format exactly without fabricating a
-    // signature.
+    // SET/REMOVE must be signed. The signed message is:
+    //   sequence(uint32 LE) | operation(uint32 LE) | data | session_key
+    // signed with a private key whose matching public key is already trusted by the target.
+    if (_signingKey == null) {
+      AppendLog("No signing key loaded — use \"Load Signing Key…\" to load a trusted private key first.");
+      return;
+    }
+
     if (_sessionKey == null) {
       AppendLog("No session key yet — fetching one first.");
       await GetSessionKey();
+      if (_sessionKey == null) {
+        AppendLog("Could not obtain a session key; aborting signed command.");
+        return;
+      }
     }
 
-    var reply = await Task.Run(() => SendSecureCommand(op, data, 0));
+    var reply = await Task.Run(() => SendSecureCommand(op, data, sign: true));
     if (reply == null) {
       AppendLog("No reply (timeout).");
       return;
@@ -158,17 +195,55 @@ public partial class ConfigSecureViewModel : ViewModelBase {
     var result = (MAVLink.MAV_RESULT)reply.Value.result;
     AppendLog($"{(MAVLink.SECURE_COMMAND_OP)op} -> {result}");
     if (result != MAVLink.MAV_RESULT.ACCEPTED) {
-      AppendLog("Note: SET/REMOVE must be signed with a trusted private key. " +
-          "Signing is not available in this build, so the autopilot rejected the unsigned command.");
+      AppendLog("Command rejected. The loaded signing key's public key must already be a trusted "
+          + "key on the autopilot's bootloader for the signature to be accepted.");
     } else {
       await GetKeys();
     }
   }
 
-  private MAVLink.mavlink_secure_command_reply_t? SendSecureCommand(uint operation, byte[] data, byte sigLength) {
+  // Ed25519 signature over: sequence(LE) | operation(LE) | data | session_key.
+  private byte[] MakeSignature(uint seq, uint operation, byte[] data) =>
+      MakeSignature(_signingKey!, seq, operation, data, _sessionKey);
+
+  // Pure signing core (no instance/connection state) — exposed for verification tests.
+  // Message = sequence(uint32 LE) ‖ operation(uint32 LE) ‖ data ‖ session_key.
+  public static byte[] SecureCommandMessage(uint seq, uint operation, byte[] data, byte[]? sessionKey) {
+    var msg = new List<byte>(8 + data.Length + (sessionKey?.Length ?? 0));
+    msg.AddRange(LittleEndian(seq));
+    msg.AddRange(LittleEndian(operation));
+    msg.AddRange(data);
+    if (sessionKey != null) {
+      msg.AddRange(sessionKey);
+    }
+    return msg.ToArray();
+  }
+
+  public static byte[] MakeSignature(
+      Ed25519PrivateKeyParameters key, uint seq, uint operation, byte[] data, byte[]? sessionKey) {
+    var bytes = SecureCommandMessage(seq, operation, data, sessionKey);
+    var signer = new Ed25519Signer();
+    signer.Init(forSigning: true, key);
+    signer.BlockUpdate(bytes, 0, bytes.Length);
+    return signer.GenerateSignature();
+  }
+
+  private static byte[] LittleEndian(uint v) => new byte[] {
+    (byte)(v & 0xff), (byte)((v >> 8) & 0xff), (byte)((v >> 16) & 0xff), (byte)((v >> 24) & 0xff),
+  };
+
+  private MAVLink.mavlink_secure_command_reply_t? SendSecureCommand(uint operation, byte[] data, bool sign) {
     var seq = _sequence++;
+
+    var sig = sign ? MakeSignature(seq, operation, data) : Array.Empty<byte>();
+    var sigLength = (byte)sig.Length;
+
     var payload = new byte[220];
     Array.Copy(data, 0, payload, 0, Math.Min(data.Length, payload.Length));
+    if (sigLength > 0) {
+      // Signature is appended directly after the command data in the data field.
+      Array.Copy(sig, 0, payload, data.Length, Math.Min(sig.Length, payload.Length - data.Length));
+    }
 
     var req = new MAVLink.mavlink_secure_command_t {
       sequence = seq,
@@ -233,6 +308,35 @@ public partial class ConfigSecureViewModel : ViewModelBase {
     } catch {
       return File.ReadAllBytes(path);
     }
+  }
+
+  // Mirrors ConfigSecureAP.but_privkey_Click: PRIVATE_KEYV1:<b64 seed>, a raw .dat seed, or a PEM.
+  private static Ed25519PrivateKeyParameters LoadPrivateKey(string path) {
+    var text = File.ReadAllText(path).Trim();
+
+    if (text.Contains("PRIVATE_KEYV1")) {
+      var b64 = text.Replace("PRIVATE_KEYV1:", "").Trim();
+      var seed = Convert.FromBase64String(b64);
+      // The 32-byte seed is the Ed25519 secret scalar source (same as SignedFW.GenerateKey(seed)).
+      return new Ed25519PrivateKeyParameters(seed, 0);
+    }
+
+    if (text.Contains("BEGIN")) {
+      var pr = new PemReader(new StringReader(text));
+      var obj = pr.ReadObject();
+      return obj switch {
+        AsymmetricCipherKeyPair kp => (Ed25519PrivateKeyParameters)kp.Private,
+        Ed25519PrivateKeyParameters pk => pk,
+        _ => throw new Exception("PEM did not contain an Ed25519 private key."),
+      };
+    }
+
+    // Otherwise assume a base64 raw seed (optionally a longer DER — take the trailing 32 bytes).
+    var raw = Convert.FromBase64String(text);
+    if (raw.Length > 32) {
+      raw = raw.Skip(raw.Length - 32).ToArray();
+    }
+    return new Ed25519PrivateKeyParameters(raw, 0);
   }
 
   private bool Ensure() {

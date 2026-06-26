@@ -212,6 +212,12 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
   private int _sub1 = -1;
   private int _sub2 = -1;
 
+  // Live mag-sample feed for the MagCalSphere visualisation (wired up by ConfigCompassView).
+  // OnMagSample carries the body-frame direction vector streamed in MAG_CAL_PROGRESS; the view
+  // forwards each sample to the orthographic point cloud. OnMagSphereClear resets it on Start.
+  public event Action<double, double, double>? OnMagSample;
+  public event Action? OnMagSphereClear;
+
   public ConfigCompassViewModel() {
     Title = "Compass";
     Intro = "Compass configuration and onboard magnetometer calibration.";
@@ -278,6 +284,7 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
     Prog2 = 0;
     Prog3 = 0;
     MagResult = "";
+    OnMagSphereClear?.Invoke();
 
     if (_sub1 == -1) {
       _sub1 = comPort.SubscribeToPacketType(
@@ -391,6 +398,14 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
     if (packet.msgid == (byte)MAVLink.MAVLINK_MSG_ID.MAG_CAL_PROGRESS) {
       var obj = (MAVLink.mavlink_mag_cal_progress_t)packet.data;
       Dispatcher.UIThread.Post(() => {
+        // Feed the primary compass's body-frame direction vector into the sphere visualisation so
+        // the operator can see sample coverage build up as the vehicle is rotated (mirrors upstream
+        // ProgressReporterSphere.sphere1.AddPoint).
+        if (obj.compass_id == 0
+            && (obj.direction_x != 0 || obj.direction_y != 0 || obj.direction_z != 0)) {
+          OnMagSample?.Invoke(obj.direction_x, obj.direction_y, obj.direction_z);
+        }
+
         if (obj.compass_id == 0) {
           Prog1 = obj.completion_pct;
         }

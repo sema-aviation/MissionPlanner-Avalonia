@@ -18,6 +18,21 @@ public partial class ConfigRangeFinderViewModel : ParamPageBase, IDisposable {
   private ParamField _max = null!;
 
   [ObservableProperty]
+  private ParamField _pin = null!;
+
+  [ObservableProperty]
+  private ParamField _scaling = null!;
+
+  [ObservableProperty]
+  private ParamField _function = null!;
+
+  [ObservableProperty]
+  private ParamField _offset = null!;
+
+  [ObservableProperty]
+  private ParamField _rmetric = null!;
+
+  [ObservableProperty]
   private string _distance = "0.0";
 
   [ObservableProperty]
@@ -43,6 +58,11 @@ public partial class ConfigRangeFinderViewModel : ParamPageBase, IDisposable {
     Type = new ParamField("RNGFND1_TYPE", "combo");
     Min = new ParamField("RNGFND1_MIN_CM");
     Max = new ParamField("RNGFND1_MAX_CM");
+    Pin = new ParamField("RNGFND1_PIN", "combo");
+    Scaling = new ParamField("RNGFND1_SCALING");
+    Function = new ParamField("RNGFND1_FUNCTION", "combo");
+    Offset = new ParamField("RNGFND1_OFFSET");
+    Rmetric = new ParamField("RNGFND1_RMETRIC", "combo");
   }
 
   private void Tick() {

@@ -7,15 +7,24 @@
   mc:Ignorable="d"
   d:DesignWidth="800"
   d:DesignHeight="640"
-  x:Class="MissionPlannerAvalonia.Controls.ParamFieldsView"
-  x:DataType="cv:ParamPageBase"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFriendlyParamsView"
+  x:DataType="cv:ConfigFriendlyParamsViewModel"
   Background="#434445"
 >
   <UserControl.Styles>
-    <!-- Out-of-range value highlight: red outline when value < Min or > Max. -->
     <Style Selector="Border.oor">
       <Setter Property="BorderThickness" Value="2" />
       <Setter Property="BorderBrush" Value="#E64A4A" />
+    </Style>
+    <Style Selector="ToggleButton.star">
+      <Setter Property="Content" Value="&#x2606;" />
+      <Setter Property="Foreground" Value="#888888" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="MinWidth" Value="28" />
+    </Style>
+    <Style Selector="ToggleButton.star:checked">
+      <Setter Property="Content" Value="&#x2605;" />
+      <Setter Property="Foreground" Value="#F5C518" />
     </Style>
   </UserControl.Styles>
 
@@ -24,10 +33,16 @@
 
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
       <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
+      <TextBox
+        Width="240"
+        Watermark="Search by name or label…"
+        Text="{Binding Search}"
+      />
       <TextBlock
         Text="{Binding Intro}"
         Classes="fieldlbl"
         TextWrapping="Wrap"
+        VerticalAlignment="Center"
         IsVisible="{Binding Intro, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
       />
     </StackPanel>
@@ -36,9 +51,11 @@
       <ItemsControl ItemsSource="{Binding Fields}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="cv:ParamField">
-            <Grid ColumnDefinitions="220,200,Auto,*" Margin="0,3">
+            <Grid ColumnDefinitions="32,220,200,Auto,*" Margin="0,3">
+              <ToggleButton Grid.Column="0" Classes="star" IsChecked="{Binding Fav}" />
+
               <TextBlock
-                Grid.Column="0"
+                Grid.Column="1"
                 Text="{Binding Label}"
                 Classes="fieldlbl"
                 ToolTip.Tip="{Binding Description}"
@@ -47,17 +64,16 @@
               />
 
               <ComboBox
-                Grid.Column="1"
+                Grid.Column="2"
                 IsVisible="{Binding IsCombo}"
                 MinWidth="180"
                 ItemsSource="{Binding Options}"
                 SelectedItem="{Binding SelectedOption}"
               />
-              <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
+              <CheckBox Grid.Column="2" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
 
-              <!-- Bitmask editor: button opens a checkbox-list popup of the bits. -->
               <Button
-                Grid.Column="1"
+                Grid.Column="2"
                 IsVisible="{Binding IsBitmask}"
                 MinWidth="180"
                 HorizontalContentAlignment="Left"
@@ -78,7 +94,7 @@
                 </Button.Flyout>
               </Button>
 
-              <Border Grid.Column="1" IsVisible="{Binding IsNumeric}" Classes.oor="{Binding IsOutOfRange}">
+              <Border Grid.Column="2" IsVisible="{Binding IsNumeric}" Classes.oor="{Binding IsOutOfRange}">
                 <NumericUpDown
                   MinWidth="180"
                   Value="{Binding Value}"
@@ -89,9 +105,9 @@
                 />
               </Border>
 
-              <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
+              <TextBlock Grid.Column="3" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
               <TextBlock
-                Grid.Column="3"
+                Grid.Column="4"
                 Text="{Binding Status}"
                 Foreground="#94C11F"
                 VerticalAlignment="Center"

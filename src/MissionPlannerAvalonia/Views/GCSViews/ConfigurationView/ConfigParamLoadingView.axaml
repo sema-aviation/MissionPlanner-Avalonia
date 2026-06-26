@@ -1,0 +1,20 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  mc:Ignorable="d"
+  d:DesignWidth="500"
+  d:DesignHeight="300"
+  x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigParamLoadingView"
+  x:DataType="cv:ConfigParamLoadingViewModel"
+  Background="#434445"
+>
+  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" Width="320">
+    <TextBlock Classes="fieldlbl" Text="{Binding Status}" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center" />
+    <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="20" />
+    <TextBlock Classes="fieldlbl" Text="{Binding Count}" HorizontalAlignment="Center" />
+    <Button Content="Retry Now" Command="{Binding RetryCommand}" HorizontalAlignment="Center" />
+  </StackPanel>
+</UserControl>

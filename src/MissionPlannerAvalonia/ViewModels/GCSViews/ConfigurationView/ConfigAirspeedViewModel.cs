@@ -1,6 +1,9 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -18,6 +21,13 @@ public partial class ConfigAirspeedViewModel : ParamPageBase, IDisposable {
 
   [ObservableProperty]
   private ParamField _pin = null!;
+
+  // ARSPD_RATIO: pressure to airspeed scaling (upstream ConfigArduplane sets 0..2.5, inc 0.005).
+  [ObservableProperty]
+  private ParamField _ratio = null!;
+
+  [ObservableProperty]
+  private string _calStatus = "";
 
   [ObservableProperty]
   private string _airspeed = "0.0";
@@ -58,10 +68,40 @@ public partial class ConfigAirspeedViewModel : ParamPageBase, IDisposable {
     pin.Options.Add(new ParamOption(65, "PX4/Pixhawk EagleTree or MEAS I2C AS Sensor"));
     pin.Reload();
     Pin = pin;
+
+    Ratio = new ParamField("ARSPD_RATIO");
   }
 
   private void Tick() {
     Airspeed = comPort.MAV.cs.airspeed.ToString("0.0");
+  }
+
+  // Upstream airspeed ground calibration triggers PREFLIGHT_CALIBRATION with the
+  // ground-pressure flag (param3 = 1), which zeroes the airspeed sensor offset.
+  // Mirror of ConfigAteryxSensors BUT_zero_press_Click airborne guard.
+  [RelayCommand]
+  private async Task GroundCalibration() {
+    if (comPort.BaseStream?.IsOpen != true) {
+      CalStatus = "offline";
+      return;
+    }
+
+    if (comPort.MAV.cs.airspeed > 7.0 || comPort.MAV.cs.groundspeed > 10.0) {
+      CalStatus = "Unable - UAV airborne";
+      return;
+    }
+
+    try {
+      CalStatus = "Calibrating…";
+      bool ok = await Task.Run(() => comPort.doCommand(
+          (byte)comPort.sysidcurrent,
+          (byte)comPort.compidcurrent,
+          MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION,
+          0, 0, 1, 0, 0, 0, 0));
+      CalStatus = ok ? "✓" : "calibration failed";
+    } catch (Exception ex) {
+      CalStatus = ex.Message;
+    }
   }
 
   public void Dispose() {

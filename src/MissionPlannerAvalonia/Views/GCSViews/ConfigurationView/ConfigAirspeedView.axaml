@@ -16,7 +16,7 @@
       <TextBlock Classes="pagetitle" Text="{Binding Title}" />
       <Button Content="Refresh Params" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" />
 
-      <Grid ColumnDefinitions="220,260,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,6,0,0">
+      <Grid ColumnDefinitions="220,260,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,6,0,0">
         <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Type" VerticalAlignment="Center" Margin="0,0,8,4" />
         <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Type.Options}" SelectedItem="{Binding Type.SelectedOption}" />
         <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Type.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
@@ -32,7 +32,16 @@
         <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Pin" VerticalAlignment="Center" Margin="0,0,8,4" />
         <ComboBox Grid.Row="3" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Pin.Options}" SelectedItem="{Binding Pin.SelectedOption}" />
         <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Pin.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Ratio" VerticalAlignment="Center" Margin="0,0,8,4" />
+        <NumericUpDown Grid.Row="4" Grid.Column="1" MinWidth="240" Value="{Binding Ratio.Value}" Increment="0.005" FormatString="0.######" />
+        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding Ratio.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
       </Grid>
+
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+        <Button Content="Ground Calibration" Command="{Binding GroundCalibrationCommand}" />
+        <TextBlock Text="{Binding CalStatus}" Foreground="#94C11F" VerticalAlignment="Center" />
+      </StackPanel>
 
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,8,0,0" HorizontalAlignment="Left">
         <StackPanel Orientation="Horizontal" Spacing="8">
