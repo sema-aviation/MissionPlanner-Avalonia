@@ -6,11 +6,13 @@ using BruTile.Web;
 using Mapsui;
 using Mapsui.Extensions;
 using Mapsui.Layers;
+using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using Mapsui.UI.Avalonia;
 using MissionPlannerAvalonia.ViewModels;
+using NetTopologySuite.Geometries;
 
 namespace MissionPlannerAvalonia.Controls;
 
@@ -55,6 +57,8 @@ public class FlightPlannerMap : MapControl {
 
     _vehicle.Style = MavMarker.Vehicle(0);
     map.Layers.Add(_vehicle);
+    // Keep the viewport inside the world extent so you can't zoom/pan past the tiles into gray.
+    map.Navigator.Limiter = new Mapsui.Limiting.ViewportLimiterKeepWithinExtent();
     Map = map;
 
     MapPointerPressed += OnMapPointerPressed;
@@ -139,7 +143,7 @@ public class FlightPlannerMap : MapControl {
       pts.Add(new MPoint(x, y));
     }
 
-    AddPolyline(_kml, pts, new Color(0x00, 0xC8, 0xFF), 8);
+    AddPolyline(_kml, pts, new Color(0x00, 0xC8, 0xFF), 3);
     _kml.DataHasChanged();
     RefreshGraphics();
   }
@@ -183,7 +187,7 @@ public class FlightPlannerMap : MapControl {
       _waypoints.Add(BuildMarker(pt, w.Seq));
     }
 
-    AddPolyline(_route, line, new Color(0xFF, 0xCC, 0x00), 6);
+    AddPolyline(_route, line, new Color(0xFF, 0xCC, 0x00), 4);
 
     _waypoints.DataHasChanged();
     _route.DataHasChanged();
@@ -213,25 +217,14 @@ public class FlightPlannerMap : MapControl {
       return;
     }
 
-    var dot = new SymbolStyle {
-      SymbolType = SymbolType.Ellipse,
-      Fill = new Brush(color),
-      SymbolScale = widthPx / 30.0,
-    };
-    for (int i = 1; i < pts.Count; i++) {
-      var a = pts[i - 1];
-      var b = pts[i];
-      double dx = b.X - a.X;
-      double dy = b.Y - a.Y;
-      double len = Math.Sqrt(dx * dx + dy * dy);
-      int steps = Math.Clamp((int)(len / 3.0), 1, 600);
-      for (int s = 0; s <= steps; s++) {
-        double t = (double)s / steps;
-        var f = new PointFeature(new MPoint(a.X + dx * t, a.Y + dy * t));
-        f.Styles.Add(dot);
-        layer.Add(f);
-      }
+    var coords = new Coordinate[pts.Count];
+    for (int i = 0; i < pts.Count; i++) {
+      coords[i] = new Coordinate(pts[i].X, pts[i].Y);
     }
+
+    var feature = new GeometryFeature { Geometry = new LineString(coords) };
+    feature.Styles.Add(new VectorStyle { Line = new Pen(color, widthPx) });
+    layer.Add(feature);
   }
 
   private static TileLayer BuildTileLayer(string type) {
