@@ -58,7 +58,8 @@ public class SetupViewModel : BackstageViewModel {
     Add("ESP8266", () => new ConfigHWESP8266ViewModel(), sub: true, requiresConnection: true);
     Add("FFT Setup", () => new ConfigFFTViewModel(), sub: true, requiresConnection: true);
 
-    Add(">> Advanced", () => new ConfigAdvancedViewModel());
+    Add(">> Advanced", () => new InfoPageViewModel("Advanced", "Advanced configuration. Pick a sub-page."));
+    Add("Advanced Tools", () => new ConfigAdvancedViewModel(), sub: true);
     Add("Terminal", () => new ConfigTerminalViewModel(), sub: true);
     Add("Script REPL", () => new ConfigScriptReplViewModel(), sub: true);
 
