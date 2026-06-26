@@ -35,4 +35,26 @@ public class WpRowTests {
     var row = new WpRow { Command = (ushort)MAVLink.MAV_CMD.RETURN_TO_LAUNCH };
     Assert.Equal("RETURN_TO_LAUNCH", row.CommandName);
   }
+
+  [Fact]
+  public void CommandName_setter_updates_command() {
+    var row = new WpRow();
+    row.CommandName = "LAND";
+    Assert.Equal((ushort)MAVLink.MAV_CMD.LAND, row.Command);
+  }
+
+  [Fact]
+  public void FrameName_maps_both_ways_and_round_trips() {
+    var row = new WpRow { FrameName = "Terrain" };
+    Assert.Equal((byte)MAVLink.MAV_FRAME.GLOBAL_TERRAIN_ALT, row.Frame);
+    var back = WpRow.From(0, row.ToLocationwp());
+    Assert.Equal("Terrain", back.FrameName);
+  }
+
+  [Fact]
+  public void Setting_lat_lng_populates_utm_and_mgrs() {
+    var row = new WpRow { Lat = -35.363261, Lng = 149.165230 };
+    Assert.False(string.IsNullOrWhiteSpace(row.Zone));
+    Assert.False(string.IsNullOrWhiteSpace(row.Mgrs));
+  }
 }
