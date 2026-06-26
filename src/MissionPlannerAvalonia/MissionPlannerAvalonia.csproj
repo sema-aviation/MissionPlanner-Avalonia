@@ -33,6 +33,7 @@
     <PackageReference Include="MoonSharp" />
     <PackageReference Include="LibVLCSharp.Avalonia" />
     <PackageReference Include="BouncyCastle.Cryptography" />
+    <PackageReference Include="MetadataExtractor" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
