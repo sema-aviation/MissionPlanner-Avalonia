@@ -14,19 +14,25 @@ public partial class BackstagePage : ObservableObject {
       Func<ViewModelBase> factory,
       bool advanced = false,
       bool sub = false,
-      bool requiresConnection = false
+      bool requiresConnection = false,
+      Func<bool>? visibleWhen = null
   ) {
     Header = header;
     _factory = factory;
     IsAdvanced = advanced;
     IsSub = sub;
     RequiresConnection = requiresConnection;
+    VisibleWhen = visibleWhen;
   }
 
   public string Header { get; }
   public bool IsAdvanced { get; }
   public bool IsSub { get; }
   public bool RequiresConnection { get; }
+
+  // Optional firmware/vehicle conditioning, mirroring MP's display* flags (e.g. heli-only,
+  // plane-only pages). Evaluated alongside connection gating in RefreshVisibility.
+  public Func<bool>? VisibleWhen { get; }
 
   [ObservableProperty]
   private bool _isSelected;
@@ -46,7 +52,11 @@ public partial class BackstageViewModel : ViewModelBase {
   [ObservableProperty]
   private ViewModelBase? _currentContent;
 
-  protected BackstageViewModel() {
+  // Settings key under which the last-selected page header is remembered (per backstage).
+  private readonly string? _persistKey;
+
+  protected BackstageViewModel(string? persistKey = null) {
+    _persistKey = persistKey;
     AppState.ConnectionChanged += OnConnectionChanged;
   }
 
@@ -63,7 +73,7 @@ public partial class BackstageViewModel : ViewModelBase {
   protected void RefreshVisibility() {
     bool connected = AppState.IsConnected;
     foreach (var p in Pages) {
-      p.Visible = !p.RequiresConnection || connected;
+      p.Visible = (!p.RequiresConnection || connected) && (p.VisibleWhen?.Invoke() ?? true);
     }
     if (SelectedPage is { Visible: false }) {
       SelectedPage = null;
@@ -77,6 +87,9 @@ public partial class BackstageViewModel : ViewModelBase {
     if (newValue != null) {
       newValue.IsSelected = true;
       CurrentContent = newValue.Content;
+      if (_persistKey != null && !newValue.IsSub) {
+        MissionPlanner.Utilities.Settings.Instance[_persistKey] = newValue.Header;
+      }
     }
   }
 
@@ -92,21 +105,33 @@ public partial class BackstageViewModel : ViewModelBase {
       Func<ViewModelBase> factory,
       bool advanced = false,
       bool sub = false,
-      bool requiresConnection = false
+      bool requiresConnection = false,
+      Func<bool>? visibleWhen = null
   ) {
-    var p = new BackstagePage(header, factory, advanced, sub, requiresConnection);
+    var p = new BackstagePage(header, factory, advanced, sub, requiresConnection, visibleWhen);
     Pages.Add(p);
     return p;
   }
 
   protected void SelectFirst() {
     RefreshVisibility();
-    if (SelectedPage == null) {
+    if (SelectedPage != null) {
+      return;
+    }
+    // Restore the last-visited page when remembered and still visible (MP last-page memory).
+    if (_persistKey != null
+        && MissionPlanner.Utilities.Settings.Instance[_persistKey] is { Length: > 0 } last) {
       foreach (var p in Pages) {
-        if (p.Visible) {
+        if (p.Visible && !p.IsSub && p.Header == last) {
           SelectedPage = p;
-          break;
+          return;
         }
+      }
+    }
+    foreach (var p in Pages) {
+      if (p.Visible) {
+        SelectedPage = p;
+        break;
       }
     }
   }
