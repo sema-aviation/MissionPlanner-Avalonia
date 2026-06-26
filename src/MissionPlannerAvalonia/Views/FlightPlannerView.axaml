@@ -38,12 +38,22 @@
         >
           <DataGrid.Columns>
             <DataGridTextColumn Header="#" Binding="{Binding Seq}" IsReadOnly="True" Width="40" />
-            <DataGridTextColumn
-              Header="Command"
-              Binding="{Binding CommandName}"
-              IsReadOnly="True"
-              Width="150"
-            />
+            <DataGridTemplateColumn Header="Command" Width="190">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:WpRow">
+                  <TextBlock Text="{Binding CommandName}" VerticalAlignment="Center" Margin="4,0" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+              <DataGridTemplateColumn.CellEditingTemplate>
+                <DataTemplate x:DataType="vm:WpRow">
+                  <ComboBox
+                    ItemsSource="{x:Static vm:WpRow.CommandList}"
+                    SelectedItem="{Binding CommandName, Mode=TwoWay}"
+                    HorizontalAlignment="Stretch"
+                  />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellEditingTemplate>
+            </DataGridTemplateColumn>
             <DataGridTextColumn Header="P1" Binding="{Binding P1}" Width="70" />
             <DataGridTextColumn Header="P2" Binding="{Binding P2}" Width="70" />
             <DataGridTextColumn Header="P3" Binding="{Binding P3}" Width="70" />
@@ -51,10 +61,54 @@
             <DataGridTextColumn Header="Lat" Binding="{Binding Lat}" Width="120" />
             <DataGridTextColumn Header="Lon" Binding="{Binding Lng}" Width="120" />
             <DataGridTextColumn Header="Alt" Binding="{Binding Alt}" Width="80" />
+            <DataGridTemplateColumn Header="Frame" Width="90">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:WpRow">
+                  <TextBlock Text="{Binding FrameName}" VerticalAlignment="Center" Margin="4,0" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+              <DataGridTemplateColumn.CellEditingTemplate>
+                <DataTemplate x:DataType="vm:WpRow">
+                  <ComboBox
+                    ItemsSource="{x:Static vm:WpRow.FrameList}"
+                    SelectedItem="{Binding FrameName, Mode=TwoWay}"
+                    HorizontalAlignment="Stretch"
+                  />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellEditingTemplate>
+            </DataGridTemplateColumn>
             <DataGridTextColumn Header="Grad %" Binding="{Binding Grad}" IsReadOnly="True" Width="64" />
             <DataGridTextColumn Header="Angle" Binding="{Binding Angle}" IsReadOnly="True" Width="60" />
             <DataGridTextColumn Header="Dist" Binding="{Binding Dist}" IsReadOnly="True" Width="64" />
             <DataGridTextColumn Header="AZ" Binding="{Binding Az}" IsReadOnly="True" Width="50" />
+            <DataGridTextColumn Header="Zone" Binding="{Binding Zone}" IsReadOnly="True" Width="50" />
+            <DataGridTextColumn Header="Easting" Binding="{Binding Easting}" IsReadOnly="True" Width="90" />
+            <DataGridTextColumn Header="Northing" Binding="{Binding Northing}" IsReadOnly="True" Width="90" />
+            <DataGridTextColumn Header="MGRS" Binding="{Binding Mgrs}" IsReadOnly="True" Width="130" />
+            <DataGridTemplateColumn Header="Up" Width="44">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:WpRow">
+                  <Button
+                    Content="▲"
+                    Padding="4,0"
+                    Command="{Binding $parent[DataGrid].((vm:FlightPlannerViewModel)DataContext).MoveWaypointUpCommand}"
+                    CommandParameter="{Binding}"
+                  />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="Down" Width="50">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:WpRow">
+                  <Button
+                    Content="▼"
+                    Padding="4,0"
+                    Command="{Binding $parent[DataGrid].((vm:FlightPlannerViewModel)DataContext).MoveWaypointDownCommand}"
+                    CommandParameter="{Binding}"
+                  />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
             <DataGridTemplateColumn Header="Delete" Width="70">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate x:DataType="vm:WpRow">

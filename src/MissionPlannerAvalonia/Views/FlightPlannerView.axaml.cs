@@ -23,8 +23,79 @@ public partial class FlightPlannerView : UserControl {
     InitializeComponent();
     Map.WaypointDragMoved += OnWaypointDragged;
     Map.WaypointDragCommitted += OnWaypointDragged;
+    Map.MapClicked += (lat, lng) => Vm?.AddWaypointAt(lat, lng);
+    Map.ContextMenu = BuildMapMenu();
     DataContextChanged += (_, _) => WireViewModel();
     WireViewModel();
+  }
+
+  // Mirrors FlightPlanner contextMenuStrip1 (Mission mode). Acts at Map.LastClickLatLng.
+  [Obsolete]
+  private ContextMenu BuildMapMenu() {
+    MenuItem Item(string header, Action<FlightPlannerViewModel, double, double> action) {
+      var mi = new MenuItem { Header = header };
+      mi.Click += (_, _) => {
+        var (lat, lng) = Map.LastClickLatLng;
+        if (Vm != null) {
+          action(Vm, lat, lng);
+        }
+      };
+      return mi;
+    }
+    var menu = new ContextMenu();
+    menu.Items.Add(Item("Insert WP", (vm, lat, lng) => vm.InsertWaypointAt(lat, lng)));
+    menu.Items.Add(Item("Delete WP", (vm, lat, lng) => vm.DeleteNearest(lat, lng)));
+    menu.Items.Add(new Separator());
+    menu.Items.Add(Item("Takeoff", (vm, lat, lng) => _ = vm.AddTakeoff(lat, lng)));
+    menu.Items.Add(Item("Land", (vm, lat, lng) => vm.AddLand(lat, lng)));
+    menu.Items.Add(Item("RTL", (vm, _, _) => vm.AddRtl()));
+    menu.Items.Add(Item("DO_SET_ROI", (vm, lat, lng) => vm.AddRoi(lat, lng)));
+    var loiter = new MenuItem { Header = "Loiter" };
+    loiter.Items.Add(Item("Forever", (vm, lat, lng) => vm.AddLoiterForever(lat, lng)));
+    loiter.Items.Add(Item("Time", (vm, lat, lng) => _ = vm.AddLoiterTime(lat, lng)));
+    loiter.Items.Add(Item("Circles", (vm, lat, lng) => _ = vm.AddLoiterCircles(lat, lng)));
+    menu.Items.Add(loiter);
+    menu.Items.Add(Item("Jump", (vm, _, _) => _ = vm.AddJump()));
+    menu.Items.Add(new Separator());
+    menu.Items.Add(Item("Clear Mission", (vm, _, _) => vm.ClearMissionCommand.Execute(null)));
+    menu.Items.Add(Item("Reverse WPs", (vm, _, _) => vm.ReverseWaypointsCommand.Execute(null)));
+    menu.Items.Add(Item("Modify Alt", (vm, _, _) => _ = vm.ModifyAllAlt()));
+    menu.Items.Add(new Separator());
+    var nofly = new MenuItem { Header = "Load NoFly Overlay…" };
+    nofly.Click += OnLoadNoFly;
+    menu.Items.Add(nofly);
+    var noflyClear = new MenuItem { Header = "Clear NoFly Overlay" };
+    noflyClear.Click += (_, _) => Map.SetNoFlyLayer(null);
+    menu.Items.Add(noflyClear);
+    return menu;
+  }
+
+  private static readonly FilePickerFileType NoFlyType = new("NoFly KML/KMZ") {
+    Patterns = new[] { "*.kml", "*.kmz" },
+  };
+
+  // Load a NoFly KML/KMZ and draw its polygons over the map (mirrors MP's NoFly overlay).
+  private async void OnLoadNoFly(object? sender, RoutedEventArgs e) {
+    var top = TopLevel.GetTopLevel(this);
+    if (top == null) {
+      return;
+    }
+
+    var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+      Title = "Load NoFly Overlay",
+      AllowMultiple = false,
+      FileTypeFilter = new[] { NoFlyType },
+    });
+    var path = files.FirstOrDefault()?.TryGetLocalPath();
+    if (path == null) {
+      return;
+    }
+
+    var layer = Services.NoFlyOverlay.BuildLayer(path);
+    Map.SetNoFlyLayer(layer);
+    if (Vm != null) {
+      Vm.Status = layer == null ? "No NoFly polygons found." : "NoFly overlay loaded.";
+    }
   }
 
   private FlightPlannerViewModel? Vm => DataContext as FlightPlannerViewModel;
@@ -68,6 +139,9 @@ public partial class FlightPlannerView : UserControl {
       Map.SetGraticuleVisible(Vm.ShowGrid);
     } else if (e.PropertyName == nameof(FlightPlannerViewModel.MapType)) {
       Map.SetMapType(Vm.MapType);
+    } else if (e.PropertyName == nameof(FlightPlannerViewModel.HomeLat)
+               || e.PropertyName == nameof(FlightPlannerViewModel.HomeLng)) {
+      Map.SetHome(Vm.HomeLat, Vm.HomeLng);
     }
   }
 
@@ -125,7 +199,15 @@ public partial class FlightPlannerView : UserControl {
     }
   }
 
-  private async void OnViewKml(object? sender, RoutedEventArgs e) {
+  // "View KML" generates the current mission as KML and opens it (mirrors MP lnk_kml).
+  private void OnViewKml(object? sender, RoutedEventArgs e) {
+    if (Vm != null) {
+      Vm.Status = Vm.GenerateMissionKmlAndOpen();
+    }
+  }
+
+  // "Load KML File" / "KML Overlay": load an external KML and draw it on the map.
+  private async void OnLoadKmlOverlay(object? sender, RoutedEventArgs e) {
     var top = TopLevel.GetTopLevel(this);
     if (top is null) {
       return;
@@ -133,7 +215,7 @@ public partial class FlightPlannerView : UserControl {
 
     var files = await top.StorageProvider.OpenFilePickerAsync(
         new FilePickerOpenOptions {
-          Title = "View KML",
+          Title = "Load KML Overlay",
           AllowMultiple = false,
           FileTypeFilter = new[] { KmlType },
         }
@@ -200,14 +282,19 @@ public partial class FlightPlannerView : UserControl {
     }
   }
 
-  private async void OnSurveyGrid(object? sender, RoutedEventArgs e) {
+  private void OnSurveyGrid(object? sender, RoutedEventArgs e) {
     if (Vm == null) {
       return;
     }
 
-    if (await SurveyDialogAsync(Vm.DefaultAlt) is { } r) {
-      Vm.Status = Vm.GenerateSurveyGrid(r.Alt, r.Spacing, r.Angle);
+    if (Vm.BuildSurveyArea() is not { } area) {
+      Vm.Status = "Need at least 3 waypoints to outline the survey area.";
+      return;
     }
+
+    // Open the full Survey-Grid window (Grid/GridUI.cs); accepted grid is appended to the mission.
+    GridUIWindow.OpenForPolygon(area.polygon, area.home,
+        grid => Vm.Status = Vm.AppendSurveyGrid(grid));
   }
 
   private Window? OwnerWindow => TopLevel.GetTopLevel(this) as Window;
@@ -244,45 +331,4 @@ public partial class FlightPlannerView : UserControl {
     return answer;
   }
 
-  private async Task<(double Alt, double Spacing, double Angle)?> SurveyDialogAsync(double defaultAlt) {
-    var owner = OwnerWindow;
-    if (owner == null) {
-      return null;
-    }
-
-    var altBox = new NumericUpDown { Value = (decimal)defaultAlt, Minimum = 1 };
-    var spacingBox = new NumericUpDown { Value = 30, Minimum = 1 };
-    var angleBox = new NumericUpDown { Value = 0, Minimum = 0, Maximum = 359 };
-    var ok = new Button { Content = "Generate", IsDefault = true, HorizontalAlignment = HorizontalAlignment.Right };
-    var dlg = new Window {
-      Title = "Survey (Grid)",
-      Width = 360,
-      SizeToContent = SizeToContent.Height,
-      WindowStartupLocation = WindowStartupLocation.CenterOwner,
-      Content = new StackPanel {
-        Margin = new Avalonia.Thickness(12),
-        Spacing = 8,
-        Children = {
-          new TextBlock { Text = "Altitude (m)" },
-          altBox,
-          new TextBlock { Text = "Line spacing (m)" },
-          spacingBox,
-          new TextBlock { Text = "Angle (deg)" },
-          angleBox,
-          ok,
-        },
-      },
-    };
-    bool confirmed = false;
-    ok.Click += (_, _) => {
-      confirmed = true;
-      dlg.Close();
-    };
-    await dlg.ShowDialog(owner);
-    if (!confirmed) {
-      return null;
-    }
-
-    return ((double)(altBox.Value ?? 0), (double)(spacingBox.Value ?? 0), (double)(angleBox.Value ?? 0));
-  }
 }
