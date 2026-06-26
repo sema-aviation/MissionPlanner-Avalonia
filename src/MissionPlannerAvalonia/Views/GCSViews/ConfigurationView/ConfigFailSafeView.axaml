@@ -46,8 +46,31 @@
         <TextBlock Classes="fieldlbl" Text="{Binding Intro}" TextWrapping="Wrap" />
         <StackPanel Orientation="Horizontal" Spacing="10">
           <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
-          <TextBlock Classes="fieldlbl" Text="{Binding WikiUrl}" Foreground="CornflowerBlue" VerticalAlignment="Center" />
+          <Button Content="Wiki" Command="{Binding OpenWikiCommand}" Background="Transparent"
+                  Foreground="CornflowerBlue" Padding="0" Cursor="Hand" VerticalAlignment="Center"
+                  ToolTip.Tip="{Binding WikiUrl}" />
         </StackPanel>
+
+        <!-- Status trio (upstream lbl_currentmode / lbl_armed / lbl_gpslock) -->
+        <Border Classes="group">
+          <Grid ColumnDefinitions="*,*,*">
+            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+              <TextBlock Text="Flight Mode" Classes="fieldlbl" HorizontalAlignment="Center" />
+              <TextBlock Text="{Binding CurrentMode}" Foreground="{Binding ModeBrush}" FontSize="26"
+                         FontWeight="Bold" HorizontalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+              <TextBlock Text="Armed" Classes="fieldlbl" HorizontalAlignment="Center" />
+              <TextBlock Text="{Binding ArmedText}" FontSize="26" FontWeight="Bold"
+                         HorizontalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+              <TextBlock Text="GPS" Classes="fieldlbl" HorizontalAlignment="Center" />
+              <TextBlock Text="{Binding GpsText}" FontSize="20" FontWeight="Bold"
+                         HorizontalAlignment="Center" />
+            </StackPanel>
+          </Grid>
+        </Border>
 
         <!-- groupBox2 Radio -->
         <Border Classes="group">
@@ -77,6 +100,12 @@
       <Border Grid.Column="1" Classes="group" VerticalAlignment="Top">
         <StackPanel Spacing="4">
           <TextBlock Text="Live RC Input / Output" Classes="fieldlbl" FontWeight="Bold" Margin="0,0,0,6" />
+          <Grid ColumnDefinitions="40,*,*" ColumnSpacing="6" Margin="0,0,0,2">
+            <TextBlock Grid.Column="1" Text="Radio IN" Classes="fieldlbl" FontWeight="Bold"
+                       HorizontalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="Servo/Motor OUT" Classes="fieldlbl" FontWeight="Bold"
+                       HorizontalAlignment="Center" />
+          </Grid>
           <ItemsControl ItemsSource="{Binding Channels}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="cv:FailsafeChannel">
