@@ -17,6 +17,10 @@
     <Copyright>Copyright © 2026 Sema Aviation. Based on ArduPilot Mission Planner © Michael Oborne (GPLv3).</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/sema-aviation/MissionPlanner-Avalonia</RepositoryUrl>
-    <Version>2026.6.2</Version>
+    <!-- CalVer: YEAR.MONTH auto-stamped from the UTC build date (matches release.yml's tag
+         check); only the patch (release number within the month) is set by hand. Override at
+         build time with -p:VersionPatch=N. The window title + Help read this via AppVersion. -->
+    <VersionPatch Condition="'$(VersionPatch)' == ''">0</VersionPatch>
+    <Version>$([System.DateTime]::UtcNow.Year).$([System.DateTime]::UtcNow.Month).$(VersionPatch)</Version>
   </PropertyGroup>
 </Project>
