@@ -28,6 +28,15 @@
 
   <DockPanel>
     <Border DockPanel.Dock="Top" Background="#262728" Height="64">
+      <Border.ContextMenu>
+        <ContextMenu>
+          <MenuItem Header="Full Screen" Click="OnFullScreen" />
+          <MenuItem Header="Readonly" Click="OnToggleReadonly" />
+          <Separator />
+          <MenuItem Header="Connection Options (not ported)" IsEnabled="False" />
+          <MenuItem Header="Connection List (not ported)" IsEnabled="False" />
+        </ContextMenu>
+      </Border.ContextMenu>
       <Grid ColumnDefinitions="*,Auto,Auto">
         <ScrollViewer
           Grid.Column="0"
@@ -104,16 +113,25 @@
           </StackPanel>
         </ScrollViewer>
 
-        <TextBlock
+        <Button
           Grid.Column="1"
-          Text="ARDUPILOT"
+          Command="{Binding OpenArduPilotSiteCommand}"
+          Background="Transparent"
+          BorderThickness="0"
+          Padding="0"
+          Cursor="Hand"
+          ToolTip.Tip="ardupilot.org"
           VerticalAlignment="Center"
           Margin="16,0"
-          FontSize="26"
-          FontWeight="Bold"
-          FontStyle="Italic"
-          Foreground="#F2C200"
-        />
+        >
+          <TextBlock
+            Text="ARDUPILOT"
+            FontSize="26"
+            FontWeight="Bold"
+            FontStyle="Italic"
+            Foreground="#F2C200"
+          />
+        </Button>
 
         <StackPanel
           Grid.Column="2"
@@ -137,13 +155,23 @@
     </Border>
 
     <Border DockPanel.Dock="Top" Background="#1F1F20" Height="22">
-      <TextBlock
-        VerticalAlignment="Center"
-        Margin="8,0"
-        FontSize="11"
-        Foreground="#AAAAAA"
-        Text="{Binding Connection.Status}"
-      />
+      <Grid>
+        <ProgressBar
+          Minimum="0"
+          Maximum="100"
+          Value="{Binding Connection.Progress}"
+          Foreground="#2E7D32"
+          Background="Transparent"
+          BorderThickness="0"
+        />
+        <TextBlock
+          VerticalAlignment="Center"
+          Margin="8,0"
+          FontSize="11"
+          Foreground="#DDDDDD"
+          Text="{Binding Connection.Status}"
+        />
+      </Grid>
     </Border>
 
     <ContentControl Content="{Binding CurrentScreen}" />

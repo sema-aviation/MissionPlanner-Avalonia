@@ -17,6 +17,8 @@ public partial class App : Application {
   public override void OnFrameworkInitializationCompleted() {
     if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
       desktop.MainWindow = new MainWindow { DataContext = new MainWindowViewModel() };
+      // Kill any running SITL when the app exits (mirrors MP killing simulator procs on shutdown).
+      desktop.Exit += (_, _) => Services.SitlLauncher.StopAll();
     }
 
     base.OnFrameworkInitializationCompleted();

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
@@ -19,7 +20,12 @@ public partial class MainWindowViewModel : ViewModelBase {
   [ObservableProperty]
   private string _activeTab = "DATA";
 
-  public MainWindowViewModel() => _currentScreen = FlightData;
+  public MainWindowViewModel() {
+    _currentScreen = FlightData;
+    // SITL auto-switches to FlightData after a successful start+connect (mirrors upstream ShowScreen).
+    Simulation.RequestFlightData += () =>
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => Navigate("DATA"));
+  }
 
   [RelayCommand]
   private void Navigate(string target) {
@@ -33,5 +39,30 @@ public partial class MainWindowViewModel : ViewModelBase {
       "HELP" => Help,
       _ => CurrentScreen,
     };
+  }
+
+  // ArduPilot logo button (mirrors MenuArduPilot_Click).
+  [RelayCommand]
+  private void OpenArduPilotSite() =>
+      Services.Dialogs.OpenUrl("https://ardupilot.org/?utm_source=Menu&utm_campaign=MP");
+
+  // F5: re-pull the full parameter list (mirrors ProcessCmdKey F5).
+  [RelayCommand]
+  private async System.Threading.Tasks.Task GetParams() {
+    if (AppState.comPort.BaseStream?.IsOpen != true) {
+      return;
+    }
+    await System.Threading.Tasks.Task.Run(() => AppState.comPort.getParamList());
+  }
+
+  // Ctrl+Y: write parameters to permanent storage / EEPROM (mirrors ProcessCmdKey Ctrl+Y).
+  [RelayCommand]
+  private async System.Threading.Tasks.Task SaveToEeprom() {
+    if (AppState.comPort.BaseStream?.IsOpen != true) {
+      return;
+    }
+    await System.Threading.Tasks.Task.Run(() =>
+        AppState.comPort.doCommand(AppState.comPort.MAV.sysid, AppState.comPort.MAV.compid,
+            MAVLink.MAV_CMD.PREFLIGHT_STORAGE, 1, 0, 0, 0, 0, 0, 0));
   }
 }

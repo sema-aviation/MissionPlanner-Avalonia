@@ -35,7 +35,28 @@ public partial class ConnectionViewModel : ViewModelBase {
   [ObservableProperty]
   private string _status = "";
 
-  public ConnectionViewModel() => RefreshPorts();
+  // 0–100 telemetry/param-download progress; -1 hides the bar (mirrors MP status1.Percent).
+  [ObservableProperty]
+  private int _progress = -1;
+
+  // Block writes to the vehicle (mirrors CTX readonlyToolStripMenuItem -> comPort.ReadOnly).
+  [ObservableProperty]
+  private bool _readOnly;
+
+  partial void OnReadOnlyChanged(bool value) => _comPort.ReadOnly = value;
+
+  public ConnectionViewModel() {
+    _comPort.Progress += OnProgress;
+    RefreshPorts();
+  }
+
+  private void OnProgress(int percent, string status) =>
+      Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+        Progress = percent;
+        if (!string.IsNullOrEmpty(status)) {
+          Status = status;
+        }
+      });
 
   [RelayCommand]
   private void RefreshPorts() {
