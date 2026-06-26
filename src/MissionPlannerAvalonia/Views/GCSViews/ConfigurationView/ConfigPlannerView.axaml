@@ -100,18 +100,40 @@
 
       <!-- ===================== Telemetry rates ===================== -->
       <TextBlock Classes="grp" Text="Telemetry Rates (Hz)" />
-      <StackPanel Orientation="Horizontal" Spacing="6">
-        <TextBlock Classes="lbl" Text="Attitude" />
-        <NumericUpDown Width="90" Value="{Binding TelemAttitude}" />
-        <TextBlock Classes="lbl" Text="Position" />
-        <NumericUpDown Width="90" Value="{Binding TelemPosition}" />
-        <TextBlock Classes="lbl" Text="Mode/Status" />
-        <NumericUpDown Width="90" Value="{Binding TelemModeStatus}" />
-        <TextBlock Classes="lbl" Text="RC" />
-        <NumericUpDown Width="90" Value="{Binding TelemRc}" />
-        <TextBlock Classes="lbl" Text="Sensor" />
-        <NumericUpDown Width="90" Value="{Binding TelemSensor}" />
-      </StackPanel>
+      <!-- label+input pairs in a WrapPanel: each NUD is a fixed, sensible width and the
+           pairs reflow together so nothing stretches or misaligns. -->
+      <WrapPanel>
+        <WrapPanel.Styles>
+          <Style Selector="WrapPanel > StackPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="6" />
+            <Setter Property="Margin" Value="0,0,16,0" />
+          </Style>
+          <Style Selector="WrapPanel NumericUpDown">
+            <Setter Property="Width" Value="72" />
+          </Style>
+        </WrapPanel.Styles>
+        <StackPanel>
+          <TextBlock Classes="lbl" Text="Attitude" />
+          <NumericUpDown Value="{Binding TelemAttitude}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="lbl" Text="Position" />
+          <NumericUpDown Value="{Binding TelemPosition}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="lbl" Text="Mode/Status" />
+          <NumericUpDown Value="{Binding TelemModeStatus}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="lbl" Text="RC" />
+          <NumericUpDown Value="{Binding TelemRc}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="lbl" Text="Sensor" />
+          <NumericUpDown Value="{Binding TelemSensor}" />
+        </StackPanel>
+      </WrapPanel>
       <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
         <TextBlock Classes="lbl" Text="Track Length" />
         <NumericUpDown Width="110" Value="{Binding TrackLength}" />
