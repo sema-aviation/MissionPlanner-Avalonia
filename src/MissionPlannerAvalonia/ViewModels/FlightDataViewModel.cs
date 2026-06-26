@@ -1297,8 +1297,11 @@ public partial class FlightDataViewModel : ViewModelBase {
     if (!await Services.Dialogs.Confirm("Set Home", "Set home to the clicked location?")) {
       return;
     }
-    await Task.Run(() => _comPort.doCommand(Sysid, Compid, MAVLink.MAV_CMD.DO_SET_HOME,
-        0, 0, 0, 0, (float)lat, (float)lng, 0));
+    // COMMAND_INT (lat/lng as int32 *1e7) keeps full GPS precision; COMMAND_LONG's float32
+    // param5/6 would truncate to ~7 sig-figs (tens of metres of error). Mirrors upstream.
+    await Task.Run(() => _comPort.doCommandInt(Sysid, Compid, MAVLink.MAV_CMD.DO_SET_HOME,
+        0, 0, 0, 0, (int)(lat * 1e7), (int)(lng * 1e7), 0,
+        frame: MAVLink.MAV_FRAME.GLOBAL));
     Log($"Home set -> {lat:0.000000},{lng:0.000000}");
   }
 
