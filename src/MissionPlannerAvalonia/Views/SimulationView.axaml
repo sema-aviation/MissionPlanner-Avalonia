@@ -4,7 +4,6 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:vm="using:MissionPlannerAvalonia.ViewModels"
-  xmlns:ctl="using:MissionPlannerAvalonia.Controls"
   mc:Ignorable="d"
   d:DesignWidth="1100"
   d:DesignHeight="640"
@@ -17,9 +16,14 @@
       <Setter Property="Foreground" Value="#E0E0E0" />
       <Setter Property="Padding" Value="10,6" />
     </Style>
+    <Style Selector="TextBlock.lbl">
+      <Setter Property="Foreground" Value="#E0E0E0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
   </UserControl.Styles>
   <Grid RowDefinitions="*,Auto">
-    <ctl:MapView Grid.Row="0" />
+    <!-- SITL map (satellite + draggable "H" home marker) is built in code-behind. -->
+    <Panel Grid.Row="0" x:Name="MapHost" />
     <StackPanel Grid.Row="1" Margin="12" Spacing="10">
       <TextBlock Text="Please select a firmware to run" Foreground="#E0E0E0" />
       <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
@@ -48,6 +52,54 @@
           </StackPanel>
         </RadioButton>
       </StackPanel>
+
+      <!-- Version channel + frame override -->
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+        <TextBlock Classes="lbl" Text="Version" />
+        <ComboBox
+          MinWidth="140"
+          ItemsSource="{Binding Channels}"
+          SelectedIndex="{Binding SelectedChannelIndex}"
+        />
+        <TextBlock Classes="lbl" Text="Frame" />
+        <ComboBox
+          MinWidth="140"
+          ItemsSource="{Binding Models}"
+          SelectedItem="{Binding SelectedModel}"
+        />
+      </StackPanel>
+
+      <!-- Heading / speed / wipe -->
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+        <TextBlock Classes="lbl" Text="Heading" />
+        <NumericUpDown
+          Width="110"
+          Minimum="0"
+          Maximum="360"
+          Increment="1"
+          Value="{Binding Heading}"
+        />
+        <TextBlock Classes="lbl" Text="Speed" />
+        <NumericUpDown
+          Width="110"
+          Minimum="1"
+          Maximum="100"
+          Increment="1"
+          Value="{Binding SimSpeed}"
+        />
+        <CheckBox Content="Wipe EEPROM" Foreground="#E0E0E0" IsChecked="{Binding WipeEeprom}" />
+      </StackPanel>
+
+      <!-- Extra command line -->
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+        <TextBlock Classes="lbl" Text="Extra cmdline" />
+        <TextBox
+          Width="380"
+          Watermark="extra SITL arguments"
+          Text="{Binding ExtraCmdline}"
+        />
+      </StackPanel>
+
       <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
         <Button
           Content="{Binding StartStopText}"
