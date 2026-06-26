@@ -24,6 +24,7 @@ public partial class HelpViewModel : ViewModelBase {
   [ObservableProperty]
   [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
   [NotifyCanExecuteChangedFor(nameof(CheckForBetaUpdatesCommand))]
+  [NotifyCanExecuteChangedFor(nameof(DownloadUpdateCommand))]
   private bool _isChecking;
 
   [RelayCommand(CanExecute = nameof(CanCheck))]
@@ -31,6 +32,23 @@ public partial class HelpViewModel : ViewModelBase {
 
   [RelayCommand(CanExecute = nameof(CanCheck))]
   private Task CheckForBetaUpdates() => CheckAsync(beta: true);
+
+  // Full modern-equivalent of the upstream auto-installer: check + download the asset + notify.
+  // (The in-place .new swap / Updater.exe handoff is Windows-installer-specific — Updater leaves the
+  // downloaded asset for an external installer.)
+  [RelayCommand(CanExecute = nameof(CanCheck))]
+  private async Task DownloadUpdate() {
+    IsChecking = true;
+    UpdateStatus = "Checking + downloading latest release…";
+    try {
+      await Services.Updater.CheckAndNotifyAsync();
+      UpdateStatus = "Update check complete.";
+    } catch (Exception ex) {
+      UpdateStatus = "Update failed: " + ex.Message;
+    } finally {
+      IsChecking = false;
+    }
+  }
 
   private bool CanCheck() => !IsChecking;
 
