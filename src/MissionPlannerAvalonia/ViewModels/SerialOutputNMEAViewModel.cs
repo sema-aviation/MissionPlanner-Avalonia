@@ -215,7 +215,7 @@ public partial class SerialOutputNMEAViewModel : ViewModelBase, IDisposable {
   }
 
   // XOR checksum of all chars between '$' and '*'. Mirrors upstream GetChecksum.
-  private static string GetChecksum(string sentence) {
+  public static string GetChecksum(string sentence) {
     int checksum = 0;
     foreach (char c in sentence) {
       if (c == '$') {
