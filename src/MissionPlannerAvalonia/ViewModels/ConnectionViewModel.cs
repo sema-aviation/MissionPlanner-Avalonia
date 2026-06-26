@@ -50,12 +50,16 @@ public partial class ConnectionViewModel : ViewModelBase {
     RefreshPorts();
   }
 
+  // Modal connect dialog (mirrors MP's connect progress window); null when not connecting.
+  private Services.ProgressReporter? _connectDialog;
+
   private void OnProgress(int percent, string status) =>
       Avalonia.Threading.Dispatcher.UIThread.Post(() => {
         Progress = percent;
         if (!string.IsNullOrEmpty(status)) {
           Status = status;
         }
+        _connectDialog?.Set(percent < 0 ? 0 : percent, status);
       });
 
   [RelayCommand]
@@ -86,27 +90,54 @@ public partial class ConnectionViewModel : ViewModelBase {
 
     var sel = SelectedPort;
     if (string.IsNullOrEmpty(sel)) {
-      Status = "No port selected.";
+      await Services.Dialogs.Alert("Connect", "No port selected.");
       return;
     }
 
     try {
       ICommsSerial? stream = await BuildStreamAsync(sel);
       if (stream == null) {
-        Status = "Connect canceled.";
+        Status = "";
         return;
       }
 
       _comPort.BaseStream = stream;
-      Status = $"Connecting {sel}…";
-      await Task.Run(() => _comPort.Open(getparams: true, skipconnectedcheck: true, showui: false));
+
+      // All connect status + errors live in this dialog (mirrors MP) — not the thin status bar.
+      var dlg = new Services.ProgressReporter("Connecting Mavlink");
+      _connectDialog = dlg;
+      dlg.Set(0, $"Connecting {sel}…");
+      // Cancel closes the stream, which unblocks the blocking Open() call.
+      dlg.Token.Register(() => {
+        try {
+          _comPort.Close();
+        } catch {
+          // ignore: just trying to abort a stuck connect
+        }
+      });
+      dlg.Show2();
+      try {
+        await Task.Run(() => _comPort.Open(getparams: true, skipconnectedcheck: true, showui: false));
+      } finally {
+        _connectDialog = null;
+        dlg.Close();
+      }
+
       IsConnected = _comPort.BaseStream.IsOpen;
       ConnectText = IsConnected ? "DISCONNECT" : "CONNECT";
-      Status = IsConnected ? $"Connected. {_comPort.MAV.param.Count} params." : "Connect failed.";
+      if (IsConnected) {
+        Status = $"Connected. {_comPort.MAV.param.Count} params.";
+        // Cache params so the Full Parameter List is viewable offline next time.
+        RawParamsViewModel.SaveSnapshot(_comPort);
+      } else {
+        Status = "";
+        await Services.Dialogs.Alert("Connection failed", $"Could not connect on {sel}.");
+      }
       AppState.RaiseConnectionChanged();
     } catch (Exception ex) {
-      Status = "Connect error: " + ex.Message;
+      Status = "";
       IsConnected = false;
+      await Services.Dialogs.Alert("Connection error", ex.Message);
     }
   }
 
