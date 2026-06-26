@@ -94,11 +94,12 @@ jobs:
         run: |
           V=${{ steps.ver.outputs.v }}
           rm -rf out/win stage
+          # Bundle managed code into one exe, but leave native libs loose: libvlc's large
+          # plugins folder otherwise lands both inside the exe AND beside it (~100MB dup).
           dotnet publish "$APP" -c Release -r win-x64 --self-contained true \
             -p:DebugType=none \
             -p:VersionPatch="${{ steps.ver.outputs.patch }}" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
-            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
-            -p:EnableCompressionInSingleFile=true \
+            -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true \
             -o out/win
           DIR="MissionPlannerAvalonia-$V-win-x64"
           mkdir -p "stage/$DIR"
