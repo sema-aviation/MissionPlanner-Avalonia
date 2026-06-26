@@ -18,6 +18,7 @@
     <Grid Grid.Column="{Binding HudColumn}" RowDefinitions="*,4,*">
       <Border Grid.Row="0" Background="Black">
         <ctl:HudControl
+          x:Name="Hud"
           Roll="{Binding Roll}"
           Pitch="{Binding Pitch}"
           Yaw="{Binding Yaw}"
@@ -37,12 +38,31 @@
           NavBearing="{Binding NavBearing}"
           CurrentAmps="{Binding BatCurrent}"
           CustomItemsText="{Binding HudCustomText}"
+          WindDir="{Binding WindDir}"
+          WindVel="{Binding WindVel}"
+          Aoa="{Binding Aoa}"
+          Ssa="{Binding Ssa}"
+          XTrackError="{Binding XTrackError}"
+          TurnRate="{Binding TurnRate}"
+          BatteryVoltage2="{Binding BatteryVoltage2}"
+          BatteryRemaining2="{Binding BatteryRemaining2}"
+          CurrentAmps2="{Binding BatCurrent2}"
+          ThrottlePercent="{Binding ThrottlePercent}"
+          Failsafe="{Binding Failsafe}"
+          SafetyActive="{Binding SafetyActive}"
+          LinkQuality="{Binding LinkQuality}"
+          TargetAlt="{Binding TargetAlt}"
+          TargetSpeed="{Binding TargetSpeed}"
           DisplayHeading="{Binding HudHeading}"
           DisplaySpeed="{Binding HudSpeed}"
           DisplayAlt="{Binding HudAlt}"
           DisplayRollPitch="{Binding HudRollPitch}"
           DisplayGps="{Binding HudGps}"
           DisplayBattery="{Binding HudBattery}"
+          DisplayBattery2="{Binding HudBattery2}"
+          DisplayAoa="{Binding HudAoa}"
+          DisplayXTrack="{Binding HudXTrack}"
+          DisplayConnection="{Binding HudConnection}"
           DisplayEkf="{Binding HudEkf}"
           DisplayVibe="{Binding HudVibe}"
           DisplayPrearm="{Binding HudPrearm}"
@@ -97,68 +117,27 @@
 
       <TabControl Grid.Row="2" Background="#434445">
         <TabItem Header="Quick">
-          <UniformGrid Columns="2" Rows="3" Margin="2">
-            <Border Classes="qv">
-              <StackPanel>
-                <TextBlock
-                  Text="{Binding Alt, StringFormat={}{0:0.00}}"
-                  Foreground="#D197F8"
-                  Classes="qval"
-                />
-                <TextBlock Text="Altitude (m)" Classes="qlbl" />
-              </StackPanel>
-            </Border>
-            <Border Classes="qv">
-              <StackPanel>
-                <TextBlock
-                  Text="{Binding GroundSpeed, StringFormat={}{0:0.00}}"
-                  Foreground="#FE842E"
-                  Classes="qval"
-                />
-                <TextBlock Text="GroundSpeed (m/s)" Classes="qlbl" />
-              </StackPanel>
-            </Border>
-            <Border Classes="qv">
-              <StackPanel>
-                <TextBlock
-                  Text="{Binding BatCurrent, StringFormat={}{0:0.00}}"
-                  Foreground="#FF605B"
-                  Classes="qval"
-                />
-                <TextBlock Text="Bat Current (Amps)" Classes="qlbl" />
-              </StackPanel>
-            </Border>
-            <Border Classes="qv">
-              <StackPanel>
-                <TextBlock
-                  Text="{Binding AirSpeed, StringFormat={}{0:0.00}}"
-                  Foreground="#00FF53"
-                  Classes="qval"
-                />
-                <TextBlock Text="AirSpeed (m/s)" Classes="qlbl" />
-              </StackPanel>
-            </Border>
-            <Border Classes="qv">
-              <StackPanel>
-                <TextBlock
-                  Text="{Binding VerticalSpeed, StringFormat={}{0:0.00}}"
-                  Foreground="#FEFE56"
-                  Classes="qval"
-                />
-                <TextBlock Text="Vertical Speed (m/s)" Classes="qlbl" />
-              </StackPanel>
-            </Border>
-            <Border Classes="qv">
-              <StackPanel>
-                <TextBlock
-                  Text="{Binding DistToHome, StringFormat={}{0:0.00}}"
-                  Foreground="#00FFFC"
-                  Classes="qval"
-                />
-                <TextBlock Text="DistToMAV" Classes="qlbl" />
-              </StackPanel>
-            </Border>
-          </UniformGrid>
+          <!-- Grid of QuickView cells; double-click a cell to pick which cs field it shows
+               (mirrors MP quickView controls + quickView_DoubleClick). -->
+          <ItemsControl x:Name="QuickGrid" ItemsSource="{Binding QuickItems}" Margin="2"
+                        DoubleTapped="OnQuickViewDoubleTapped">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="2" Rows="3" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:QuickItem">
+                <Border Classes="qv">
+                  <ctl:QuickView
+                    Number="{Binding Number}"
+                    Desc="{Binding Desc}"
+                    NumberColor="{Binding Brush}"
+                  />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </TabItem>
 
         <TabItem Header="Actions">
@@ -245,7 +224,7 @@
 
         <TabItem Header="Messages">
           <TextBox
-            Text="{Binding Messages}"
+            Text="{Binding StatusText}"
             AcceptsReturn="True"
             IsReadOnly="True"
             TextWrapping="Wrap"
@@ -283,15 +262,21 @@
         </TabItem>
 
         <TabItem Header="Gauges">
+          <!-- Double-click a gauge to set its Min/Max; persisted via Settings (mirrors
+               Gspeed_DoubleClick). The Heading cell is an HSI (cs.yaw/nav_bearing/wp_dist). -->
           <Grid Margin="6" RowDefinitions="*,*" ColumnDefinitions="*,*">
-            <ctl:Gauge Grid.Row="0" Grid.Column="0" Margin="6" MinHeight="120"
-                       Label="VSI" Units="m/s" Min="-10" Max="10" Value="{Binding VerticalSpeed}" />
-            <ctl:Gauge Grid.Row="0" Grid.Column="1" Margin="6" MinHeight="120"
-                       Label="Speed" Units="m/s" Min="0" Max="60" Value="{Binding AirSpeed}" />
-            <ctl:Gauge Grid.Row="1" Grid.Column="0" Margin="6" MinHeight="120"
-                       Label="Alt" Units="m" Min="0" Max="1000" Value="{Binding Alt}" />
-            <ctl:Gauge Grid.Row="1" Grid.Column="1" Margin="6" MinHeight="120"
-                       Label="Heading" Units="deg" Min="0" Max="360" Value="{Binding Yaw}" />
+            <ctl:Gauge x:Name="GVsi" Grid.Row="0" Grid.Column="0" Margin="6" MinHeight="120"
+                       Label="VSI" Units="m/s" Min="-10" Max="10" Value="{Binding VerticalSpeed}"
+                       DoubleTapped="OnGaugeDoubleTapped" />
+            <ctl:Gauge x:Name="GSpeed" Grid.Row="0" Grid.Column="1" Margin="6" MinHeight="120"
+                       Label="Speed" Units="m/s" Min="0" Max="60" Value="{Binding AirSpeed}"
+                       Value2="{Binding GroundSpeed}" DoubleTapped="OnGaugeDoubleTapped" />
+            <ctl:Gauge x:Name="GAlt" Grid.Row="1" Grid.Column="0" Margin="6" MinHeight="120"
+                       Label="Alt" Units="m" Min="0" Max="1000" Value="{Binding Alt}"
+                       DoubleTapped="OnGaugeDoubleTapped" />
+            <ctl:Hsi Grid.Row="1" Grid.Column="1" Margin="6" MinHeight="120"
+                     Heading="{Binding Yaw}" NavHeading="{Binding NavBearing}"
+                     WpDist="{Binding WpDist}" />
           </Grid>
         </TabItem>
 
@@ -549,7 +534,30 @@
     <GridSplitter Grid.Column="1" Background="#262728" ResizeDirection="Columns" />
 
     <Border Grid.Column="{Binding MapColumn}" Background="#262728" ClipToBounds="True">
-      <ctl:MapView />
+      <Grid>
+        <ctl:MapView x:Name="FdMap" />
+
+        <!-- top-left controls: Auto Pan + Clear Track -->
+        <StackPanel Orientation="Horizontal" Spacing="8"
+                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
+          <CheckBox Content="Auto Pan" IsChecked="{Binding AutoPan}" Foreground="White" />
+          <Button Content="Clear Track" Command="{Binding ClearTrackCommand}" Padding="6,2" />
+        </StackPanel>
+
+        <!-- bottom-left live readouts (mirrors lbl_hdop / lbl_sats / dist) -->
+        <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
+                Background="#99000000" CornerRadius="4" Padding="6,3">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <TextBlock Foreground="White" Text="{Binding SatCount, StringFormat='Sats: {0}'}" />
+            <TextBlock Foreground="White" Text="{Binding GpsHdop, StringFormat='hdop: {0:0.0}'}" />
+            <TextBlock Foreground="White" Text="{Binding DistToHome, StringFormat='Home: {0:0} m'}" />
+          </StackPanel>
+        </Border>
+
+        <!-- bottom-right legend -->
+        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
+                   Foreground="#CCCCCC" FontSize="11" Text="GPS Track (Black)" />
+      </Grid>
     </Border>
   </Grid>
 </UserControl>

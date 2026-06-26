@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -8,6 +9,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
+using MissionPlanner.Utilities;
 using MissionPlannerAvalonia.Services;
 using MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -70,6 +72,11 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private string _messages = "";
 
+  [ObservableProperty]
+  private string _statusText = "";
+
+  private int _lastMsgCount = -1;
+
   public ObservableCollection<ServoOut> Servos { get; } = new();
 
   public LogBrowseViewModel TelemetryLogs { get; } = new();
@@ -116,13 +123,15 @@ public partial class FlightDataViewModel : ViewModelBase {
     for (int ch = 5; ch <= 16; ch++) {
       ServoRelayItems.Add(new ServoChannel(ch));
     }
-    for (int r = 0; r < 4; r++) {
+    for (int r = 0; r < 16; r++) {
       ServoRelayItems.Add(new RelayChannel(r));
     }
     // MP tabAuxFunction = 7 auxOptions (RCx_OPTION combos)
     for (int ch = 7; ch <= 13; ch++) {
       AuxOptions.Add(new AuxRow(ch, new ParamField($"RC{ch}_OPTION")));
     }
+
+    InitQuickItems();
 
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
     _timer.Tick += (_, _) => Pump();
@@ -177,6 +186,32 @@ public partial class FlightDataViewModel : ViewModelBase {
     BatCurrent = cs.current;
     NavBearing = cs.nav_bearing;
 
+    // extra HUD draw items
+    WindDir = cs.wind_dir;
+    WindVel = cs.wind_vel;
+    Aoa = cs.AOA;
+    Ssa = cs.SSA;
+    XTrackError = cs.xtrack_error;
+    TurnRate = cs.turnrate;
+    BatteryVoltage2 = cs.battery_voltage2;
+    BatteryRemaining2 = cs.battery_remaining2;
+    BatCurrent2 = cs.current2;
+    ThrottlePercent = cs.ch3percent;
+    Failsafe = cs.failsafe;
+    SafetyActive = cs.safetyactive;
+    LinkQuality = cs.linkqualitygcs;
+    TargetAlt = cs.targetalt;
+    TargetSpeed = cs.targetairspeed;
+
+    UpdateQuickItems(cs);
+
+    // Live STATUSTEXT for the Messages tab (mirrors Messagetabtimer; last 200, newest at bottom).
+    if (cs.messages != null && cs.messages.Count != _lastMsgCount) {
+      _lastMsgCount = cs.messages.Count;
+      StatusText = string.Join("\n",
+          cs.messages.TakeLast(200).Select(m => $"{m.time:HH:mm:ss}  {m.message?.TrimEnd()}"));
+    }
+
     if (_hudUserFields.Count > 0) {
       var sb = new System.Text.StringBuilder();
       foreach (var p in StatusProps) {
@@ -203,6 +238,130 @@ public partial class FlightDataViewModel : ViewModelBase {
   // ---- Quick tab ----
   [ObservableProperty]
   private double _batCurrent;
+
+  // ---- extra HUD telemetry (new upstream draw items) ----
+  [ObservableProperty]
+  private double _windDir;
+
+  [ObservableProperty]
+  private double _windVel;
+
+  [ObservableProperty]
+  private double _aoa;
+
+  [ObservableProperty]
+  private double _ssa;
+
+  [ObservableProperty]
+  private double _xTrackError;
+
+  [ObservableProperty]
+  private double _turnRate;
+
+  [ObservableProperty]
+  private double _batteryVoltage2;
+
+  [ObservableProperty]
+  private int _batteryRemaining2;
+
+  [ObservableProperty]
+  private double _batCurrent2;
+
+  [ObservableProperty]
+  private double _throttlePercent;
+
+  [ObservableProperty]
+  private bool _failsafe;
+
+  [ObservableProperty]
+  private bool _safetyActive;
+
+  [ObservableProperty]
+  private double _linkQuality;
+
+  [ObservableProperty]
+  private double _targetAlt;
+
+  [ObservableProperty]
+  private double _targetSpeed;
+
+  // ---- Quick tab: grid of QuickView cells (mirrors MP quickView controls) ----
+  public ObservableCollection<QuickItem> QuickItems { get; } = new();
+
+  // Default fields + colours mirror the previous static Quick tab layout.
+  private static readonly (string field, string color)[] QuickDefaults = {
+    ("alt", "#D197F8"),
+    ("groundspeed", "#FE842E"),
+    ("current", "#FF605B"),
+    ("airspeed", "#00FF53"),
+    ("verticalspeed", "#FEFE56"),
+    ("DistToHome", "#00FFFC"),
+  };
+
+  private void InitQuickItems() {
+    var cs = _comPort.MAV?.cs;
+    for (int i = 0; i < QuickDefaults.Length; i++) {
+      var key = $"quickView{i + 1}";
+      string field = Settings.Instance.ContainsKey(key) && !string.IsNullOrEmpty(Settings.Instance[key])
+          ? Settings.Instance[key]
+          : QuickDefaults[i].field;
+      var item = new QuickItem(field, QuickDefaults[i].color);
+      item.Desc = DescFor(cs, field);
+      QuickItems.Add(item);
+    }
+  }
+
+  private static string DescFor(MissionPlanner.CurrentState? cs, string field) {
+    try {
+      return cs?.GetNameandUnit(field) ?? field;
+    } catch {
+      return field;
+    }
+  }
+
+  private void UpdateQuickItems(MissionPlanner.CurrentState cs) {
+    foreach (var item in QuickItems) {
+      var pi = StatusProps.FirstOrDefault(p => p.Name == item.Field);
+      if (pi == null) {
+        continue;
+      }
+      try {
+        object? v = pi.GetValue(cs);
+        item.Number = v switch {
+          bool b => b ? 1 : 0,
+          IConvertible c => Convert.ToDouble(c, CultureInfo.InvariantCulture),
+          _ => item.Number,
+        };
+      } catch {
+        // leave the previous value if this field can't be read/converted this tick.
+      }
+    }
+  }
+
+  // Called by the view after the field picker; persists the chosen field via Settings.
+  public void SetQuickField(QuickItem item, string field) {
+    item.Field = field;
+    item.Desc = DescFor(_comPort.MAV?.cs, field);
+    int idx = QuickItems.IndexOf(item);
+    if (idx >= 0) {
+      Settings.Instance[$"quickView{idx + 1}"] = field;
+    }
+  }
+
+  // Numeric (or bool) CurrentState fields the picker offers, sorted by description.
+  public System.Collections.Generic.List<(string name, string desc)> QuickFieldList() {
+    var cs = _comPort.MAV?.cs;
+    var list = new System.Collections.Generic.List<(string, string)>();
+    foreach (var p in StatusProps) {
+      var t = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
+      if (!IsNumber(t) && t != typeof(bool)) {
+        continue;
+      }
+      list.Add((p.Name, DescFor(cs, p.Name)));
+    }
+    list.Sort((a, b) => string.Compare(a.Item2, b.Item2, StringComparison.OrdinalIgnoreCase));
+    return list;
+  }
 
   // ---- Status tab: full cs.GetProperties() reflection dump (mirrors MP tabStatus_Paint) ----
   public ObservableCollection<StatusItem> Statuses { get; } = new();
@@ -593,8 +752,8 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
     _binPath = path;
     try {
-      var track = await Task.Run(() => DataFlashLog.ReadTrack(path));
-      LogStatus = $"Opened {System.IO.Path.GetFileName(path)} — {track.Count} GPS points.";
+      await Views.LogBrowseWindow.OpenWith(path);
+      LogStatus = $"Opened {System.IO.Path.GetFileName(path)} in Log Browser.";
     } catch (Exception ex) {
       LogStatus = "Open failed: " + ex.Message;
     }
@@ -666,15 +825,8 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
     LogStatus = "Analyzing…";
     try {
-      var summary = await Task.Run(() => {
-        var batt = DataFlashLog.ReadField(bin, "BAT", "Volt");
-        var vibe = DataFlashLog.ReadField(bin, "VIBE", "VibeZ");
-        var gps = DataFlashLog.ReadField(bin, "GPS", "NSats");
-        double minBat = batt.Count > 0 ? batt.Min(v => v.value) : double.NaN;
-        double maxVibe = vibe.Count > 0 ? vibe.Max(v => v.value) : double.NaN;
-        int gpsLoss = gps.Count(v => v.value < 6);
-        return $"Min battery: {minBat:0.00} V | Max vibe Z: {maxVibe:0.0} | GPS <6 sats: {gpsLoss} samples";
-      });
+      var summary = await Task.Run(() =>
+          Services.LogAnalyzer.Format(Services.LogAnalyzer.Analyze(bin)));
       LogStatus = summary;
     } catch (Exception ex) {
       LogStatus = "Analysis failed: " + ex.Message;
@@ -682,9 +834,11 @@ public partial class FlightDataViewModel : ViewModelBase {
   }
 
   [RelayCommand]
-  private void GeoReferenceImages() =>
-      // Minimal stub: full EXIF-based geotagging needs an imaging lib not bundled here.
-      LogStatus = "Geo Reference: match images to GPS by timestamp (EXIF tooling not bundled).";
+  private async Task GeoReferenceImages() {
+    // Geo-tag photos against the flight log's CAM/GPS messages (mirrors GeoRef/georefimage.cs).
+    LogStatus = "Geo Reference: matching images to GPS by EXIF timestamp...";
+    await Views.GeoRefWindow.OpenWith();
+  }
 
   // ---- Payload Control tab ----
   [ObservableProperty]
@@ -935,6 +1089,8 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log("Restart mission");
   }
 
+  // Full upstream BUT_resumemis: reprogram the mission keeping home + do-commands, skipping the
+  // already-flown nav waypoints before the resume point; for copter, GUIDED+arm+takeoff then AUTO.
   [RelayCommand]
   [Obsolete]
   private async Task ResumeMission() {
@@ -942,10 +1098,76 @@ public partial class FlightDataViewModel : ViewModelBase {
       Messages += "Not connected.\n";
       return;
     }
-    await Task.Run(() =>
-        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.MISSION_START,
-            0, 0, 0, 0, 0, 0, 0));
+    if (!await Services.Dialogs.MessageShowAgain("Resume Mission",
+        "Warning: this will reprogram your mission, arm and issue a takeoff command (copter).",
+        "resumemission")) {
+      return;
+    }
+    var cs = _comPort.MAV.cs;
+    int last = cs.lastautowp == -1 ? 1 : cs.lastautowp;
+    var s = await Services.Dialogs.InputBox("Resume at", "Resume mission at waypoint #", last.ToString());
+    if (!int.TryParse(s, out int lastwpno)) {
+      return;
+    }
+    Log("Resuming mission…");
+    await Task.Run(() => {
+      var lastwpdata = _comPort.getWP((ushort)lastwpno);
+      var cmds = new System.Collections.Generic.List<MissionPlanner.Utilities.Locationwp>();
+      var wpcount = _comPort.getWPCount();
+      for (ushort a = 0; a < wpcount; a++) {
+        var wp = _comPort.getWP(a);
+        if (a < lastwpno && a != 0) {
+          if (wp.id != (ushort)MAVLink.MAV_CMD.TAKEOFF && wp.id < (ushort)MAVLink.MAV_CMD.LAST) {
+            continue;
+          }
+          if (wp.id > (ushort)MAVLink.MAV_CMD.DO_LAST) {
+            continue;
+          }
+        }
+        cmds.Add(wp);
+      }
+      ushort wpno = 0;
+      _comPort.setWPTotal((ushort)cmds.Count);
+      foreach (var loc in cmds) {
+        if (_comPort.setWP(loc, wpno, (MAVLink.MAV_FRAME)loc.frame)
+            != MAVLink.MAV_MISSION_RESULT.MAV_MISSION_ACCEPTED) {
+          return;
+        }
+        wpno++;
+      }
+      _comPort.setWPACK();
+      _comPort.setWPCurrent(_comPort.MAV.sysid, _comPort.MAV.compid, 1);
+
+      if (cs.firmware == MissionPlanner.ArduPilot.Firmwares.ArduCopter2) {
+        if (!SpinUntil(() => { _comPort.setMode("GUIDED"); return cs.mode.Equals("Guided", StringComparison.OrdinalIgnoreCase); })) {
+          return;
+        }
+        if (!SpinUntil(() => { _comPort.doARM(true); return cs.armed; })) {
+          return;
+        }
+        if (!SpinUntil(() => {
+          _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.TAKEOFF,
+              0, 0, 0, 0, 0, 0, lastwpdata.alt);
+          return cs.alt >= lastwpdata.alt - 2;
+        })) {
+          return;
+        }
+      }
+      _comPort.setMode("AUTO");
+    });
     Log("Resume mission");
+  }
+
+  // Retry an action once a second until it reports success, giving up after 30 s (mirrors the
+  // upstream timeout loops in BUT_resumemis).
+  private static bool SpinUntil(Func<bool> tryStep) {
+    for (int i = 0; i < 30; i++) {
+      if (tryStep()) {
+        return true;
+      }
+      System.Threading.Thread.Sleep(1000);
+    }
+    return false;
   }
 
   [RelayCommand]
@@ -963,22 +1185,170 @@ public partial class FlightDataViewModel : ViewModelBase {
   [RelayCommand]
   private void Joystick() => Log("Joystick mapping is under Setup > Joystick.");
 
+  // Upstream BUT_SendMSG: prompt for text and send_text(severity 5) so it lands in the vehicle log.
   [RelayCommand]
-  private void ShowMessage() {
-    var top = (Avalonia.Application.Current?.ApplicationLifetime
-               as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-    var win = new Views.MessagesWindow();
-    if (top != null) {
-      win.Show(top);
-    } else {
-      win.Show();
+  private async Task ShowMessage() {
+    if (!_comPort.BaseStream.IsOpen) {
+      return;
+    }
+    var txt = await Services.Dialogs.InputBox("Enter Message", "Enter Message to be logged");
+    if (string.IsNullOrEmpty(txt)) {
+      return;
+    }
+    try {
+      _comPort.send_text(5, txt);
+    } catch {
+      await Services.Dialogs.Alert("Error", "No response from vehicle.");
     }
   }
 
-  // MapView renders only the live vehicle marker (no historical polyline in this port),
-  // so there is no persisted track collection to clear here.
+  // Auto-pan follow + clear-track are applied on the MapView by the view code-behind.
+  [ObservableProperty]
+  private bool _autoPan;
+
+  public event System.Action? TrackClearRequested;
+
   [RelayCommand]
-  private void ClearTrack() => Log("Track cleared.");
+  private void ClearTrack() {
+    TrackClearRequested?.Invoke();
+    Log("Track cleared.");
+  }
+
+  // ---- Map context menu (mirrors FlightData contextMenuStripMap) ----
+  // Called from FlightDataView code-behind with the lat/lng under the cursor (MapView.LastClickLatLng).
+
+  private byte Sysid => _comPort.MAV.sysid;
+  private byte Compid => _comPort.MAV.compid;
+
+  private static byte FrameByte(string frame) => frame switch {
+    "Absolute" => (byte)MAVLink.MAV_FRAME.GLOBAL,
+    "Terrain" => (byte)MAVLink.MAV_FRAME.GLOBAL_TERRAIN_ALT,
+    _ => (byte)MAVLink.MAV_FRAME.GLOBAL_RELATIVE_ALT,
+  };
+
+  [Obsolete]
+  private async Task GuidedGoto(double lat, double lng, double alt, string frame) {
+    var wp = new MissionPlanner.Utilities.Locationwp {
+      id = (ushort)MAVLink.MAV_CMD.WAYPOINT,
+      lat = lat,
+      lng = lng,
+      alt = (float)alt,
+      frame = FrameByte(frame),
+    };
+    await Task.Run(() => _comPort.setGuidedModeWP(wp));
+    Log($"Fly to {lat:0.000000},{lng:0.000000} @ {alt} m ({frame})");
+  }
+
+  [Obsolete]
+  public async Task FlyToHere(double lat, double lng) {
+    if (!Connected) {
+      return;
+    }
+    var r = await Services.Dialogs.AltInputBox("Fly To Here", 50, "Relative");
+    if (r != null) {
+      await GuidedGoto(lat, lng, r.Value.Alt, r.Value.Frame);
+    }
+  }
+
+  [Obsolete]
+  public async Task FlyToCoords() {
+    if (!Connected) {
+      return;
+    }
+    var s = await Services.Dialogs.InputBox("Fly To Coords", "Enter lat;lng;alt");
+    var p = s?.Split(';');
+    if (p is not { Length: >= 3 }
+        || !double.TryParse(p[0], out var lat)
+        || !double.TryParse(p[1], out var lng)
+        || !double.TryParse(p[2], out var alt)) {
+      return;
+    }
+    await GuidedGoto(lat, lng, alt, "Relative");
+  }
+
+  [Obsolete]
+  public async Task PointCameraHere(double lat, double lng) {
+    if (!Connected) {
+      return;
+    }
+    var s = await Services.Dialogs.InputBox("Point Camera Here", "Enter Target Alt (relative to home)", "0");
+    if (!float.TryParse(s, out var alt)) {
+      return;
+    }
+    await Task.Run(() => _comPort.doCommandInt(Sysid, Compid, MAVLink.MAV_CMD.DO_SET_ROI,
+        0, 0, 0, 0, (int)(lat * 1e7), (int)(lng * 1e7), alt,
+        frame: MAVLink.MAV_FRAME.GLOBAL_RELATIVE_ALT));
+    Log($"Camera ROI -> {lat:0.000000},{lng:0.000000}");
+  }
+
+  [Obsolete]
+  public async Task TriggerCameraNow() {
+    if (!Connected) {
+      return;
+    }
+    await Task.Run(() => _comPort.setDigicamControl(true));
+    Log("Camera triggered");
+  }
+
+  public async Task SetHomeHere(double lat, double lng) {
+    if (!Connected) {
+      return;
+    }
+    if (!await Services.Dialogs.Confirm("Set Home", "Set home to the clicked location?")) {
+      return;
+    }
+    await Task.Run(() => _comPort.doCommand(Sysid, Compid, MAVLink.MAV_CMD.DO_SET_HOME,
+        0, 0, 0, 0, (float)lat, (float)lng, 0));
+    Log($"Home set -> {lat:0.000000},{lng:0.000000}");
+  }
+
+  [Obsolete]
+  public async Task SetEkfOriginHere(double lat, double lng) {
+    if (!Connected) {
+      return;
+    }
+    var s = MissionPlanner.Utilities.srtm.getAltitude(lat, lng);
+    float alt = s.currenttype == MissionPlanner.Utilities.srtm.tiletype.valid
+        ? (float)s.alt
+        : _comPort.MAV.cs.altasl;
+    var go = new MAVLink.mavlink_set_gps_global_origin_t {
+      latitude = (int)(lat * 1e7),
+      longitude = (int)(lng * 1e7),
+      altitude = (int)(alt * 1000),
+      target_system = Sysid,
+    };
+    await Task.Run(() => _comPort.sendPacket(go, Sysid, Compid));
+    Log($"EKF origin set -> {lat:0.000000},{lng:0.000000}");
+  }
+
+  [Obsolete]
+  public async Task TakeOffHere() {
+    if (!Connected) {
+      return;
+    }
+    var s = await Services.Dialogs.InputBox("Takeoff", "Enter Takeoff Alt (m)", "5");
+    if (!float.TryParse(s, out var alt)) {
+      return;
+    }
+    await Task.Run(() => {
+      _comPort.setMode("GUIDED");
+      _comPort.doCommand(Sysid, Compid, MAVLink.MAV_CMD.TAKEOFF, 0, 0, 0, 0, 0, 0, alt);
+    });
+    Log($"Takeoff to {alt} m");
+  }
+
+  public async Task JumpToTag() {
+    if (!Connected) {
+      return;
+    }
+    var s = await Services.Dialogs.InputBox("Jump To Tag", "Tag Id (0-65535)");
+    if (!ushort.TryParse(s, out var tag)) {
+      return;
+    }
+    await Task.Run(() => _comPort.doCommand(Sysid, Compid, MAVLink.MAV_CMD.DO_JUMP_TAG,
+        tag, 0, 0, 0, 0, 0, 0));
+    Log($"Jump to tag {tag}");
+  }
 
   [RelayCommand]
   [Obsolete]
@@ -1047,17 +1417,17 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log($"Set current WP {idx}");
   }
 
+  // Upstream BUT_Homealt: toggle the HUD home-altitude display offset (NOT a DO_SET_HOME command).
+  // Off → show altitude relative to home; pressing again clears the offset.
   [RelayCommand]
-  [Obsolete]
-  private async Task SetHome() {
+  private void SetHome() {
     if (!Connected) {
       Messages += "Not connected.\n";
       return;
     }
-    await Task.Run(() =>
-        _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.DO_SET_HOME,
-            0, 0, 0, 0, 0, 0, (float)HomeAlt));
-    Log($"Set home alt {HomeAlt}");
+    var cs = _comPort.MAV.cs;
+    cs.altoffsethome = cs.altoffsethome != 0 ? 0 : -(float)(cs.HomeAlt / CurrentState.multiplieralt);
+    Log(cs.altoffsethome != 0 ? "Home-alt offset on" : "Home-alt offset off");
   }
 
   [RelayCommand]
@@ -1080,7 +1450,7 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private int _servoPwm = 1500;
 
-  private readonly bool[] _relayState = new bool[6];
+  private readonly bool[] _relayState = new bool[16];
 
   [RelayCommand]
   [Obsolete]
@@ -1546,6 +1916,28 @@ public partial class FlightDataViewModel : ViewModelBase {
 
   partial void OnSquawkChanged(int value) => SendTransponder(0);
 
+}
+
+// One Quick-tab cell: a live cs field shown as a big value + small label (mirrors MP QuickView).
+public partial class QuickItem : ObservableObject {
+  public QuickItem(string field, string color) {
+    _field = field;
+    Color = color;
+  }
+
+  [ObservableProperty]
+  private string _field;
+
+  [ObservableProperty]
+  private string _desc = "";
+
+  [ObservableProperty]
+  private double _number;
+
+  public string Color { get; }
+
+  public Avalonia.Media.IBrush Brush =>
+      new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse(Color));
 }
 
 public record AuxRow(int Channel, ParamField Field);

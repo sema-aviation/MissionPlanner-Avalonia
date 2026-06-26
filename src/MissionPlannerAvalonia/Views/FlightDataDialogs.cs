@@ -101,3 +101,137 @@ public class VideoPopupWindow : Window {
 
   public void UpdateStatus() => _status.Text = Video.Status;
 }
+
+// Live EKF variance bars (velocity/pos-horiz/pos-vert/compass/terrain), mirrors MP EKFStatus.
+// Values are variance*100; orange >50, red >80 — the standard ArduPilot warning thresholds.
+public class EKFStatusWindow : Window {
+  private readonly DispatcherTimer _timer;
+  private readonly (string label, ProgressBar bar)[] _rows;
+  private readonly TextBlock _flags = new() {
+    Foreground = Brushes.WhiteSmoke,
+    FontSize = 11,
+    Margin = new Avalonia.Thickness(0, 8, 0, 0),
+  };
+
+  public EKFStatusWindow() {
+    Title = "EKF Status";
+    Width = 320;
+    Height = 320;
+    Background = new SolidColorBrush(Color.Parse("#1F1F20"));
+    WindowStartupLocation = WindowStartupLocation.CenterOwner;
+    _rows = new[] { "Velocity", "Pos Horiz", "Pos Vert", "Compass", "Terrain" }
+        .Select(l => (l, new ProgressBar { Maximum = 100, Height = 16 })).ToArray();
+    var panel = new StackPanel { Margin = new Avalonia.Thickness(12), Spacing = 6 };
+    foreach (var (label, bar) in _rows) {
+      panel.Children.Add(new TextBlock { Text = label, Foreground = Brushes.WhiteSmoke, FontSize = 12 });
+      panel.Children.Add(bar);
+    }
+    panel.Children.Add(_flags);
+    Content = new ScrollViewer { Content = panel };
+    _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+    _timer.Tick += (_, _) => Refresh();
+    _timer.Start();
+    Closed += (_, _) => _timer.Stop();
+    Refresh();
+  }
+
+  private void Refresh() {
+    var cs = AppState.comPort.MAV?.cs;
+    if (cs == null) {
+      return;
+    }
+    var vals = new[] { cs.ekfvelv, cs.ekfposhor, cs.ekfposvert, cs.ekfcompv, cs.ekfteralt };
+    for (int i = 0; i < _rows.Length; i++) {
+      var v = (int)(vals[i] * 100);
+      _rows[i].bar.Value = v;
+      _rows[i].bar.Foreground = v > 80 ? Brushes.Red : v > 50 ? Brushes.Orange : Brushes.LimeGreen;
+    }
+    _flags.Text = "Flags: 0x" + cs.ekfflags.ToString("X");
+  }
+}
+
+// Live vibration bars + clip counters, mirrors MP Vibration. >30 m/s/s is the ArduPilot caution
+// line, >60 the danger line.
+public class VibrationWindow : Window {
+  private readonly DispatcherTimer _timer;
+  private readonly (string label, ProgressBar bar)[] _rows;
+  private readonly TextBlock _clips = new() { Foreground = Brushes.WhiteSmoke, FontSize = 12 };
+
+  public VibrationWindow() {
+    Title = "Vibration";
+    Width = 300;
+    Height = 240;
+    Background = new SolidColorBrush(Color.Parse("#1F1F20"));
+    WindowStartupLocation = WindowStartupLocation.CenterOwner;
+    _rows = new[] { "Vibe X", "Vibe Y", "Vibe Z" }
+        .Select(l => (l, new ProgressBar { Maximum = 100, Height = 16 })).ToArray();
+    var panel = new StackPanel { Margin = new Avalonia.Thickness(12), Spacing = 6 };
+    foreach (var (label, bar) in _rows) {
+      panel.Children.Add(new TextBlock { Text = label, Foreground = Brushes.WhiteSmoke, FontSize = 12 });
+      panel.Children.Add(bar);
+    }
+    panel.Children.Add(_clips);
+    Content = panel;
+    _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+    _timer.Tick += (_, _) => Refresh();
+    _timer.Start();
+    Closed += (_, _) => _timer.Stop();
+    Refresh();
+  }
+
+  private void Refresh() {
+    var cs = AppState.comPort.MAV?.cs;
+    if (cs == null) {
+      return;
+    }
+    var vals = new[] { cs.vibex, cs.vibey, cs.vibez };
+    for (int i = 0; i < _rows.Length; i++) {
+      var v = (int)vals[i];
+      _rows[i].bar.Value = v;
+      _rows[i].bar.Foreground = v > 60 ? Brushes.Red : v > 30 ? Brushes.Orange : Brushes.LimeGreen;
+    }
+    _clips.Text = $"Clipping: {cs.vibeclip0} / {cs.vibeclip1} / {cs.vibeclip2}";
+  }
+}
+
+// Live prearm status + last high-severity message, mirrors MP PrearmStatus.
+public class PrearmStatusWindow : Window {
+  private readonly DispatcherTimer _timer;
+  private readonly TextBlock _state = new() { FontSize = 16, FontWeight = FontWeight.Bold };
+  private readonly TextBlock _msg = new() {
+    Foreground = Brushes.WhiteSmoke,
+    TextWrapping = TextWrapping.Wrap,
+    FontSize = 12,
+  };
+
+  public PrearmStatusWindow() {
+    Title = "Prearm Status";
+    Width = 360;
+    Height = 200;
+    Background = new SolidColorBrush(Color.Parse("#1F1F20"));
+    WindowStartupLocation = WindowStartupLocation.CenterOwner;
+    Content = new StackPanel {
+      Margin = new Avalonia.Thickness(14),
+      Spacing = 10,
+      Children = { _state, _msg },
+    };
+    _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+    _timer.Tick += (_, _) => Refresh();
+    _timer.Start();
+    Closed += (_, _) => _timer.Stop();
+    Refresh();
+  }
+
+  private void Refresh() {
+    var cs = AppState.comPort.MAV?.cs;
+    if (cs == null) {
+      _state.Text = "No vehicle.";
+      _state.Foreground = Brushes.Gray;
+      return;
+    }
+    var ok = cs.prearmstatus;
+    _state.Text = ok ? "Ready to Arm" : "Not Ready to Arm";
+    _state.Foreground = ok ? Brushes.LimeGreen : Brushes.OrangeRed;
+    _msg.Text = string.IsNullOrEmpty(cs.messageHigh) ? "" : cs.messageHigh;
+  }
+}

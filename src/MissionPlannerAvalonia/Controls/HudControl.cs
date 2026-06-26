@@ -2,11 +2,16 @@ using System;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 
 namespace MissionPlannerAvalonia.Controls;
 
 public class HudControl : Control {
+  // Raised with "ekf" / "vibe" / "prearm" when the matching HUD indicator is clicked,
+  // so the host can open the EKF/Vibration/Prearm status windows (mirrors MP hud1_*click).
+  public event Action<string>? IndicatorClicked;
+  private Rect _ekfRect, _vibeRect, _prearmRect;
   public static readonly StyledProperty<double> RollProperty = AvaloniaProperty.Register<
       HudControl,
       double
@@ -92,6 +97,42 @@ public class HudControl : Control {
       AvaloniaProperty.Register<HudControl, double>(nameof(TargetSpeed));
   public static readonly StyledProperty<string> CustomItemsTextProperty =
       AvaloniaProperty.Register<HudControl, string>(nameof(CustomItemsText), "");
+
+  // ---- new upstream HUD.cs draw items ----
+  public static readonly StyledProperty<double> WindDirProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(WindDir));
+  public static readonly StyledProperty<double> WindVelProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(WindVel));
+  public static readonly StyledProperty<double> AoaProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(Aoa));
+  public static readonly StyledProperty<double> SsaProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(Ssa));
+  public static readonly StyledProperty<double> XTrackErrorProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(XTrackError));
+  public static readonly StyledProperty<double> TurnRateProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(TurnRate));
+  public static readonly StyledProperty<double> BatteryVoltage2Property =
+      AvaloniaProperty.Register<HudControl, double>(nameof(BatteryVoltage2));
+  public static readonly StyledProperty<int> BatteryRemaining2Property =
+      AvaloniaProperty.Register<HudControl, int>(nameof(BatteryRemaining2));
+  public static readonly StyledProperty<double> CurrentAmps2Property =
+      AvaloniaProperty.Register<HudControl, double>(nameof(CurrentAmps2));
+  public static readonly StyledProperty<double> ThrottlePercentProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(ThrottlePercent));
+  public static readonly StyledProperty<bool> FailsafeProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(Failsafe));
+  public static readonly StyledProperty<bool> SafetyActiveProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(SafetyActive));
+  public static readonly StyledProperty<double> LinkQualityProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(LinkQuality), 100);
+  public static readonly StyledProperty<bool> DisplayBattery2Property =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayBattery2), true);
+  public static readonly StyledProperty<bool> DisplayAoaProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayAoa));
+  public static readonly StyledProperty<bool> DisplayXTrackProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayXTrack), true);
+  public static readonly StyledProperty<bool> DisplayConnectionProperty =
+      AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayConnection), true);
 
   public double Roll {
     get => GetValue(RollProperty);
@@ -213,6 +254,74 @@ public class HudControl : Control {
     get => GetValue(CustomItemsTextProperty);
     set => SetValue(CustomItemsTextProperty, value);
   }
+  public double WindDir {
+    get => GetValue(WindDirProperty);
+    set => SetValue(WindDirProperty, value);
+  }
+  public double WindVel {
+    get => GetValue(WindVelProperty);
+    set => SetValue(WindVelProperty, value);
+  }
+  public double Aoa {
+    get => GetValue(AoaProperty);
+    set => SetValue(AoaProperty, value);
+  }
+  public double Ssa {
+    get => GetValue(SsaProperty);
+    set => SetValue(SsaProperty, value);
+  }
+  public double XTrackError {
+    get => GetValue(XTrackErrorProperty);
+    set => SetValue(XTrackErrorProperty, value);
+  }
+  public double TurnRate {
+    get => GetValue(TurnRateProperty);
+    set => SetValue(TurnRateProperty, value);
+  }
+  public double BatteryVoltage2 {
+    get => GetValue(BatteryVoltage2Property);
+    set => SetValue(BatteryVoltage2Property, value);
+  }
+  public int BatteryRemaining2 {
+    get => GetValue(BatteryRemaining2Property);
+    set => SetValue(BatteryRemaining2Property, value);
+  }
+  public double CurrentAmps2 {
+    get => GetValue(CurrentAmps2Property);
+    set => SetValue(CurrentAmps2Property, value);
+  }
+  public double ThrottlePercent {
+    get => GetValue(ThrottlePercentProperty);
+    set => SetValue(ThrottlePercentProperty, value);
+  }
+  public bool Failsafe {
+    get => GetValue(FailsafeProperty);
+    set => SetValue(FailsafeProperty, value);
+  }
+  public bool SafetyActive {
+    get => GetValue(SafetyActiveProperty);
+    set => SetValue(SafetyActiveProperty, value);
+  }
+  public double LinkQuality {
+    get => GetValue(LinkQualityProperty);
+    set => SetValue(LinkQualityProperty, value);
+  }
+  public bool DisplayBattery2 {
+    get => GetValue(DisplayBattery2Property);
+    set => SetValue(DisplayBattery2Property, value);
+  }
+  public bool DisplayAoa {
+    get => GetValue(DisplayAoaProperty);
+    set => SetValue(DisplayAoaProperty, value);
+  }
+  public bool DisplayXTrack {
+    get => GetValue(DisplayXTrackProperty);
+    set => SetValue(DisplayXTrackProperty, value);
+  }
+  public bool DisplayConnection {
+    get => GetValue(DisplayConnectionProperty);
+    set => SetValue(DisplayConnectionProperty, value);
+  }
 
   private static readonly IBrush SkyBrush = new LinearGradientBrush {
     StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
@@ -269,7 +378,24 @@ public class HudControl : Control {
         CurrentAmpsProperty,
         TargetAltProperty,
         TargetSpeedProperty,
-        CustomItemsTextProperty
+        CustomItemsTextProperty,
+        WindDirProperty,
+        WindVelProperty,
+        AoaProperty,
+        SsaProperty,
+        XTrackErrorProperty,
+        TurnRateProperty,
+        BatteryVoltage2Property,
+        BatteryRemaining2Property,
+        CurrentAmps2Property,
+        ThrottlePercentProperty,
+        FailsafeProperty,
+        SafetyActiveProperty,
+        LinkQualityProperty,
+        DisplayBattery2Property,
+        DisplayAoaProperty,
+        DisplayXTrackProperty,
+        DisplayConnectionProperty
     );
   }
 
@@ -366,6 +492,19 @@ public class HudControl : Control {
       DrawHeadingTape(context, w, headH, fontsize, Yaw, NavBearing);
     }
 
+    // ---- x-track error + rate-of-turn indicator (under heading, mirrors HUD.cs displayxtrack) ----
+    if (DisplayXTrack) {
+      DrawXTrackTurn(context, w, h, headH);
+    }
+
+    // ---- wind direction + speed arrow (top-right corner) ----
+    DrawWind(context, w, headH, fontsize);
+
+    // ---- AOA / SSA vertical bar (right) ----
+    if (DisplayAoa) {
+      DrawAoaSsa(context, w, h);
+    }
+
     // ---- speed tape (left) + altitude tape (right) ----
     double tapeW = Math.Max(34, w / 10.0);
     var speedRect = new Rect(0, cy - h / 4.0, tapeW, h / 2.0);
@@ -376,6 +515,15 @@ public class HudControl : Control {
       DrawText(context, $"AS {AirSpeed:0.0}", new Point(2, speedRect.Bottom + 4), fontsize);
       DrawText(context, $"GS {GroundSpeed:0.0}", new Point(2, speedRect.Bottom + fontsize + 8),
           fontsize);
+      // throttle % just under the air/ground readouts (mirrors HUD.cs ch3percent)
+      DrawText(context, $"Thr {ThrottlePercent:0}%",
+          new Point(2, speedRect.Bottom + fontsize * 2 + 12), fontsize, Brushes.White);
+      // link quality / connection just above the speed tape (mirrors HUD.cs linkqualitygcs)
+      if (DisplayConnection) {
+        var lc = LinkQuality <= 0 ? Brushes.Red : LinkQuality < 50 ? Brushes.Orange : TextBrush;
+        DrawText(context, $"{LinkQuality:0}%", new Point(2, speedRect.Top - fontsize - 4),
+            fontsize, lc);
+      }
     }
     if (DisplayAlt) {
       DrawScrollTape(context, altRect, Alt, TargetAlt, true, fontsize, "");
@@ -384,16 +532,23 @@ public class HudControl : Control {
       DrawText(context, Mode, new Point(altRect.Left - 4, altRect.Bottom + 4), fontsize, modeBrush);
     }
 
-    // ---- bottom-left battery ----
+    // ---- bottom-left battery (Bat1, + optional Bat2 line above it) ----
     if (DisplayBattery) {
-      string cell = (DisplayBattery && BatteryCells > 0)
-          ? $"Cell {BatteryVoltage / BatteryCells:0.00}v  "
-          : "";
-      string batt = $"{cell}Bat {BatteryVoltage:0.00}v {CurrentAmps:0.0} A {BatteryRemaining}%";
       var bb = BatteryRemaining > 0 && BatteryRemaining < 20 ? Brushes.Red
           : BatteryRemaining > 0 && BatteryRemaining < 30 ? Brushes.Orange
           : TextBrush;
-      DrawText(context, batt, new Point(2, h - fontsize - 4), fontsize, bb);
+      double batY = h - fontsize - 4;
+      // Battery2 line (mirrors HUD.cs batteryon2 / Bat2) drawn just above Bat1.
+      if (DisplayBattery2 && BatteryVoltage2 > 0) {
+        string batt2 =
+            $"Bat2 {BatteryVoltage2:0.00}v {CurrentAmps2:0.0} A {BatteryRemaining2}%";
+        DrawText(context, batt2, new Point(2, batY - fontsize - 4), fontsize, TextBrush);
+      } else if (BatteryCells > 0) {
+        DrawText(context, $"Cell {BatteryVoltage / BatteryCells:0.00}v",
+            new Point(2, batY - fontsize - 4), fontsize, bb);
+      }
+      string batt = $"Bat1 {BatteryVoltage:0.00}v {CurrentAmps:0.0} A {BatteryRemaining}%";
+      DrawText(context, batt, new Point(2, batY), fontsize, bb);
     }
 
     // ---- bottom cluster (matches MP tempref): GPS bottom-right; EKF/Vibe + prearm
@@ -404,6 +559,7 @@ public class HudControl : Control {
       string g = gps ? $"GPS: 3D Fix ({SatCount:0})" : "GPS: No Fix";
       DrawTextRight(context, g, w - 6, byline, fontsize, gps ? Brushes.LimeGreen : Brushes.Red);
     }
+    _ekfRect = _vibeRect = _prearmRect = default;
     if (DisplayEkf || DisplayVibe) {
       double ekfW = DisplayEkf ? MakeText("EKF", fontsize, null).Width : 0;
       double vibeW = DisplayVibe ? MakeText("Vibe", fontsize, null).Width : 0;
@@ -411,13 +567,19 @@ public class HudControl : Control {
       double startX = cx - (ekfW + gap + vibeW) / 2;
       if (DisplayEkf) {
         DrawText(context, "EKF", new Point(startX, byline), fontsize, Brushes.White);
+        _ekfRect = new Rect(startX, byline, ekfW, fontsize + 4);
       }
       if (DisplayVibe) {
-        DrawText(context, "Vibe", new Point(startX + ekfW + gap, byline), fontsize, Brushes.White);
+        double vx = startX + ekfW + gap;
+        DrawText(context, "Vibe", new Point(vx, byline), fontsize, Brushes.White);
+        _vibeRect = new Rect(vx, byline, vibeW, fontsize + 4);
       }
     }
     if (DisplayPrearm && !Armed) {
-      DrawTextCenter(context, "Not Ready to Arm", cx, byline - fontsize - 6, fontsize, Brushes.Red);
+      double py = byline - fontsize - 6;
+      DrawTextCenter(context, "Not Ready to Arm", cx, py, fontsize, Brushes.Red);
+      double pw = MakeText("Not Ready to Arm", fontsize, null).Width;
+      _prearmRect = new Rect(cx - pw / 2, py, pw, fontsize + 4);
     }
 
     // ---- custom user items (left) ----
@@ -431,6 +593,23 @@ public class HudControl : Control {
 
     // ---- centre armed / disarmed ----
     DrawTextCenter(context, Armed ? "ARMED" : "DISARMED", cx, h / 3.0, fontsize + 10, Brushes.Red);
+
+    // ---- alert flashes (failsafe / safety / low-voltage), mirrors HUD.cs ----
+    // Half-second blink so the alerts grab attention, like the upstream flashing text.
+    bool lowVoltage = BatteryRemaining > 0 && BatteryRemaining < 20;
+    bool blink = DateTime.UtcNow.Millisecond < 500;
+    double ay = h / 3.0 + fontsize + 14;
+    if (SafetyActive) {
+      DrawTextCenter(context, "SAFE", cx, ay, fontsize + 10, Brushes.Red);
+      ay += fontsize + 16;
+    }
+    if (Failsafe && blink) {
+      DrawTextCenter(context, "FAILSAFE", cx, ay, fontsize + 16, Brushes.Red);
+      ay += fontsize + 22;
+    }
+    if (lowVoltage && blink) {
+      DrawTextCenter(context, "LOW VOLTAGE", cx, ay, fontsize + 8, Brushes.Red);
+    }
   }
 
   private void DrawHeadingTape(DrawingContext ctx, double w, double headH, double fontsize,
@@ -476,6 +655,95 @@ public class HudControl : Control {
     ctx.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), box);
     DrawText(ctx, yawi.ToString("000"), new Point(w / 2 - fontsize, headH / 2 - fontsize / 2),
         fontsize, Brushes.Black);
+  }
+
+  // X-track error (green bar) + rate-of-turn marker under the heading tape.
+  // Faithful port of HUD.cs displayxtrack block (centred at Width/10 like upstream).
+  private void DrawXTrackTurn(DrawingContext ctx, double w, double h, double headH) {
+    double xtspace = w / 10.0 / 3.0;
+    double cx = w / 10.0;
+    double top = headH + 5;
+    double bot = headH + h / 10.0;
+    double pad = 10;
+
+    double xt = Math.Clamp(XTrackError, -40, 40);
+    double loc = xt / 20.0 * xtspace;
+    var green = new Pen(
+        new SolidColorBrush(Color.FromArgb(Math.Abs(xt) >= 40 ? (byte)128 : (byte)255, 0, 200, 0)), 2);
+    ctx.DrawLine(green, new Point(cx + loc, top), new Point(cx + loc, bot));
+    ctx.DrawLine(WhitePen, new Point(cx, top), new Point(cx, bot));
+    foreach (int s in new[] { -2, -1, 1, 2 }) {
+      ctx.DrawLine(ThinPen, new Point(cx + s * xtspace, top + pad),
+          new Point(cx + s * xtspace, bot - pad));
+    }
+
+    // rate-of-turn: three reference ticks + a green slider clamped to ±6 deg/s.
+    double trY = bot + 10;
+    var wp = new Pen(Brushes.White, 4);
+    foreach (int s in new[] { -2, 0, 2 }) {
+      double bx = cx + s * xtspace - xtspace / 2;
+      ctx.DrawLine(wp, new Point(bx, trY), new Point(bx + xtspace, trY));
+    }
+    double trwidth = (cx + 2 * xtspace - xtspace / 2) - (cx - 2 * xtspace - xtspace / 2);
+    double range = 12;
+    double tr = Math.Clamp(TurnRate, -range / 2, range / 2);
+    double tloc = tr / range * trwidth;
+    var trPen = new Pen(
+        new SolidColorBrush(Color.FromArgb(Math.Abs(tr) >= range / 2 ? (byte)128 : (byte)255, 0, 200, 0)), 4);
+    ctx.DrawLine(trPen, new Point(cx + tloc - xtspace / 2, trY + 3),
+        new Point(cx + tloc + xtspace / 2, trY + 3));
+    ctx.DrawLine(trPen, new Point(cx + tloc, trY + 3), new Point(cx + tloc, trY + 10));
+  }
+
+  // Wind direction (relative to heading) + speed, top-right corner.
+  private void DrawWind(DrawingContext ctx, double w, double headH, double fontsize) {
+    double cx = w - fontsize * 3;
+    double cy = headH + fontsize * 2.5;
+    double r = fontsize * 1.6;
+    var ring = new Pen(new SolidColorBrush(Color.FromArgb(160, 255, 255, 255)), 1);
+    ctx.DrawEllipse(null, ring, new Point(cx, cy), r, r);
+    // arrow points the way the wind blows TO (wind_dir is where it comes FROM), relative to yaw.
+    double a = (WindDir - Yaw + 180) * Math.PI / 180.0;
+    double dx = Math.Sin(a), dy = -Math.Cos(a);
+    var tip = new Point(cx + dx * r, cy + dy * r);
+    var tail = new Point(cx - dx * r, cy - dy * r);
+    var ap = new Pen(Brushes.Cyan, 2);
+    ctx.DrawLine(ap, tail, tip);
+    // arrowhead
+    double ha = a + Math.PI;
+    double left = ha + 0.4, right = ha - 0.4;
+    ctx.DrawLine(ap, tip, new Point(tip.X + Math.Sin(left) * r * 0.4, tip.Y - Math.Cos(left) * r * 0.4));
+    ctx.DrawLine(ap, tip, new Point(tip.X + Math.Sin(right) * r * 0.4, tip.Y - Math.Cos(right) * r * 0.4));
+    DrawTextCenter(ctx, $"{WindVel:0.0}", cx, cy + r + 2, fontsize - 1, Brushes.Cyan);
+  }
+
+  // AOA / SSA coloured vertical scale + black arrow (mirrors HUD.cs displayAOASSA bands).
+  private void DrawAoaSsa(DrawingContext ctx, double w, double h) {
+    double halfh = h / 2;
+    double left = w - w / 6.0;
+    double top = halfh + halfh / 10.0;
+    double bw = w / 25.0;
+    double bh = h / 5.0;
+    const double redSSAp = 90, yellowSSAp = 60, greenSSAp = 10, critAOA = 25;
+    ctx.FillRectangle(Brushes.Red, new Rect(left, top, bw, bh * (100 - redSSAp) / 100));
+    ctx.FillRectangle(Brushes.Yellow,
+        new Rect(left, top + bh * (100 - redSSAp) / 100, bw, bh * (redSSAp - yellowSSAp) / 100));
+    ctx.FillRectangle(Brushes.Green,
+        new Rect(left, top + bh * (100 - yellowSSAp) / 100, bw, bh * (yellowSSAp - greenSSAp) / 100));
+    ctx.FillRectangle(Brushes.Blue,
+        new Rect(left, top + bh * (100 - greenSSAp) / 100, bw, bh * greenSSAp / 100));
+    ctx.DrawRectangle(null, WhitePen, new Rect(left, top, bw, bh));
+
+    double ind = bh * (100 - greenSSAp) / 100 - (Aoa / critAOA) * (bh * (redSSAp - greenSSAp) / 100);
+    ind = Math.Clamp(ind, 0, bh);
+    var arrow = new StreamGeometry();
+    using (var g = arrow.Open()) {
+      g.BeginFigure(new Point(left + bw / 5, top + ind), true);
+      g.LineTo(new Point(left - bw / 2 + bw / 5, top + bw / 2 + ind));
+      g.LineTo(new Point(left - bw / 2 + bw / 5, top - bw / 2 + ind));
+      g.EndFigure(true);
+    }
+    ctx.DrawGeometry(Brushes.Black, WhitePen, arrow);
   }
 
   private void DrawRollArc(DrawingContext ctx, double cx, double cy, double r) {
@@ -597,5 +865,18 @@ public class HudControl : Control {
         size,
         brush ?? TextBrush
     );
+  }
+
+  protected override void OnPointerPressed(PointerPressedEventArgs e) {
+    base.OnPointerPressed(e);
+    var p = e.GetPosition(this);
+    string? which = _ekfRect.Contains(p) ? "ekf"
+        : _vibeRect.Contains(p) ? "vibe"
+        : _prearmRect.Contains(p) ? "prearm"
+        : null;
+    if (which != null) {
+      IndicatorClicked?.Invoke(which);
+      e.Handled = true;
+    }
   }
 }
