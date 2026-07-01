@@ -10,7 +10,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFFTView"
   x:DataType="cv:ConfigFFTViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -31,7 +31,7 @@
                 <ComboBox IsVisible="{Binding IsCombo}" MinWidth="200" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" />
               </Grid>
 
-              <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+              <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" Margin="8,0" />
             </Grid>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
@@ -41,7 +41,12 @@
     <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
       <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
       <Button Content="FFT" Name="FftBtn" />
-      <TextBlock Name="FftStatus" Foreground="#94C11F" VerticalAlignment="Center" />
+      <TextBlock Text="Bins" Classes="fieldlbl" VerticalAlignment="Center" />
+      <NumericUpDown Minimum="4" Maximum="14" Increment="1" Width="90" Value="{Binding Bins}" />
+      <TextBlock Text="Start Freq" Classes="fieldlbl" VerticalAlignment="Center" />
+      <NumericUpDown Minimum="0" Maximum="1000" Increment="1" Width="100" Value="{Binding StartFreq}" />
+      <CheckBox Content="Magnitude" IsChecked="{Binding Magnitude}" VerticalAlignment="Center" />
+      <TextBlock Name="FftStatus" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
     </StackPanel>
 
     <ctrl:LivePlot Grid.Row="4" Name="Plot" />

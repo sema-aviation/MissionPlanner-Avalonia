@@ -8,25 +8,19 @@ using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of GCSViews/ConfigurationView/ConfigAdvanced. Upstream lists 13 advanced tools, each
-// opening a dedicated WinForms window. Tools whose target is a runnable backend op in the port
-// are wired for real; tools whose target window is not yet ported open a clear "not yet ported"
-// notice via Services/Dialogs (never a silent no-op).
 public class ConfigAdvancedViewModel : ActionPageViewModel {
   public ConfigAdvancedViewModel() {
     Title = "Advanced";
     Instructions = "The following tools are for advanced configuration only — use with caution.";
 
-    // Anon Log -> Privacy.anonymise: pure backend op (no WinForms window), wired for real.
     Action("Anon Log", () => _ = AnonLogAsync());
 
-    // Tools now ported to standalone Avalonia windows (Phase 6) — wired to the real window.
     Action("MAVLink Inspector", () => Views.MAVLinkInspectorWindow.OpenWindow());
     Action("Mavlink Mirror", () => Views.SerialPassThroughWindow.OpenWindow());
     Action("NMEA", () => Views.SerialOutputNMEAWindow.OpenWindow());
     Action("Follow Me", () => Views.FollowMeWindow.OpenWindow());
 
-    foreach (var (name, desc, opens) in NotPorted) {
+    foreach (var (name, desc, opens) in _notPorted) {
       var n = name;
       var d = desc;
       var o = opens;
@@ -34,9 +28,7 @@ public class ConfigAdvancedViewModel : ActionPageViewModel {
     }
   }
 
-  // Upstream button -> (name, description, window it opens). These open a separate WinForms window
-  // that has no Avalonia equivalent in the port yet (the remaining unported tools).
-  private static readonly (string Name, string Desc, string Opens)[] NotPorted =
+  private static readonly (string Name, string Desc, string Opens)[] _notPorted =
   {
         ("Warning Manager", "Enable custom warnings based on a set of conditions", "WarningsManager"),
         ("Proximity", "View the data from a 360 lidar", "ProximityControl"),
@@ -56,8 +48,6 @@ public class ConfigAdvancedViewModel : ActionPageViewModel {
         "ported to the Avalonia GCS yet.");
   }
 
-  // Mirror of ConfigAdvanced.but_anonlog_Click: confirm, pick a tlog/bin/log, pick an output,
-  // then scramble lat/lng via Privacy.anonymise.
   private async Task AnonLogAsync() {
     var sp = Dialogs.Owner?.StorageProvider;
     if (sp == null) {

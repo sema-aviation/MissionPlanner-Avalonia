@@ -7,12 +7,16 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DroneCAN;
 using MissionPlanner;
 using MissionPlanner.Comms;
+using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -26,10 +30,8 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
 
   public ObservableCollection<DroneCanNode> Nodes { get; } = new();
 
-  // Per-node parameter list (uavcan.protocol.param.GetSet) for the selected node.
   public ObservableCollection<DroneCanParam> NodeParams { get; } = new();
 
-  // uavcan.protocol.debug.LogMessage stream (Node / Level / Source / Text).
   public ObservableCollection<DroneCanLog> DebugLog { get; } = new();
 
   public string[] BusOptions { get; } = { "MAVLink-CAN1", "MAVLink-CAN2", "SLCAN" };
@@ -126,7 +128,86 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
 
   [RelayCommand]
   private void Filter() {
-    Status = "Frame filtering is not yet supported in the Avalonia port (TODO).";
+    if (!IsConnected || _can == null) {
+      Status = "Connect first to configure frame filtering.";
+      return;
+    }
+
+    var defaultFilter = new List<ushort> {
+      (ushort)0,
+      DroneCAN.DroneCAN.uavcan_protocol_NodeStatus.UAVCAN_PROTOCOL_NODESTATUS_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_GetNodeInfo_req.UAVCAN_PROTOCOL_GETNODEINFO_REQ_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_RestartNode_req.UAVCAN_PROTOCOL_RESTARTNODE_REQ_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_param_GetSet_req.UAVCAN_PROTOCOL_PARAM_GETSET_REQ_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_param_ExecuteOpcode_req
+          .UAVCAN_PROTOCOL_PARAM_EXECUTEOPCODE_REQ_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_file_BeginFirmwareUpdate_req
+          .UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_REQ_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_file_Read_req.UAVCAN_PROTOCOL_FILE_READ_REQ_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_file_GetInfo_req.UAVCAN_PROTOCOL_FILE_GETINFO_REQ_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_dynamic_node_id_Allocation
+          .UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_DT_ID,
+      DroneCAN.DroneCAN.uavcan_protocol_debug_LogMessage.UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_DT_ID,
+    };
+
+    void SendFilter(byte numIds) {
+      var filter = new MAVLink.mavlink_can_filter_modify_t(
+          defaultFilter.ToArray().MakeSize(16), (byte)_comPort.sysidcurrent,
+          (byte)_comPort.compidcurrent, _busInUse,
+          (byte)MAVLink.CAN_FILTER_OP.CAN_FILTER_REPLACE, numIds);
+
+      if (!_mavlinkCanRun) {
+        return;
+      }
+
+      try {
+        _comPort.sendPacket(filter, (byte)_comPort.sysidcurrent, (byte)_comPort.compidcurrent);
+      } catch (Exception ex) {
+        Console.WriteLine(ex.ToString());
+      }
+    }
+
+    var panel = new StackPanel { Margin = new Thickness(8) };
+
+    var all = new CheckBox { Content = "ALL" };
+    all.IsCheckedChanged += (_, _) => SendFilter(0);
+    panel.Children.Add(all);
+
+    foreach (var msg in DroneCAN.DroneCAN.MSG_INFO
+                 .Select(a => (a.msgid, a.type.Name)).OrderBy(a => a.Name.ToLower())) {
+      var msgid = msg.msgid;
+      var cb = new CheckBox { Content = msg.Name, IsChecked = defaultFilter.Contains(msgid) };
+      cb.IsCheckedChanged += (_, _) => {
+        if (cb.IsChecked == true) {
+          if (!defaultFilter.Contains(msgid)) {
+            defaultFilter.Add(msgid);
+          }
+        } else {
+          defaultFilter.Remove(msgid);
+        }
+
+        SendFilter((byte)defaultFilter.Count);
+      };
+      panel.Children.Add(cb);
+    }
+
+    var window = new Window {
+      Title = "DroneCAN Messages",
+      Width = 360,
+      Height = 600,
+      Background = new SolidColorBrush(Color.Parse("#434445")),
+      WindowStartupLocation = WindowStartupLocation.CenterOwner,
+      Content = new ScrollViewer { Content = panel },
+    };
+
+    var owner = Services.Dialogs.Owner;
+    if (owner != null) {
+      window.Show(owner);
+    } else {
+      window.Show();
+    }
+
+    Status = "Frame filter open — toggling a message updates the CAN acceptance filter.";
   }
 
   [RelayCommand]
@@ -159,8 +240,6 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
     Nodes.Clear();
     Status = "Re-requesting node status…";
   }
-
-  // ---- per-node parameter editor (uavcan.protocol.param.GetSet) ----
 
   [RelayCommand]
   private async Task GetParameters() {
@@ -227,7 +306,7 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
     await Task.Run(() => {
       foreach (var p in changed) {
         try {
-          // numeric params must be passed as a number; SetParameter coerces strings to 0.
+
           object value = double.TryParse(p.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d)
               ? d
               : p.Value;
@@ -239,7 +318,6 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
         }
       }
 
-      // commit to non-volatile memory (ExecuteOpcode SAVE)
       try {
         can.SaveConfig(id);
       } catch {
@@ -323,9 +401,6 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
     IsBusy = false;
   }
 
-  // Called from the view after the user picks a firmware file (.bin / .apj).
-  // Serves the file over the DroneCAN file server and issues BeginFirmwareUpdate
-  // (DroneCAN.Update does ServeFile + uavcan.protocol.file.BeginFirmwareUpdate).
   public async Task UpdateFirmwareAsync(string firmwarePath) {
     var can = _can;
     var node = SelectedNode;
@@ -355,7 +430,7 @@ public partial class ConfigDroneCanViewModel : ViewModelBase, IDisposable {
       var devicename = can.GetNodeName(id);
       await Task.Run(() => {
         var file = firmwarePath;
-        // .apj carries the image inside JSON; extract it to a raw .bin first.
+
         if (file.ToLowerInvariant().EndsWith(".apj")) {
           var fw = px4uploader.Firmware.ProcessFirmware(file);
           var tmp = Path.GetTempFileName();
@@ -657,7 +732,6 @@ public partial class DroneCanParam : ObservableObject {
   [ObservableProperty]
   private string _default = "";
 
-  // Snapshot of the on-device value so we can detect edits before writing.
   public string OriginalValue { get; set; } = "";
 
   public bool IsDirty => !string.Equals(Value, OriginalValue, StringComparison.Ordinal);

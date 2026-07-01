@@ -10,18 +10,18 @@ using MissionPlanner.Utilities;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigMountViewModel : ViewModelBase {
-  internal readonly MAVLinkInterface comPort = AppState.comPort;
-  private const string ParamHead = "MNT_";
+  internal readonly MAVLinkInterface _comPort = AppState.comPort;
+  private const string _paramHead = "MNT_";
 
-  private const string Relay = "Relay";
-  private const string Transistor = "Transistor";
-  private const string Disable = "Disable";
+  private const string _relay = "Relay";
+  private const string _transistor = "Transistor";
+  private const string _disable = "Disable";
 
   private bool _startup = true;
   private readonly string _typeParam;
 
   public ConfigMountViewModel() {
-    var family = comPort.MAV.param.ContainsKey("SERVO1_MIN") ? "SERVO" : "RC";
+    var family = _comPort.MAV.param.ContainsKey("SERVO1_MIN") ? "SERVO" : "RC";
     var channels = BuildChannelNames(family);
 
     Tilt = new MountAxisViewModel(this, "Tilt", 7, "ANGMIN_TIL", "ANGMAX_TIL", "RC_IN_TILT",
@@ -31,16 +31,16 @@ public partial class ConfigMountViewModel : ViewModelBase {
     Pan = new MountAxisViewModel(this, "Pan", 6, "ANGMIN_PAN", "ANGMAX_PAN", "RC_IN_PAN",
         -180, 0, 0, 180, channels);
 
-    ShutterChannels.Add(Disable);
+    ShutterChannels.Add(_disable);
     foreach (var c in channels) {
       ShutterChannels.Add(c);
     }
-    ShutterChannels.Add(Relay);
-    ShutterChannels.Add(Transistor);
+    ShutterChannels.Add(_relay);
+    ShutterChannels.Add(_transistor);
 
-    _typeParam = HasParam(ParamHead + "TYPE") ? ParamHead + "TYPE"
+    _typeParam = HasParam(_paramHead + "TYPE") ? _paramHead + "TYPE"
         : HasParam("MNT1_TYPE") ? "MNT1_TYPE"
-        : ParamHead + "TYPE";
+        : _paramHead + "TYPE";
     foreach (var kv in SafeOptions(_typeParam)) {
       MountTypes.Add(new ParamOption(kv.Key, kv.Value));
     }
@@ -86,12 +86,12 @@ public partial class ConfigMountViewModel : ViewModelBase {
     _startup = true;
 
     SelectedShutter = "";
-    foreach (var name in comPort.MAV.param.Keys.ToList()) {
+    foreach (var name in _comPort.MAV.param.Keys.ToList()) {
       if (!name.EndsWith("_FUNCTION")) {
         continue;
       }
       var ch = name.Replace("_FUNCTION", "");
-      switch ((int)Math.Round(comPort.MAV.param[name].Value)) {
+      switch ((int)Math.Round(_comPort.MAV.param[name].Value)) {
         case 6:
           Pan.SetSelectedFunctionSilent(ch);
           break;
@@ -110,9 +110,9 @@ public partial class ConfigMountViewModel : ViewModelBase {
     var trigg = GetParam("CAM_TRIGG_TYPE");
     if (trigg.HasValue) {
       if ((int)Math.Round(trigg.Value) == 1) {
-        SelectedShutter = Relay;
+        SelectedShutter = _relay;
       } else if ((int)Math.Round(trigg.Value) == 4) {
-        SelectedShutter = Transistor;
+        SelectedShutter = _transistor;
       }
     }
 
@@ -122,17 +122,17 @@ public partial class ConfigMountViewModel : ViewModelBase {
 
     SelectedMountType = MountTypes.FirstOrDefault(
         o => o.Value == (int)Math.Round(GetParam(_typeParam) ?? -1));
-    NeutralX = GetParam(ParamHead + "NEUTRAL_X") ?? 0;
+    NeutralX = GetParam(_paramHead + "NEUTRAL_X") ?? 0;
     OnPropertyChanged(nameof(NeutralX));
-    NeutralY = GetParam(ParamHead + "NEUTRAL_Y") ?? 0;
+    NeutralY = GetParam(_paramHead + "NEUTRAL_Y") ?? 0;
     OnPropertyChanged(nameof(NeutralY));
-    NeutralZ = GetParam(ParamHead + "NEUTRAL_Z") ?? 0;
+    NeutralZ = GetParam(_paramHead + "NEUTRAL_Z") ?? 0;
     OnPropertyChanged(nameof(NeutralZ));
-    RetractX = GetParam(ParamHead + "RETRACT_X") ?? 0;
+    RetractX = GetParam(_paramHead + "RETRACT_X") ?? 0;
     OnPropertyChanged(nameof(RetractX));
-    RetractY = GetParam(ParamHead + "RETRACT_Y") ?? 0;
+    RetractY = GetParam(_paramHead + "RETRACT_Y") ?? 0;
     OnPropertyChanged(nameof(RetractY));
-    RetractZ = GetParam(ParamHead + "RETRACT_Z") ?? 0;
+    RetractZ = GetParam(_paramHead + "RETRACT_Z") ?? 0;
     OnPropertyChanged(nameof(RetractZ));
 
     _startup = false;
@@ -150,22 +150,22 @@ public partial class ConfigMountViewModel : ViewModelBase {
   partial void OnSelectedShutterChanged(string value) => AxisSelectionChanged();
 
   [Obsolete]
-  partial void OnNeutralXChanged(double value) => WriteNum(ParamHead + "NEUTRAL_X", value);
+  partial void OnNeutralXChanged(double value) => WriteNum(_paramHead + "NEUTRAL_X", value);
 
   [Obsolete]
-  partial void OnNeutralYChanged(double value) => WriteNum(ParamHead + "NEUTRAL_Y", value);
+  partial void OnNeutralYChanged(double value) => WriteNum(_paramHead + "NEUTRAL_Y", value);
 
   [Obsolete]
-  partial void OnNeutralZChanged(double value) => WriteNum(ParamHead + "NEUTRAL_Z", value);
+  partial void OnNeutralZChanged(double value) => WriteNum(_paramHead + "NEUTRAL_Z", value);
 
   [Obsolete]
-  partial void OnRetractXChanged(double value) => WriteNum(ParamHead + "RETRACT_X", value);
+  partial void OnRetractXChanged(double value) => WriteNum(_paramHead + "RETRACT_X", value);
 
   [Obsolete]
-  partial void OnRetractYChanged(double value) => WriteNum(ParamHead + "RETRACT_Y", value);
+  partial void OnRetractYChanged(double value) => WriteNum(_paramHead + "RETRACT_Y", value);
 
   [Obsolete]
-  partial void OnRetractZChanged(double value) => WriteNum(ParamHead + "RETRACT_Z", value);
+  partial void OnRetractZChanged(double value) => WriteNum(_paramHead + "RETRACT_Z", value);
 
   [Obsolete]
   private void WriteNum(string name, double value) {
@@ -186,8 +186,8 @@ public partial class ConfigMountViewModel : ViewModelBase {
       EnsureDisabled(7, Tilt.SelectedFunction);
       EnsureDisabled(8, Roll.SelectedFunction);
 
-      if (HasParam(ParamHead + "MODE")) {
-        SetParam(ParamHead + "MODE", 3);
+      if (HasParam(_paramHead + "MODE")) {
+        SetParam(_paramHead + "MODE", 3);
       }
 
       UpdateShutter();
@@ -206,13 +206,13 @@ public partial class ConfigMountViewModel : ViewModelBase {
       return;
     }
 
-    if (sel == Disable) {
+    if (sel == _disable) {
       SetParam("CAM_TRIGG_TYPE", 0);
       EnsureDisabled(10);
-    } else if (sel == Relay) {
+    } else if (sel == _relay) {
       EnsureDisabled(10);
       SetParam("CAM_TRIGG_TYPE", 1);
-    } else if (sel == Transistor) {
+    } else if (sel == _transistor) {
       EnsureDisabled(10);
       SetParam("CAM_TRIGG_TYPE", 4);
     } else {
@@ -229,32 +229,32 @@ public partial class ConfigMountViewModel : ViewModelBase {
         continue;
       }
       var fn = ch + "_FUNCTION";
-      if ((int)Math.Round(comPort.MAV.param[fn].Value) == role) {
+      if ((int)Math.Round(_comPort.MAV.param[fn].Value) == role) {
         SetParam(fn, 0);
       }
     }
   }
 
   private IEnumerable<string> ChannelNamesWithFunction() {
-    foreach (var name in comPort.MAV.param.Keys.ToList()) {
+    foreach (var name in _comPort.MAV.param.Keys.ToList()) {
       if (name.EndsWith("_FUNCTION")) {
         yield return name.Replace("_FUNCTION", "");
       }
     }
   }
 
-  internal bool Online => comPort.BaseStream?.IsOpen == true;
+  internal bool Online => _comPort.BaseStream?.IsOpen == true;
 
-  internal bool HasParam(string name) => comPort.MAV.param.ContainsKey(name);
+  internal bool HasParam(string name) => _comPort.MAV.param.ContainsKey(name);
 
   internal double? GetParam(string name) =>
-      HasParam(name) ? comPort.MAV.param[name].Value : (double?)null;
+      HasParam(name) ? _comPort.MAV.param[name].Value : (double?)null;
 
   [Obsolete]
   internal async void SetParam(string name, double value) {
     if (!Online) {
       if (HasParam(name)) {
-        comPort.MAV.param[name].Value = value;
+        _comPort.MAV.param[name].Value = value;
       }
       Status = "offline";
       return;
@@ -262,7 +262,7 @@ public partial class ConfigMountViewModel : ViewModelBase {
     try {
       var n = name;
       var v = value;
-      var ok = await Task.Run(() => comPort.setParam(n, v, true));
+      var ok = await Task.Run(() => _comPort.setParam(n, v, true));
       Status = ok ? name + " set" : name + " write failed";
     } catch (Exception ex) {
       Status = ex.Message;

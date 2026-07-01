@@ -9,7 +9,7 @@
   d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigADSBView"
   x:DataType="cv:ConfigADSBViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -20,7 +20,7 @@
         <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
         <TextBlock Text="Find" Classes="fieldlbl" VerticalAlignment="Center" Margin="8,0,0,0" />
         <TextBox Width="220" Text="{Binding Search}" Watermark="search (min 2 chars)" />
-        <TextBlock Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
       </StackPanel>
 
       <StackPanel Orientation="Horizontal" Spacing="8">
@@ -42,7 +42,7 @@
             <StackPanel Margin="0,6,0,12" Spacing="3">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock Text="{Binding Label}" Classes="fieldlbl" FontWeight="Bold" />
-                <TextBlock Text="{Binding Name, StringFormat='({0})'}" Classes="fieldlbl" FontWeight="Bold" Foreground="#94C11F" />
+                <TextBlock Text="{Binding Name, StringFormat='({0})'}" Classes="fieldlbl" FontWeight="Bold" Foreground="{DynamicResource MpAccentBrush}" />
                 <TextBlock Text="{Binding Units}" Classes="fieldlbl" Foreground="#9AA0A6" VerticalAlignment="Center" />
               </StackPanel>
               <TextBlock Text="{Binding Description}" Classes="fieldlbl" Foreground="#B8BCC0" TextWrapping="Wrap" />
@@ -64,7 +64,7 @@
                 </Button.Flyout>
               </Button>
               <NumericUpDown IsVisible="{Binding IsNumeric}" MinWidth="220" HorizontalAlignment="Left" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
-              <TextBlock Text="{Binding Status}" Foreground="#94C11F" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </StackPanel>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

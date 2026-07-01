@@ -6,47 +6,35 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of upstream GCSViews/ConfigurationView/ConfigPlanner.cs. Every settings-backed
-// control on the upstream form is mirrored here and wired to its real
-// Settings.Instance[...] key (see the upstream *_CheckedChanged / *_SelectedIndexChanged
-// handlers). Controls whose backing behaviour is genuinely unportable here (DirectShow
-// video capture, joystick setup form, audio vario, theme editor, Windows-explorer map
-// cache dir, the spoken-phrase InputBox prompts) are noted with // ponytail comments.
+// ponytail: unportable controls (DirectShow video, joystick setup, audio vario, theme editor, Windows map-cache dir, spoken-phrase InputBox prompts) are marked inline below.
 public partial class ConfigPlannerViewModel : ViewModelBase {
-  private const string DefaultMapIconDesc =
+  private const string _defaultMapIconDesc =
       "{alt}{altunit} {airspeed}{speedunit} id:{sysid} Sats:{satcount} HDOP:{gpshdop} Volts:{battery_voltage}";
 
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private bool _loading;
 
-  // ----- combo data sources (mirror the upstream Enum.GetNames / DataSource calls) -----
   public ObservableCollection<string> DistUnitsOptions { get; } = new() { "Meters", "Feet" };
   public ObservableCollection<string> SpeedUnitsOptions { get; } =
       new() { "meters_per_second", "fps", "kph", "mph", "knots" };
   public ObservableCollection<string> ThemeOptions { get; } =
-      new() { "BurntKermit.mpsystheme", "HighContrast", "None" };
+      new(MissionPlannerAvalonia.Services.ThemeService.Names);
   public ObservableCollection<string> LayoutOptions { get; } = new() { "Basic", "Advanced", "Custom" };
   public ObservableCollection<string> LanguageOptions { get; } =
       new() { "English (United States)", "System" };
   public ObservableCollection<string> SpeechOptions { get; } = new() { "Warning", "Critical", "All" };
 
-  // CMB_severity -> SeverityLevel enum, persisted as the selected index in "severity".
   public ObservableCollection<string> SeverityOptions { get; } = new() {
     "Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"
   };
 
-  // CMB_mapCache -> GMap.NET.AccessMode.
   public ObservableCollection<string> MapCacheOptions { get; } =
       new() { "ServerOnly", "ServerAndCache", "CacheOnly" };
 
-  // cmb_secondarydisplaystyle -> GMapMarkerBase.InactiveDisplayStyleEnum.
   public ObservableCollection<string> SecondaryDisplayStyleOptions { get; } =
       new() { "Normal", "Transparent", "Hidden" };
 
-  // CMB_osdcolor -> KnownColor names. Upstream binds the full System.Drawing.KnownColor
-  // set; that type is not referenced by the Avalonia project, so a curated subset is used.
-  // ponytail: upstream's CMB_osdcolor_SelectedIndexChanged body is fully commented out, so
-  // this only persists "hudcolor" and applies nothing live.
+  // ponytail: upstream's CMB_osdcolor_SelectedIndexChanged body is fully commented out; this only persists "hudcolor" and applies nothing live.
   public ObservableCollection<string> OsdColorOptions { get; } = new() {
     "White", "Black", "Red", "Green", "Blue", "Yellow", "Orange", "Cyan",
     "Magenta", "Gray", "LightGray", "Lime", "Pink", "Purple"
@@ -62,7 +50,7 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
   private string _speedUnits = "meters_per_second";
 
   [ObservableProperty]
-  private string _theme = "BurntKermit.mpsystheme";
+  private string _theme = "Emerald";
 
   [ObservableProperty]
   private string _layout = "Advanced";
@@ -91,7 +79,6 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
   [ObservableProperty]
   private string _logDir = "";
 
-  // ----- speech -----
   [ObservableProperty]
   [NotifyPropertyChangedFor(nameof(SpeechSubOptionsVisible))]
   private bool _enableSpeech;
@@ -122,7 +109,6 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _speechLowSpeed;
 
-  // ----- display / map -----
   [ObservableProperty]
   private bool _enableHudOverlay = true;
 
@@ -159,7 +145,6 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _displayTooltip;
 
-  // ----- advanced / misc toggles -----
   [ObservableProperty]
   private bool _betaUpdates;
 
@@ -196,7 +181,6 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _analyticsOptOut;
 
-  // ----- numerics -----
   [ObservableProperty]
   private int _telemAttitude = 4;
 
@@ -232,7 +216,7 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
     DistUnits = s["distunits"] ?? DistUnits;
     AltUnits = s["altunits"] ?? AltUnits;
     SpeedUnits = s["speedunits"] ?? SpeedUnits;
-    Theme = s["theme"] ?? Theme;
+    Theme = MissionPlannerAvalonia.Services.ThemeService.Current;
     Layout = s["displayview"] ?? Layout;
     Language = s["language"] ?? Language;
     SpeechLevel = s["speechlevel"] ?? SpeechLevel;
@@ -297,7 +281,6 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
     _loading = false;
   }
 
-  // ---- BUT_rerequestparams ----
   [RelayCommand]
   private void RerequestParams() {
     if (_comPort.BaseStream?.IsOpen != true) {
@@ -307,33 +290,32 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
     try {
       _comPort.getParamList();
     } catch {
-      // upstream shows "Error: getting param list" via CustomMessageBox; swallow here.
+
     }
   }
 
-  // ponytail: BUT_Joystick (JoystickSetup form), BUT_themecustom (ThemeManager editor),
-  // BUT_Vario (audio variometer), BUT_logdirbrowse (FolderBrowserDialog), BUT_mapCacheDir
-  // (Windows explorer.exe), and the DirectShow video-source/resolution combos + start/stop
-  // buttons have no Avalonia/cross-platform equivalent wired up yet and are omitted.
-
+  // ponytail: BUT_Joystick/themecustom/Vario/logdirbrowse/mapCacheDir + DirectShow video combos have no cross-platform equivalent wired up yet and are omitted.
   partial void OnDistUnitsChanged(string value) {
     if (_loading) return;
     Settings.Instance["distunits"] = value;
+    AppState.ApplyUnits();
   }
 
   partial void OnAltUnitsChanged(string value) {
     if (_loading) return;
     Settings.Instance["altunits"] = value;
+    AppState.ApplyUnits();
   }
 
   partial void OnSpeedUnitsChanged(string value) {
     if (_loading) return;
     Settings.Instance["speedunits"] = value;
+    AppState.ApplyUnits();
   }
 
   partial void OnThemeChanged(string value) {
     if (_loading) return;
-    Settings.Instance["theme"] = value;
+    MissionPlannerAvalonia.Services.ThemeService.Apply(value);
   }
 
   partial void OnLayoutChanged(string value) {
@@ -381,8 +363,6 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
     }
   }
 
-  // Speech enable flags are persisted as booleans; the upstream spoken-phrase
-  // InputBox prompts (waypoint/battery/alt text and trigger thresholds) are omitted.
   partial void OnEnableSpeechChanged(bool value) {
     if (_loading) return;
     Settings.Instance["speechenable"] = value.ToString();
@@ -446,7 +426,7 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
   partial void OnMapFollowPlaneChanged(bool value) {
     if (_loading) return;
     Settings.Instance["CHK_maprotation"] = value.ToString();
-    // upstream: enabling map rotation disables the no-fly overlay.
+
     if (value) ShowNoFly = false;
   }
 
@@ -487,7 +467,7 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
 
   partial void OnDisplayTooltipChanged(bool value) {
     if (_loading) return;
-    Settings.Instance["mapicondesc"] = value ? DefaultMapIconDesc : "";
+    Settings.Instance["mapicondesc"] = value ? _defaultMapIconDesc : "";
   }
 
   partial void OnBetaUpdatesChanged(bool value) {
@@ -497,6 +477,7 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
 
   partial void OnPasswordProtectChanged(bool value) {
     if (_loading) return;
+
     // ponytail: upstream also prompts for the password via InputBox; only the flag is stored here.
     Settings.Instance["password_protect"] = value.ToString();
   }
@@ -508,6 +489,7 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
 
   partial void OnEnableAdsbChanged(bool value) {
     if (_loading) return;
+
     // ponytail: upstream prompts for the ADSB server/port via InputBox; only the flag is stored here.
     Settings.Instance["enableadsb"] = value.ToString();
   }
@@ -530,7 +512,7 @@ public partial class ConfigPlannerViewModel : ViewModelBase {
   partial void OnShowNoFlyChanged(bool value) {
     if (_loading) return;
     Settings.Instance["ShowNoFly"] = value.ToString();
-    // upstream: enabling no-fly disables map rotation.
+
     if (value) MapFollowPlane = false;
   }
 

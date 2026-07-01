@@ -9,7 +9,7 @@
   d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigParachuteView"
   x:DataType="cv:ConfigParachuteViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="10">
@@ -25,7 +25,7 @@
           ItemsSource="{Binding ServoOptions}"
           SelectedItem="{Binding SelectedServo}"
         />
-        <TextBlock Grid.Column="2" Text="{Binding ServoStatus}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+        <TextBlock Grid.Column="2" Text="{Binding ServoStatus}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" Margin="8,0" />
       </Grid>
 
       <ItemsControl ItemsSource="{Binding Fields}">
@@ -37,7 +37,7 @@
               <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
               <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="180" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
               <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
             </Grid>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

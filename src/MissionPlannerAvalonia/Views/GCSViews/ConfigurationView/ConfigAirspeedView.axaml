@@ -9,7 +9,7 @@
   d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigAirspeedView"
   x:DataType="cv:ConfigAirspeedViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="10">
@@ -19,34 +19,34 @@
       <Grid ColumnDefinitions="220,260,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,6,0,0">
         <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Type" VerticalAlignment="Center" Margin="0,0,8,4" />
         <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Type.Options}" SelectedItem="{Binding Type.SelectedOption}" />
-        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Type.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Type.Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" Margin="8,0" />
 
         <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Enable" VerticalAlignment="Center" Margin="0,0,8,4" />
         <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding Enable.Checked}" />
-        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Enable.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Enable.Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" Margin="8,0" />
 
         <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Use Airspeed" VerticalAlignment="Center" Margin="0,0,8,4" />
         <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding Use.Checked}" />
-        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Use.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Use.Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" Margin="8,0" />
 
         <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldlbl" Text="Pin" VerticalAlignment="Center" Margin="0,0,8,4" />
         <ComboBox Grid.Row="3" Grid.Column="1" MinWidth="240" ItemsSource="{Binding Pin.Options}" SelectedItem="{Binding Pin.SelectedOption}" />
-        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Pin.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Pin.Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" Margin="8,0" />
 
         <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldlbl" Text="Ratio" VerticalAlignment="Center" Margin="0,0,8,4" />
         <NumericUpDown Grid.Row="4" Grid.Column="1" MinWidth="240" Value="{Binding Ratio.Value}" Increment="0.005" FormatString="0.######" />
-        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding Ratio.Status}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0" />
+        <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding Ratio.Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" Margin="8,0" />
       </Grid>
 
       <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
         <Button Content="Ground Calibration" Command="{Binding GroundCalibrationCommand}" />
-        <TextBlock Text="{Binding CalStatus}" Foreground="#94C11F" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding CalStatus}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
       </StackPanel>
 
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,8,0,0" HorizontalAlignment="Left">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <TextBlock Classes="fieldlbl" Text="Airspeed: " VerticalAlignment="Center" />
-          <TextBlock Text="{Binding Airspeed}" Foreground="#94C11F" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Airspeed}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
           <TextBlock Classes="fieldlbl" Text="m/s" VerticalAlignment="Center" />
         </StackPanel>
       </Border>

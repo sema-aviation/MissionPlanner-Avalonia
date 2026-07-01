@@ -4,20 +4,17 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
-  xmlns:ctrl="using:MissionPlannerAvalonia.Controls"
   mc:Ignorable="d"
   d:DesignWidth="820"
   d:DesignHeight="720"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigCompassView"
   x:DataType="cv:ConfigCompassViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="8">
-      <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Grid.Column="0" Classes="pagetitle" Text="{Binding Title}" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Content="Refresh Params" Command="{Binding RefreshCommand}" />
-      </Grid>
+      <TextBlock Classes="pagetitle" Text="{Binding Title}" Margin="0,0,0,4" />
+      <Border Classes="titlerule" />
 
       <TextBlock
         Classes="fieldlbl"
@@ -49,6 +46,7 @@
               <DataTemplate x:DataType="cv:CompassPrioRow">
                 <Button
                   Content="▲"
+                  Foreground="#1F7A1F"
                   Padding="6,2"
                   Margin="2"
                   ToolTip.Tip="Move up"
@@ -63,6 +61,7 @@
               <DataTemplate x:DataType="cv:CompassPrioRow">
                 <Button
                   Content="▼"
+                  Foreground="#B02020"
                   Padding="6,2"
                   Margin="2"
                   ToolTip.Tip="Move down"
@@ -95,58 +94,56 @@
         IsVisible="{Binding CompassStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
       />
 
-      <Border Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,8,0,0">
+      <Border Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="12" Margin="0,8,0,0">
         <StackPanel Spacing="8">
           <TextBlock Classes="fieldlbl" FontSize="15" Text="Onboard Mag Calibration" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Start" Command="{Binding StartMagCalCommand}" MinWidth="90" />
-            <Button Content="Accept" Command="{Binding AcceptMagCalCommand}" IsEnabled="{Binding CalRunning}" MinWidth="90" />
-            <Button Content="Cancel" Command="{Binding CancelMagCalCommand}" IsEnabled="{Binding CalRunning}" MinWidth="90" />
-          </StackPanel>
 
-          <Grid ColumnDefinitions="60,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-            <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Mag 1" VerticalAlignment="Center" />
-            <ProgressBar Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog1}" Height="18" />
-            <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Mag 2" VerticalAlignment="Center" />
-            <ProgressBar Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog2}" Height="18" />
-            <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Mag 3" VerticalAlignment="Center" />
-            <ProgressBar Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog3}" Height="18" />
-          </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Grid.Column="0" Spacing="8" VerticalAlignment="Top">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Start" Command="{Binding StartMagCalCommand}" MinWidth="90" />
+                <Button Content="Accept" Command="{Binding AcceptMagCalCommand}" IsEnabled="{Binding CalRunning}" MinWidth="90" />
+                <Button Content="Cancel" Command="{Binding CancelMagCalCommand}" IsEnabled="{Binding CalRunning}" MinWidth="90" />
+              </StackPanel>
 
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Classes="fieldlbl" Text="Fitness" VerticalAlignment="Center" />
-            <ComboBox MinWidth="160" ItemsSource="{Binding Fields[8].Options}" SelectedItem="{Binding Fields[8].SelectedOption}" />
-            <TextBlock Classes="fieldlbl" Text="Relax fitness if calibration fails" VerticalAlignment="Center" />
-          </StackPanel>
+              <Grid ColumnDefinitions="60,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Mag 1" VerticalAlignment="Center" />
+                <ProgressBar Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog1}" Height="18" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldlbl" Text="Mag 2" VerticalAlignment="Center" />
+                <ProgressBar Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog2}" Height="18" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldlbl" Text="Mag 3" VerticalAlignment="Center" />
+                <ProgressBar Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Prog3}" Height="18" />
+              </Grid>
 
-          <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="fieldlbl" Text="Fitness" VerticalAlignment="Center" />
+                <ComboBox MinWidth="160" ItemsSource="{Binding Fields[8].Options}" SelectedItem="{Binding Fields[8].SelectedOption}" />
+                <TextBlock Classes="fieldlbl" FontWeight="Bold" Text="Relax fitness if calibration fails" VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+
             <TextBox
-              Grid.Column="0"
+              Grid.Column="1"
+              Width="240"
+              MinHeight="150"
               Text="{Binding MagResult}"
               IsReadOnly="True"
               AcceptsReturn="True"
               TextWrapping="Wrap"
-              MinHeight="80"
+              VerticalContentAlignment="Top"
             />
-            <Border Grid.Column="1" Margin="10,0,0,0" BorderBrush="#555" BorderThickness="1" CornerRadius="3">
-              <ctrl:MagCalSphere
-                x:Name="MagSphere"
-                Width="220"
-                Height="220"
-                ToolTip.Tip="Live mag-sample cloud (orthographic projection, not GL 3D). Drag to rotate."
-              />
-            </Border>
           </Grid>
         </StackPanel>
       </Border>
 
-      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0" VerticalAlignment="Center">
-        <Button Content="Large Vehicle MagCal" Command="{Binding LargeVehicleMagCalCommand}" />
-        <TextBlock Classes="fieldlbl" Text="Current heading (deg true):" VerticalAlignment="Center" />
-        <NumericUpDown MinWidth="120" Value="{Binding LargeVehicleHeading}" Increment="1" FormatString="0.#" />
-      </StackPanel>
+      <Button
+        Content="Large Vehicle MagCal"
+        Command="{Binding LargeVehicleMagCalCommand}"
+        HorizontalAlignment="Left"
+        Margin="0,4,0,0"
+      />
 
-      <Border Background="#2D2D2D" CornerRadius="4" Padding="12" Margin="0,8,0,0">
+      <Border Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="12" Margin="0,8,0,0">
         <StackPanel Spacing="8">
           <TextBlock Classes="fieldlbl" FontSize="15" Text="Advanced compass settings" />
 
@@ -181,7 +178,7 @@
                     FormatString="0.######"
                   />
                   <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-                  <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

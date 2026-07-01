@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using Avalonia.Media;
@@ -18,8 +17,8 @@ namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
   public const string NtripOption = "NTRIP";
 
-  private static readonly IBrush SeenBrush = Brushes.ForestGreen;
-  private static readonly IBrush IdleBrush = Brushes.Firebrick;
+  private static readonly IBrush _seenBrush = Brushes.ForestGreen;
+  private static readonly IBrush _idleBrush = Brushes.Firebrick;
 
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private readonly DispatcherTimer _timer;
@@ -162,22 +161,22 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
   private string _surveyInStatus = "Survey In: not started";
 
   [ObservableProperty]
-  private IBrush _surveyInColor = IdleBrush;
+  private IBrush _surveyInColor = _idleBrush;
 
   [ObservableProperty]
-  private IBrush _baseColor = IdleBrush;
+  private IBrush _baseColor = _idleBrush;
 
   [ObservableProperty]
-  private IBrush _gpsColor = IdleBrush;
+  private IBrush _gpsColor = _idleBrush;
 
   [ObservableProperty]
-  private IBrush _glonassColor = IdleBrush;
+  private IBrush _glonassColor = _idleBrush;
 
   [ObservableProperty]
-  private IBrush _beidouColor = IdleBrush;
+  private IBrush _beidouColor = _idleBrush;
 
   [ObservableProperty]
-  private IBrush _galileoColor = IdleBrush;
+  private IBrush _galileoColor = _idleBrush;
 
   [ObservableProperty]
   private ObservableCollection<BasePosRow> _basePositions = new();
@@ -268,7 +267,7 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
         }
         Status = "Connected — UBlox configured, injecting RTCM.";
       } catch (Exception ex) {
-        // auto-config is best-effort; continue injecting whatever the base outputs.
+
         Status = "Connected (auto-config failed: " + ex.Message + ").";
       }
     } else if (AutoConfig && SelectedReceiverType == "Septentrio" && comm is SerialPort) {
@@ -527,7 +526,7 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
 
         Dispatcher.UIThread.Post(() => {
           SurveyInStatus = text;
-          SurveyInColor = valid ? SeenBrush : IdleBrush;
+          SurveyInColor = valid ? _seenBrush : _idleBrush;
         });
       } else if (_ubx.@class == 0x1 && _ubx.subclass == 0x7) {
         var pvt = _ubx.packet.ByteArrayToStructure<Ubx.ubx_nav_pvt>(6);
@@ -556,18 +555,18 @@ public partial class ConfigGpsInjectViewModel : ViewModelBase, IDisposable {
     MessagesSeen = sb.ToString();
 
     var now = DateTime.Now;
-    BaseColor = (now - _baseSeen).TotalSeconds < 20 ? SeenBrush : IdleBrush;
-    GpsColor = (now - _gpsSeen).TotalSeconds < 5 ? SeenBrush : IdleBrush;
-    GlonassColor = (now - _glonassSeen).TotalSeconds < 5 ? SeenBrush : IdleBrush;
-    BeidouColor = (now - _beidouSeen).TotalSeconds < 5 ? SeenBrush : IdleBrush;
-    GalileoColor = (now - _galileoSeen).TotalSeconds < 5 ? SeenBrush : IdleBrush;
+    BaseColor = (now - _baseSeen).TotalSeconds < 20 ? _seenBrush : _idleBrush;
+    GpsColor = (now - _gpsSeen).TotalSeconds < 5 ? _seenBrush : _idleBrush;
+    GlonassColor = (now - _glonassSeen).TotalSeconds < 5 ? _seenBrush : _idleBrush;
+    BeidouColor = (now - _beidouSeen).TotalSeconds < 5 ? _seenBrush : _idleBrush;
+    GalileoColor = (now - _galileoSeen).TotalSeconds < 5 ? _seenBrush : _idleBrush;
   }
 
   [RelayCommand]
   private void RestartSurveyIn() {
     _basePos = PointLatLngAlt.Zero;
     SurveyInStatus = "Survey In: restarting";
-    SurveyInColor = IdleBrush;
+    SurveyInColor = _idleBrush;
     lock (_msgLock) {
       _msgSeen.Clear();
     }

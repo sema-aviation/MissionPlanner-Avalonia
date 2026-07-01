@@ -9,7 +9,7 @@
   d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigBatteryMonitoring2View"
   x:DataType="cv:ConfigBatteryMonitoring2ViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="8" MaxWidth="560" HorizontalAlignment="Left">
@@ -121,7 +121,7 @@
             <NumericUpDown Grid.Row="5" Grid.Column="1" Increment="0.001" FormatString="0.######" Value="{Binding AmpPerVolt.Value}" />
           </Grid>
 
-          <TextBlock Foreground="#94C11F" Text="{Binding CalibrationStatus}" />
+          <TextBlock Foreground="{DynamicResource MpAccentBrush}" Text="{Binding CalibrationStatus}" />
         </StackPanel>
       </Border>
 

@@ -9,7 +9,7 @@
   d:DesignHeight="480"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFrameClassTypeView"
   x:DataType="cv:ConfigFrameClassTypeViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="10" IsEnabled="{Binding IsAvailable}">
@@ -26,7 +26,6 @@
           ItemsSource="{Binding TypeOptions}" SelectedItem="{Binding SelectedType}" />
       </Grid>
 
-      <!-- Frame diagram. ponytail: source bitmaps not yet imported into Assets/ - placeholder box + caption. -->
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,8,0,0"
         HorizontalAlignment="Left" Width="260" Height="200">
         <Grid>
@@ -37,7 +36,7 @@
         </Grid>
       </Border>
 
-      <TextBlock Text="{Binding Status}" Foreground="#94C11F" Margin="0,4,0,0" />
+      <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" Margin="0,4,0,0" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

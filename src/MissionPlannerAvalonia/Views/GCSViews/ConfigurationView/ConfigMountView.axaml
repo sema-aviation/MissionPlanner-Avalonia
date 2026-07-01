@@ -9,7 +9,7 @@
   d:DesignHeight="720"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigMountView"
   x:DataType="cv:ConfigMountViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <UserControl.Resources>
     <DataTemplate x:Key="AxisTemplate" x:DataType="cv:MountAxisViewModel">
@@ -101,7 +101,7 @@
         </Border>
       </Grid>
 
-      <TextBlock Text="{Binding Status}" Foreground="#94C11F" />
+      <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

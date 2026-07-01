@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -43,7 +42,7 @@ public partial class ConfigTerminalViewModel : ViewModelBase, IDisposable {
         }
       }
     } catch {
-      // ignore transient read errors (matches upstream)
+
     }
   }
 

@@ -8,9 +8,6 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Upstream ConfigRawParams / friendly params. Adds: debounced search box, favourite
-// ordering (star, persisted via Settings.Instance), bitmask editor + out-of-range
-// highlight (the latter two live in the shared ParamField / ParamFieldsView).
 public partial class ConfigFriendlyParamsViewModel : ParamPageBase {
   private readonly bool _advanced;
   private readonly string _favKey;
@@ -39,7 +36,7 @@ public partial class ConfigFriendlyParamsViewModel : ParamPageBase {
   protected override void OnRefreshed() => Build();
 
   partial void OnSearchChanged(string value) {
-    // Debounce: restart the timer on each keystroke; filter fires once it settles.
+
     _searchDebounce.Stop();
     _searchDebounce.Start();
   }
@@ -87,7 +84,6 @@ public partial class ConfigFriendlyParamsViewModel : ParamPageBase {
         continue;
       }
 
-      // Use the bitmask editor when the param exposes bitmask metadata (our view renders it).
       var kind = ParamField.HasBitmask(name, fw) ? "bitmask" : null;
       var field = new ParamField(name, kind) { Fav = favs.Contains(name) };
       field.PropertyChanged += OnFieldChanged;
@@ -119,7 +115,6 @@ public partial class ConfigFriendlyParamsViewModel : ParamPageBase {
           || f.Label.Contains(q, StringComparison.OrdinalIgnoreCase));
     }
 
-    // Favourites first, then alphabetical by name.
     var ordered = view
         .OrderByDescending(f => f.Fav)
         .ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase)

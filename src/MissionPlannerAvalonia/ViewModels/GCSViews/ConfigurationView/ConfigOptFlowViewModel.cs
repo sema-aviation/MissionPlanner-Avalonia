@@ -31,14 +31,12 @@ public partial class ConfigOptFlowViewModel : ParamPageBase {
   [ObservableProperty]
   private ParamField _heightOverride = null!;
 
-  // FLOW_ENABLE only exists on older firmwares; its presence selects the legacy panel.
   [ObservableProperty]
   private bool _legacyPanelVisible;
 
   [ObservableProperty]
   private bool _newPanelVisible;
 
-  // FLOW_HGT_OVR is ArduRover-only.
   [ObservableProperty]
   private bool _heightOverrideVisible;
 

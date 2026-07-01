@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFriendlyParamsView"
   x:DataType="cv:ConfigFriendlyParamsViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <UserControl.Styles>
     <Style Selector="Border.oor">
@@ -109,7 +109,7 @@
               <TextBlock
                 Grid.Column="4"
                 Text="{Binding Status}"
-                Foreground="#94C11F"
+                Foreground="{DynamicResource MpAccentBrush}"
                 VerticalAlignment="Center"
               />
             </Grid>

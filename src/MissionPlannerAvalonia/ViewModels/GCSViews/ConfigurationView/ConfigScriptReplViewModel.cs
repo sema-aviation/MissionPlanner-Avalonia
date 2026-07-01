@@ -8,9 +8,6 @@ using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of the Mission Planner Script REPL. Upstream embeds an IronPython console; this
-// build substitutes the Lua engine (Services/LuaScriptHost) — that swap is intentional.
-// Input box -> run Lua via the host -> stream output/errors into the console.
 public partial class ConfigScriptReplViewModel : ViewModelBase {
   private readonly StringBuilder _buffer = new();
   private readonly LuaScriptHost _host = new();

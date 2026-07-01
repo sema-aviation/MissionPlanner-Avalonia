@@ -2,7 +2,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
 using MissionPlanner.Utilities;
@@ -10,9 +9,9 @@ using MissionPlanner.Utilities;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigUserDefinedViewModel : ViewModelBase {
-  private static readonly char[] Separators = { ',', '\n', '\r', ' ' };
+  private static readonly char[] _separators = { ',', '\n', '\r', ' ' };
 
-  private static readonly string[] DefaultOptions = {
+  private static readonly string[] _defaultOptions = {
     "CH6_OPT", "CH7_OPT", "CH8_OPT", "CH9_OPT", "CH10_OPT", "CH11_OPT",
     "CH12_OPT", "CH13_OPT", "CH14_OPT", "CH15_OPT", "CH16_OPT",
     "RC6_OPTION", "RC7_OPTION", "RC8_OPTION", "RC9_OPTION", "RC10_OPTION",
@@ -22,7 +21,7 @@ public partial class ConfigUserDefinedViewModel : ViewModelBase {
 
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 
-  public string[] Options { get; private set; } = DefaultOptions;
+  public string[] Options { get; private set; } = _defaultOptions;
   public ObservableCollection<ParamField> Fields { get; } = new();
 
   public bool IsConnected => _comPort.BaseStream?.IsOpen == true;
@@ -31,7 +30,7 @@ public partial class ConfigUserDefinedViewModel : ViewModelBase {
   public ConfigUserDefinedViewModel() {
     if (Settings.Instance.ContainsKey("UserParams")) {
       Options = Settings.Instance["UserParams"]
-          .Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+          .Split(_separators, StringSplitOptions.RemoveEmptyEntries);
     }
 
     LoadOptions();
@@ -49,7 +48,7 @@ public partial class ConfigUserDefinedViewModel : ViewModelBase {
   }
 
   public void ApplyOptions(string raw) {
-    Options = raw.Split(Separators, StringSplitOptions.RemoveEmptyEntries)
+    Options = raw.Split(_separators, StringSplitOptions.RemoveEmptyEntries)
         .Select(o => o.Trim())
         .Where(o => o.Length > 0)
         .Distinct()

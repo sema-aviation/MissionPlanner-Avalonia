@@ -21,8 +21,6 @@ public partial class ConfigSecureViewModel : ViewModelBase {
   private uint _sequence = 1;
   private byte[]? _sessionKey;
 
-  // Trusted Ed25519 private key used to sign SET/REMOVE_PUBLIC_KEYS. Its public key must
-  // already be in the autopilot's bootloader key set or the target rejects the command.
   private Ed25519PrivateKeyParameters? _signingKey;
 
   public ObservableCollection<SecureKeySlot> Keys { get; } = new();
@@ -76,7 +74,7 @@ public partial class ConfigSecureViewModel : ViewModelBase {
 
     await Task.Run(() => {
       for (byte idx = 0; idx < 10; idx++) {
-        // request 1 key at a time: data = [key_idx, num_keys]
+
         var reply = SendSecureCommand((uint)MAVLink.SECURE_COMMAND_OP.SECURE_COMMAND_GET_PUBLIC_KEYS,
             new byte[] { idx, 1 }, sign: false);
 
@@ -96,7 +94,6 @@ public partial class ConfigSecureViewModel : ViewModelBase {
           break;
         }
 
-        // reply: [key_idx][32-byte key...]
         var keyBytes = data.Skip(1).ToArray();
         var hex = BitConverter.ToString(keyBytes).Replace("-", "");
         var slot = idx;
@@ -126,7 +123,6 @@ public partial class ConfigSecureViewModel : ViewModelBase {
       return;
     }
 
-    // SET_PUBLIC_KEYS data = [key_idx][key bytes...]. New keys appended at index = current count.
     var idx = (byte)Keys.Count;
     var data = new byte[1 + keyBytes.Length];
     data[0] = idx;
@@ -142,15 +138,12 @@ public partial class ConfigSecureViewModel : ViewModelBase {
       return;
     }
 
-    // REMOVE_PUBLIC_KEYS data = [key_idx, num_keys]. Remove all known keys.
     var num = (byte)Math.Max(1, Keys.Count);
     AppendLog($"Removing {num} public key(s) starting at slot 0...");
     await SendSignedAsync((uint)MAVLink.SECURE_COMMAND_OP.SECURE_COMMAND_REMOVE_PUBLIC_KEYS,
         new byte[] { 0, num });
   }
 
-  // Load the trusted Ed25519 private key (PRIVATE_KEYV1:.. / .dat / PEM) used to sign commands.
-  // Called from code-behind after a file picker.
   public async Task LoadSigningKeyFromFileAsync(string path) {
     if (!Ensure()) {
       return;
@@ -169,9 +162,7 @@ public partial class ConfigSecureViewModel : ViewModelBase {
   }
 
   private async Task SendSignedAsync(uint op, byte[] data) {
-    // SET/REMOVE must be signed. The signed message is:
-    //   sequence(uint32 LE) | operation(uint32 LE) | data | session_key
-    // signed with a private key whose matching public key is already trusted by the target.
+
     if (_signingKey == null) {
       AppendLog("No signing key loaded — use \"Load Signing Key…\" to load a trusted private key first.");
       return;
@@ -202,12 +193,9 @@ public partial class ConfigSecureViewModel : ViewModelBase {
     }
   }
 
-  // Ed25519 signature over: sequence(LE) | operation(LE) | data | session_key.
   private byte[] MakeSignature(uint seq, uint operation, byte[] data) =>
       MakeSignature(_signingKey!, seq, operation, data, _sessionKey);
 
-  // Pure signing core (no instance/connection state) — exposed for verification tests.
-  // Message = sequence(uint32 LE) ‖ operation(uint32 LE) ‖ data ‖ session_key.
   public static byte[] SecureCommandMessage(uint seq, uint operation, byte[] data, byte[]? sessionKey) {
     var msg = new List<byte>(8 + data.Length + (sessionKey?.Length ?? 0));
     msg.AddRange(LittleEndian(seq));
@@ -241,7 +229,7 @@ public partial class ConfigSecureViewModel : ViewModelBase {
     var payload = new byte[220];
     Array.Copy(data, 0, payload, 0, Math.Min(data.Length, payload.Length));
     if (sigLength > 0) {
-      // Signature is appended directly after the command data in the data field.
+
       Array.Copy(sig, 0, payload, data.Length, Math.Min(sig.Length, payload.Length - data.Length));
     }
 
@@ -292,17 +280,16 @@ public partial class ConfigSecureViewModel : ViewModelBase {
     }
 
     if (text.Contains("BEGIN")) {
-      // PEM-ish: strip header/footer lines and base64-decode the body.
+
       var body = string.Concat(text
           .Split('\n')
           .Where(l => !l.Contains("BEGIN") && !l.Contains("END"))
           .Select(l => l.Trim()));
       var decoded = Convert.FromBase64String(body);
-      // Ed25519 SubjectPublicKeyInfo is 44 bytes; the raw key is the trailing 32.
+
       return decoded.Length > 32 ? decoded.Skip(decoded.Length - 32).ToArray() : decoded;
     }
 
-    // assume base64 raw key
     try {
       return Convert.FromBase64String(text);
     } catch {
@@ -310,14 +297,13 @@ public partial class ConfigSecureViewModel : ViewModelBase {
     }
   }
 
-  // Mirrors ConfigSecureAP.but_privkey_Click: PRIVATE_KEYV1:<b64 seed>, a raw .dat seed, or a PEM.
   private static Ed25519PrivateKeyParameters LoadPrivateKey(string path) {
     var text = File.ReadAllText(path).Trim();
 
     if (text.Contains("PRIVATE_KEYV1")) {
       var b64 = text.Replace("PRIVATE_KEYV1:", "").Trim();
       var seed = Convert.FromBase64String(b64);
-      // The 32-byte seed is the Ed25519 secret scalar source (same as SignedFW.GenerateKey(seed)).
+
       return new Ed25519PrivateKeyParameters(seed, 0);
     }
 
@@ -331,7 +317,6 @@ public partial class ConfigSecureViewModel : ViewModelBase {
       };
     }
 
-    // Otherwise assume a base64 raw seed (optionally a longer DER — take the trailing 32 bytes).
     var raw = Convert.FromBase64String(text);
     if (raw.Length > 32) {
       raw = raw.Skip(raw.Length - 32).ToArray();

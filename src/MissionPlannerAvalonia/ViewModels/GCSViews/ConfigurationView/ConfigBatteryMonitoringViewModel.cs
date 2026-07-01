@@ -1,5 +1,4 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 

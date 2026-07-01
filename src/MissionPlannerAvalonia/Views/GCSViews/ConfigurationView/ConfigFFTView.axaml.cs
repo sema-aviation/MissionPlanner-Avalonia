@@ -43,14 +43,28 @@ public partial class ConfigFFTView : UserControl {
     }
 
     status.Text = "Computing FFT…";
-    var (freq, mag, label) = await Task.Run(() => vm.ComputeFft(path));
-    if (freq.Length == 0) {
-      status.Text = "No IMU data found in log.";
+    var result = await Task.Run(() => vm.ComputeFft(path));
+    if (result.Series.Count == 0) {
+      status.Text = "No batch (ISBH/ISBD) or IMU data found in log.";
       return;
     }
+
     plot.ClearAll();
-    plot.SetAxisLabels("Frequency (Hz)", "Magnitude", "FFT: " + label);
-    plot.SetSeries(label, freq, mag);
-    status.Text = $"Plotted {label} ({freq.Length} bins).";
+    plot.SetAxisLabels("Frequency (Hz)", vm.Magnitude ? "Magnitude" : "Amplitude (dB)",
+        $"FFT: {result.Source} - {result.SampleRate}hz input");
+    for (int i = 0; i < result.Series.Count; i++) {
+      var s = result.Series[i];
+      plot.SetSeries(s.Label, s.Freq, s.Mag, _palette[i % _palette.Length]);
+    }
+
+    var notch = result.SuggestedNotchHz > 0
+        ? $" Suggested INS_HNTCH_FREQ ≈ {result.SuggestedNotchHz:0} Hz."
+        : "";
+    status.Text = $"Plotted {result.Series.Count} curves @ {result.SampleRate}hz.{notch}";
   }
+
+  private static readonly ScottPlot.Color[] _palette = {
+      ScottPlot.Colors.Red, ScottPlot.Colors.Green, ScottPlot.Colors.Blue,
+      ScottPlot.Colors.Black, ScottPlot.Colors.Violet, ScottPlot.Colors.Orange,
+  };
 }

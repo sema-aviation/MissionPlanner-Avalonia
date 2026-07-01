@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigAccelCalibrationView"
   x:DataType="cv:ConfigAccelCalibrationViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <UserControl.Styles>
     <Style Selector="TextBlock.desc">
@@ -25,9 +25,9 @@
 
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="0">
-      <TextBlock Classes="pagetitle" Text="{Binding Title}" />
+      <TextBlock Classes="pagetitle" Text="{Binding Title}" Margin="0,0,0,4" />
+      <Border Classes="titlerule" />
 
-      <!-- Section 1: Min/Max 3-axis -->
       <StackPanel Margin="0,8,0,0">
         <TextBlock Classes="desc" Text="Level your Autopilot to set default accelerometer Min/Max (3 axis)." />
         <TextBlock Classes="desc" Text="This will ask you to place your autopilot on each edge." />
@@ -35,25 +35,22 @@
                 IsEnabled="{Binding AccelButtonEnabled}" />
       </StackPanel>
 
-      <!-- Section 2: offsets / AHRS trims -->
       <StackPanel Margin="0,28,0,0">
         <TextBlock Classes="desc" Text="Level your Autopilot to set default accelerometer offsets (1 axis/AHRS trims)." />
         <TextBlock Classes="desc" Text="This requires you to place your autopilot flat and level." />
         <Button Classes="cal" Content="{Binding LevelButtonText}" Command="{Binding CalibrateLevelCommand}" />
       </StackPanel>
 
-      <!-- Section 3: scale factors -->
       <StackPanel Margin="0,28,0,0">
         <TextBlock Classes="desc" Text="Level your Autopilot to set default accelerometer scale factors for level flight (1 axis)." />
         <TextBlock Classes="desc" Text="This requires you to place your autopilot flat and level." />
         <Button Classes="cal" Content="{Binding SimpleButtonText}" Command="{Binding SimpleAccelCommand}" />
       </StackPanel>
 
-      <!-- Live prompt during calibration (MP drives this via the button text + popups). -->
       <TextBlock
         Margin="0,24,0,0"
         Text="{Binding UserMessage}"
-        Foreground="#94C11F"
+        Foreground="{DynamicResource MpAccentBrush}"
         FontSize="16"
         TextWrapping="Wrap"
         IsVisible="{Binding UserMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"

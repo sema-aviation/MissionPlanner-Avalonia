@@ -4,42 +4,23 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:cv="using:MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView"
+  xmlns:c="using:MissionPlannerAvalonia.Controls"
   mc:Ignorable="d"
   d:DesignWidth="900"
   d:DesignHeight="700"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigPlannerView"
   x:DataType="cv:ConfigPlannerViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
-  <UserControl.Styles>
-    <Style Selector="TextBlock.lbl">
-      <Setter Property="Foreground" Value="#D8D8D8" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="Margin" Value="0,6,10,6" />
-    </Style>
-    <Style Selector="TextBlock.grp">
-      <Setter Property="Foreground" Value="#94C11F" />
-      <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="Margin" Value="0,14,0,4" />
-    </Style>
-    <Style Selector="ComboBox">
-      <Setter Property="MinWidth" Value="180" />
-    </Style>
-    <Style Selector="CheckBox">
-      <Setter Property="Foreground" Value="#D8D8D8" />
-    </Style>
-  </UserControl.Styles>
-
   <ScrollViewer>
-    <StackPanel Margin="16" Spacing="2">
+    <StackPanel Margin="16" Spacing="4">
       <TextBlock Classes="pagetitle" Text="Planner Settings" />
 
-      <!-- ===================== Units / language / theme ===================== -->
       <TextBlock Classes="grp" Text="Display" />
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="140,*">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="140,*" RowSpacing="6" ColumnSpacing="8">
         <TextBlock Grid.Row="0" Grid.Column="0" Classes="lbl" Text="UI Language" />
         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10">
-          <ComboBox HorizontalAlignment="Left" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}" />
+          <ComboBox Classes="lg" HorizontalAlignment="Left" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}" />
           <TextBlock Classes="lbl" Foreground="#E0A030" Text="{Binding LanguageNote}" />
         </StackPanel>
 
@@ -55,8 +36,8 @@
 
         <TextBlock Grid.Row="2" Grid.Column="0" Classes="lbl" Text="Theme / Layout" />
         <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-          <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" />
-          <ComboBox ItemsSource="{Binding LayoutOptions}" SelectedItem="{Binding Layout}" />
+          <ComboBox Classes="md" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" />
+          <ComboBox Classes="md" ItemsSource="{Binding LayoutOptions}" SelectedItem="{Binding Layout}" />
         </StackPanel>
 
         <TextBlock Grid.Row="3" Grid.Column="0" Classes="lbl" Text="HUD / OSD" />
@@ -67,14 +48,13 @@
         </StackPanel>
 
         <TextBlock Grid.Row="4" Grid.Column="0" Classes="lbl" Text="Message Severity" />
-        <ComboBox Grid.Row="4" Grid.Column="1" HorizontalAlignment="Left" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding Severity}" />
+        <ComboBox Grid.Row="4" Grid.Column="1" Classes="md" HorizontalAlignment="Left" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding Severity}" />
       </Grid>
 
-      <!-- ===================== Speech ===================== -->
       <TextBlock Classes="grp" Text="Speech" />
       <StackPanel Orientation="Horizontal" Spacing="10">
         <CheckBox Content="Enable Speech" IsChecked="{Binding EnableSpeech, Mode=TwoWay}" />
-        <ComboBox ItemsSource="{Binding SpeechOptions}" SelectedItem="{Binding SpeechLevel}" />
+        <ComboBox Classes="md" ItemsSource="{Binding SpeechOptions}" SelectedItem="{Binding SpeechLevel}" />
       </StackPanel>
       <WrapPanel IsVisible="{Binding SpeechSubOptionsVisible}">
         <CheckBox Content="Armed Only" IsChecked="{Binding SpeechArmedOnly, Mode=TwoWay}" Margin="0,0,14,0" />
@@ -87,7 +67,6 @@
         <CheckBox Content="Low Speed" IsChecked="{Binding SpeechLowSpeed, Mode=TwoWay}" Margin="0,0,14,0" />
       </WrapPanel>
 
-      <!-- ===================== Waypoints / connect ===================== -->
       <TextBlock Classes="grp" Text="Waypoints / Connect" />
       <WrapPanel>
         <CheckBox Content="Load Waypoints on connect" IsChecked="{Binding LoadWaypointsOnConnect, Mode=TwoWay}" Margin="0,0,14,0" />
@@ -98,50 +77,47 @@
         <CheckBox Content="No RC Receiver" IsChecked="{Binding NoRcReceiver, Mode=TwoWay}" Margin="0,0,14,0" />
       </WrapPanel>
 
-      <!-- ===================== Telemetry rates ===================== -->
-      <TextBlock Classes="grp" Text="Telemetry Rates (Hz)" />
-      <!-- label+input pairs reflow together at a fixed input width -->
+      <TextBlock Classes="grp" Text="Telemetry Stream Rates (Hz)" />
       <WrapPanel>
         <WrapPanel.Styles>
-          <Style Selector="WrapPanel > StackPanel">
-            <Setter Property="Orientation" Value="Horizontal" />
-            <Setter Property="Spacing" Value="6" />
-            <Setter Property="Margin" Value="0,0,16,0" />
+          <Style Selector="c|FormField">
+            <Setter Property="Width" Value="128" />
+            <Setter Property="Margin" Value="0,0,14,10" />
           </Style>
-          <Style Selector="WrapPanel NumericUpDown">
-            <Setter Property="Width" Value="72" />
+          <Style Selector="c|FormField NumericUpDown">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="50" />
+            <Setter Property="Increment" Value="1" />
+            <Setter Property="FormatString" Value="0" />
           </Style>
         </WrapPanel.Styles>
-        <StackPanel>
-          <TextBlock Classes="lbl" Text="Attitude" />
+        <c:FormField Orientation="Vertical" Label="Attitude">
           <NumericUpDown Value="{Binding TelemAttitude}" />
-        </StackPanel>
-        <StackPanel>
-          <TextBlock Classes="lbl" Text="Position" />
+        </c:FormField>
+        <c:FormField Orientation="Vertical" Label="Position">
           <NumericUpDown Value="{Binding TelemPosition}" />
-        </StackPanel>
-        <StackPanel>
-          <TextBlock Classes="lbl" Text="Mode/Status" />
+        </c:FormField>
+        <c:FormField Orientation="Vertical" Label="Mode / Status">
           <NumericUpDown Value="{Binding TelemModeStatus}" />
-        </StackPanel>
-        <StackPanel>
-          <TextBlock Classes="lbl" Text="RC" />
+        </c:FormField>
+        <c:FormField Orientation="Vertical" Label="RC">
           <NumericUpDown Value="{Binding TelemRc}" />
-        </StackPanel>
-        <StackPanel>
-          <TextBlock Classes="lbl" Text="Sensor" />
+        </c:FormField>
+        <c:FormField Orientation="Vertical" Label="Sensor">
           <NumericUpDown Value="{Binding TelemSensor}" />
-        </StackPanel>
+        </c:FormField>
       </WrapPanel>
-      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
-        <TextBlock Classes="lbl" Text="Track Length" />
-        <NumericUpDown Width="110" Value="{Binding TrackLength}" />
-        <TextBlock Classes="lbl" Text="GCS sysid" />
-        <NumericUpDown Width="100" Value="{Binding GcsId}" />
-        <Button Content="Re-request Params" Command="{Binding RerequestParamsCommand}" />
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0" VerticalAlignment="Center">
+        <c:FormField Label="Track Length" LabelWidth="90">
+          <NumericUpDown Classes="md" Minimum="0" Maximum="10000" Increment="10" FormatString="0" Value="{Binding TrackLength}" />
+        </c:FormField>
+        <c:FormField Label="GCS sysid" LabelWidth="70">
+          <NumericUpDown Minimum="0" Maximum="255" Increment="1" FormatString="0" Value="{Binding GcsId}" />
+        </c:FormField>
+        <Button Content="Re-request Params" Command="{Binding RerequestParamsCommand}" Margin="12,0,0,0" />
       </StackPanel>
 
-      <!-- ===================== Aircraft icon / map markers ===================== -->
       <TextBlock Classes="grp" Text="Aircraft Icon / Map" />
       <WrapPanel>
         <CheckBox Content="Display COG" IsChecked="{Binding DisplayCog, Mode=TwoWay}" Margin="0,0,12,0" />
@@ -151,13 +127,16 @@
         <CheckBox Content="Display Target" IsChecked="{Binding DisplayTarget, Mode=TwoWay}" Margin="0,0,12,0" />
         <CheckBox Content="Display ToolTip" IsChecked="{Binding DisplayTooltip, Mode=TwoWay}" Margin="0,0,12,0" />
       </WrapPanel>
-      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
-        <TextBlock Classes="lbl" Text="Line Length" />
-        <NumericUpDown Width="110" Value="{Binding LineLength}" />
-        <TextBlock Classes="lbl" Text="Secondary Style" />
-        <ComboBox MinWidth="140" ItemsSource="{Binding SecondaryDisplayStyleOptions}" SelectedItem="{Binding SecondaryDisplayStyle}" />
-        <TextBlock Classes="lbl" Text="Map Cache" />
-        <ComboBox MinWidth="150" ItemsSource="{Binding MapCacheOptions}" SelectedItem="{Binding MapCache}" />
+      <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
+        <c:FormField Label="Line Length" LabelWidth="80">
+          <NumericUpDown Classes="md" Minimum="0" Maximum="10000" Increment="10" FormatString="0" Value="{Binding LineLength}" />
+        </c:FormField>
+        <c:FormField Label="Secondary Style" LabelWidth="100">
+          <ComboBox Classes="md" ItemsSource="{Binding SecondaryDisplayStyleOptions}" SelectedItem="{Binding SecondaryDisplayStyle}" />
+        </c:FormField>
+        <c:FormField Label="Map Cache" LabelWidth="70">
+          <ComboBox Classes="md" ItemsSource="{Binding MapCacheOptions}" SelectedItem="{Binding MapCache}" />
+        </c:FormField>
       </StackPanel>
       <WrapPanel Margin="0,6,0,0">
         <CheckBox Content="Show Airports" IsChecked="{Binding ShowAirports, Mode=TwoWay}" Margin="0,0,12,0" />
@@ -166,14 +145,12 @@
         <CheckBox Content="Enable ADSB" IsChecked="{Binding EnableAdsb, Mode=TwoWay}" Margin="0,0,12,0" />
       </WrapPanel>
 
-      <!-- ===================== Logging ===================== -->
       <TextBlock Classes="grp" Text="Logs" />
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <TextBlock Classes="lbl" Text="Log Directory" />
-        <TextBox Width="420" Text="{Binding LogDir, Mode=TwoWay}" />
-      </StackPanel>
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+        <TextBlock Grid.Column="0" Classes="lbl" Text="Log Directory" />
+        <TextBox Grid.Column="1" HorizontalAlignment="Stretch" MinWidth="420" Text="{Binding LogDir, Mode=TwoWay}" />
+      </Grid>
 
-      <!-- ===================== Advanced ===================== -->
       <TextBlock Classes="grp" Text="Advanced" />
       <WrapPanel>
         <CheckBox Content="Beta Updates" IsChecked="{Binding BetaUpdates, Mode=TwoWay}" Margin="0,0,12,0" />

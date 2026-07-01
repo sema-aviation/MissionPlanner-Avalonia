@@ -9,16 +9,16 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFlightModesView"
   x:DataType="cv:ConfigFlightModesViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Flight Modes" />
 
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,12">
       <TextBlock Classes="fieldlbl" Text="Current Mode:" VerticalAlignment="Center" />
-      <TextBlock Classes="fieldlbl" Text="{Binding CurrentMode}" Foreground="#94C11F" VerticalAlignment="Center" MinWidth="120" />
+      <TextBlock Classes="fieldlbl" Text="{Binding CurrentMode}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" MinWidth="120" />
       <TextBlock Classes="fieldlbl" Text="Current PWM:" VerticalAlignment="Center" Margin="16,0,0,0" />
-      <TextBlock Classes="fieldlbl" Text="{Binding CurrentPwm}" Foreground="#94C11F" VerticalAlignment="Center" />
+      <TextBlock Classes="fieldlbl" Text="{Binding CurrentPwm}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
     </StackPanel>
 
     <Grid Grid.Row="2" ColumnDefinitions="110,220,80,110,*" Margin="0,0,0,4">

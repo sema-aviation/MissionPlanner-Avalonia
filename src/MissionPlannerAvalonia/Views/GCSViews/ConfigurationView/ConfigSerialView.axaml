@@ -9,7 +9,7 @@
   d:DesignHeight="480"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigSerialView"
   x:DataType="cv:ConfigSerialViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="8">
@@ -25,7 +25,7 @@
       <ItemsControl ItemsSource="{Binding Ports}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="cv:SerialPortRow">
-            <Border BorderBrush="#262728" BorderThickness="0,1,0,0" Padding="0,6">
+            <Border BorderBrush="{DynamicResource MpBg}" BorderThickness="0,1,0,0" Padding="0,6">
               <Grid ColumnDefinitions="160,180,180,*" RowDefinitions="Auto,Auto">
                 <TextBlock
                   Grid.Column="0"

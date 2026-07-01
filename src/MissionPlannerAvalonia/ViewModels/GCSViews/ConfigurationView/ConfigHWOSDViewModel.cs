@@ -5,13 +5,8 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Upstream ConfigHWOSD.cs: the MinimOSD helper page. In current Mission Planner this page is
-// just the "Enable Telemetry" button (BUT_osdrates) which bumps the SR0/SR1/SR3 stream rates so
-// a MinimOSD board fed off the telemetry stream keeps updating. The legacy MinimOSD on-screen
-// panel/character editor that used to live here talked to the MinimOSD board directly over its
-// own serial/EEPROM link and is not part of this control upstream.
 public partial class ConfigHWOSDViewModel : ParamPageBase {
-  // Exactly the params + value upstream's BUT_osdrates_Click sets (note: not _PARAMS).
+
   private static readonly string[] _suffixes = {
       "EXT_STAT", "EXTRA1", "EXTRA2", "EXTRA3", "POSITION", "RAW_CTRL", "RAW_SENS", "RC_CHAN",
   };

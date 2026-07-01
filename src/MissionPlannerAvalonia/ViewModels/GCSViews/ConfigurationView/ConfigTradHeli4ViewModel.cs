@@ -2,9 +2,6 @@ using System.Collections.ObjectModel;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of MissionPlanner.GCSViews.ConfigurationView.ConfigTradHeli4 (4.0+ heli page).
-// 8 servo rows (reversed / function / min / trim / max) plus the swashplate, rotor-speed,
-// governor and misc parameter groups built from the same metadata-driven tables as upstream.
 public partial class ConfigTradHeli4ViewModel : ParamPageBase {
   public ObservableCollection<HeliServoRow> Servos { get; } = new();
   public ObservableCollection<ParamField> Swashplate { get; } = new();

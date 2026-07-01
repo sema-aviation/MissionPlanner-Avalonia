@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigMotorTestView"
   x:DataType="cv:ConfigMotorTestViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -57,6 +57,6 @@
       </StackPanel>
     </ScrollViewer>
 
-    <TextBlock Grid.Row="5" Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" Margin="0,8,0,0" />
+    <TextBlock Grid.Row="5" Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" TextWrapping="Wrap" Margin="0,8,0,0" />
   </Grid>
 </UserControl>

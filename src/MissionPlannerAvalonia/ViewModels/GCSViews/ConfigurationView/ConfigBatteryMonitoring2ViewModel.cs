@@ -8,8 +8,8 @@ using MissionPlanner.Utilities;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public abstract partial class BatteryMonitorPageBase : ViewModelBase, IDisposable {
-  private const string AlertEnabledKey = "speechbatteryenabled";
-  private const string SpeechEnabledKey = "speechenable";
+  private const string _alertEnabledKey = "speechbatteryenabled";
+  private const string _speechEnabledKey = "speechenable";
 
   protected readonly MAVLinkInterface comPort = AppState.comPort;
   private readonly DispatcherTimer _timer;
@@ -54,8 +54,8 @@ public abstract partial class BatteryMonitorPageBase : ViewModelBase, IDisposabl
     AmpPerVolt = new ParamField(ResolveAmpPerVoltName(prefix));
     AmpOffset = new ParamField($"{prefix}_AMP_OFFSET");
 
-    _alertOnLowBattery = Settings.Instance.GetBoolean(AlertEnabledKey)
-        && Settings.Instance.GetBoolean(SpeechEnabledKey);
+    _alertOnLowBattery = Settings.Instance.GetBoolean(_alertEnabledKey)
+        && Settings.Instance.GetBoolean(_speechEnabledKey);
 
     _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
     _timer.Tick += (_, _) => UpdateLive();
@@ -63,8 +63,6 @@ public abstract partial class BatteryMonitorPageBase : ViewModelBase, IDisposabl
     UpdateLive();
   }
 
-  // Modern ArduPilot uses {prefix}_AMP_PERVLT; legacy firmware exposed {prefix}_AMP_PERVOL(T).
-  // Prefer the modern name, but fall back to whichever legacy name the vehicle actually has.
   private static string ResolveAmpPerVoltName(string prefix) {
     var param = AppState.comPort.MAV.param;
     string[] candidates = {
@@ -86,7 +84,6 @@ public abstract partial class BatteryMonitorPageBase : ViewModelBase, IDisposabl
     LiveCurrent = LiveCurrentValue().ToString("0.00");
   }
 
-  // Row 1-3: new_mult = old_mult * measured / live (upstream TXT_measuredvoltage_Validated).
   [RelayCommand]
   private void ApplyVoltageCalibration() {
     var voltage = LiveVoltageValue();
@@ -100,7 +97,6 @@ public abstract partial class BatteryMonitorPageBase : ViewModelBase, IDisposabl
     CalibrationStatus = $"{VoltMult.Name} = {newMult:0.000000}";
   }
 
-  // Row 4-6: new_pervlt = old_pervlt * measured / live (upstream txt_meascurrent_Validated).
   [RelayCommand]
   private void ApplyCurrentCalibration() {
     var current = LiveCurrentValue();
@@ -114,10 +110,9 @@ public abstract partial class BatteryMonitorPageBase : ViewModelBase, IDisposabl
     CalibrationStatus = $"{AmpPerVolt.Name} = {newPerVolt:0.000000}";
   }
 
-  // Backed by app Settings (CHK_speechbattery upstream), NOT a vehicle param.
   partial void OnAlertOnLowBatteryChanged(bool value) {
-    Settings.Instance[AlertEnabledKey] = value.ToString();
-    Settings.Instance[SpeechEnabledKey] = true.ToString();
+    Settings.Instance[_alertEnabledKey] = value.ToString();
+    Settings.Instance[_speechEnabledKey] = true.ToString();
     if (value) {
       Settings.Instance["speechbattery"] ??= "WARNING, Battery at {batv} Volt, {batp} percent";
       Settings.Instance["speechbatteryvolt"] ??= "9.6";

@@ -14,7 +14,7 @@ using MissionPlanner.Utilities;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable {
-  private const string KeyPrefix = "Tracker_";
+  private const string _keyPrefix = "Tracker_";
 
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 
@@ -44,7 +44,6 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
   [ObservableProperty]
   private string _status = "";
 
-  // Pan group
   [ObservableProperty]
   private string _panRange = "360";
 
@@ -72,7 +71,6 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
   [ObservableProperty]
   private bool _panReverse;
 
-  // Tilt group
   [ObservableProperty]
   private string _tiltRange = "90";
 
@@ -134,7 +132,7 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
   partial void OnTiltRangeChanged(string value) => UpdateTiltTrimRange();
 
   private void UpdatePanTrimRange() {
-    // Upstream forces the pan trim slider to a full 360 sweep.
+
     PanTrimMin = -180;
     PanTrimMax = 180;
   }
@@ -327,7 +325,7 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
     _ = Task.Run(() => {
       while (!token.IsCancellationRequested) {
         try {
-          // 10 hz - position updates default to 3 hz on the stream rate
+
           _tracker?.PanAndTilt(_comPort.MAV.cs.AZToMAV, _comPort.MAV.cs.ELToMAV);
         } catch {
         }
@@ -359,10 +357,10 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
     TiltSpeed = Get("TXT_tiltspeed", TiltSpeed);
     TiltAccel = Get("TXT_tiltaccel", TiltAccel);
 
-    PanTrim = Settings.Instance.GetInt32(KeyPrefix + "TRK_pantrim", 0);
-    TiltTrim = Settings.Instance.GetInt32(KeyPrefix + "TRK_tilttrim", 0);
-    PanReverse = Settings.Instance.GetBoolean(KeyPrefix + "CHK_revpan", false);
-    TiltReverse = Settings.Instance.GetBoolean(KeyPrefix + "CHK_revtilt", false);
+    PanTrim = Settings.Instance.GetInt32(_keyPrefix + "TRK_pantrim", 0);
+    TiltTrim = Settings.Instance.GetInt32(_keyPrefix + "TRK_tilttrim", 0);
+    PanReverse = Settings.Instance.GetBoolean(_keyPrefix + "CHK_revpan", false);
+    TiltReverse = Settings.Instance.GetBoolean(_keyPrefix + "CHK_revtilt", false);
   }
 
   private void SaveSettings() {
@@ -389,14 +387,14 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
   }
 
   private static string Get(string name, string fallback) {
-    var key = KeyPrefix + name;
+    var key = _keyPrefix + name;
     return Settings.Instance.ContainsKey(key) && Settings.Instance[key] != null
         ? Settings.Instance[key]
         : fallback;
   }
 
   private static void Set(string name, string value) =>
-      Settings.Instance[KeyPrefix + name] = value;
+      Settings.Instance[_keyPrefix + name] = value;
 
   private static int ParseInt(string value, int fallback) =>
       int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : fallback;
@@ -408,17 +406,13 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
     _tracker = null;
   }
 
-  // Minimal Pololu Maestro driver (ported from MissionPlanner.Antenna.Maestro).
-  // The upstream class is not reachable from this project (Antenna.csproj is not
-  // referenced and the build file may not be modified), so the compact-protocol
-  // commands are reimplemented here over MissionPlanner.Comms.SerialPort.
   private sealed class MaestroDriver {
-    private const byte SetTarget = 0x84;
-    private const byte SetSpeed = 0x87;
-    private const byte SetAccel = 0x89;
+    private const byte _setTarget = 0x84;
+    private const byte _setSpeed = 0x87;
+    private const byte _setAccel = 0x89;
 
-    private const byte PanAddress = 0;
-    private const byte TiltAddress = 1;
+    private const byte _panAddress = 0;
+    private const byte _tiltAddress = 1;
 
     private int _panReverse = 1;
     private int _tiltReverse = 1;
@@ -475,10 +469,10 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
     }
 
     public bool Setup() {
-      SendCompactCommand(SetSpeed, PanAddress, PanSpeed);
-      SendCompactCommand(SetSpeed, TiltAddress, TiltSpeed);
-      SendCompactCommand(SetAccel, PanAddress, PanAccel);
-      SendCompactCommand(SetAccel, TiltAddress, TiltAccel);
+      SendCompactCommand(_setSpeed, _panAddress, PanSpeed);
+      SendCompactCommand(_setSpeed, _tiltAddress, TiltSpeed);
+      SendCompactCommand(_setAccel, _panAddress, PanAccel);
+      SendCompactCommand(_setAccel, _tiltAddress, TiltAccel);
       return true;
     }
 
@@ -489,7 +483,7 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
       short target =
           Constrain(pulseWidth, PanPWMCenter - PanPWMRange / 2.0, PanPWMCenter + PanPWMRange / 2.0);
       target *= 4;
-      SendCompactCommand(SetTarget, PanAddress, target);
+      SendCompactCommand(_setTarget, _panAddress, target);
       return true;
     }
 
@@ -500,7 +494,7 @@ public partial class ConfigAntennaTrackerViewModel : ViewModelBase, IDisposable 
       short target = Constrain(pulseWidth, TiltPWMCenter - TiltPWMRange / 2.0,
           TiltPWMCenter + TiltPWMRange / 2.0);
       target *= 4;
-      SendCompactCommand(SetTarget, TiltAddress, target);
+      SendCompactCommand(_setTarget, _tiltAddress, target);
       return true;
     }
 

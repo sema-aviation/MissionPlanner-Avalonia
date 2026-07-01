@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
 using MissionPlanner.Utilities;
+using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -61,14 +62,14 @@ public partial class ConfigAccelCalibrationViewModel : ViewModelBase, IDisposabl
             _comPort.sysidcurrent,
             _comPort.compidcurrent));
       } catch {
-        AppendLog("Command failed.");
+        await Dialogs.Alert("Error", "Command Failed");
       }
 
       return;
     }
 
     if (!IsConnected) {
-      AppendLog("Not connected — connect a vehicle first.");
+      await Dialogs.Alert("Error", "Not connected — connect a vehicle first.");
       return;
     }
 
@@ -82,7 +83,7 @@ public partial class ConfigAccelCalibrationViewModel : ViewModelBase, IDisposabl
           MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION,
           0, 0, 0, 0, 1, 0, 0));
       if (!ok) {
-        AppendLog("Command failed.");
+        await Dialogs.Alert("Error", "Command Failed");
         return;
       }
 
@@ -98,9 +99,9 @@ public partial class ConfigAccelCalibrationViewModel : ViewModelBase, IDisposabl
           (byte)_comPort.sysidcurrent,
           (byte)_comPort.compidcurrent);
       AccelButtonText = "Click when Done";
-    } catch (Exception ex) {
+    } catch (Exception) {
       _inCalibrate = false;
-      AppendLog("Failed to start: " + ex.Message);
+      await Dialogs.Alert("Error", "Failed to level");
     }
   }
 
@@ -143,7 +144,7 @@ public partial class ConfigAccelCalibrationViewModel : ViewModelBase, IDisposabl
   [RelayCommand]
   private async Task CalibrateLevel() {
     if (!IsConnected) {
-      AppendLog("Not connected — connect a vehicle first.");
+      await Dialogs.Alert("Error", "Not connected — connect a vehicle first.");
       return;
     }
 
@@ -154,17 +155,21 @@ public partial class ConfigAccelCalibrationViewModel : ViewModelBase, IDisposabl
           (byte)_comPort.compidcurrent,
           MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION,
           0, 0, 0, 0, 2, 0, 0));
-      LevelButtonText = ok ? "Completed" : "Calibrate Level";
-      AppendLog(ok ? "Level calibration accepted." : "Command failed.");
-    } catch (Exception ex) {
-      AppendLog("Failed to level: " + ex.Message);
+      if (ok) {
+        LevelButtonText = "Completed";
+        AppendLog("Level calibration accepted.");
+      } else {
+        await Dialogs.Alert("Error", "Command Failed");
+      }
+    } catch (Exception) {
+      await Dialogs.Alert("Error", "Failed to level");
     }
   }
 
   [RelayCommand]
   private async Task SimpleAccel() {
     if (!IsConnected) {
-      AppendLog("Not connected — connect a vehicle first.");
+      await Dialogs.Alert("Error", "Not connected — connect a vehicle first.");
       return;
     }
 
@@ -175,10 +180,14 @@ public partial class ConfigAccelCalibrationViewModel : ViewModelBase, IDisposabl
           (byte)_comPort.compidcurrent,
           MAVLink.MAV_CMD.PREFLIGHT_CALIBRATION,
           0, 0, 0, 0, 4, 0, 0));
-      SimpleButtonText = ok ? "Completed" : "Simple Accel Cal";
-      AppendLog(ok ? "Simple calibration accepted." : "Command failed.");
-    } catch (Exception ex) {
-      AppendLog("Failed: " + ex.Message);
+      if (ok) {
+        SimpleButtonText = "Completed";
+        AppendLog("Simple calibration accepted.");
+      } else {
+        await Dialogs.Alert("Error", "Command Failed");
+      }
+    } catch (Exception) {
+      await Dialogs.Alert("Error", "Failed to simple accelerometer calibration");
     }
   }
 
@@ -211,15 +220,10 @@ public partial class ConfigAccelCalibrationViewModel : ViewModelBase, IDisposabl
 public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
   private int _sub1 = -1;
   private int _sub2 = -1;
-
-  // Live mag-sample feed for the MagCalSphere visualisation (wired up by ConfigCompassView).
-  // OnMagSample carries the body-frame direction vector streamed in MAG_CAL_PROGRESS; the view
-  // forwards each sample to the orthographic point cloud. OnMagSphereClear resets it on Start.
-  public event Action<double, double, double>? OnMagSample;
-  public event Action? OnMagSphereClear;
+  private bool _rebootRequired;
 
   public ConfigCompassViewModel() {
-    Title = "Compass";
+    Title = "Compass Priority";
     Intro = "Compass configuration and onboard magnetometer calibration.";
 
     F("COMPASS_EXTERNAL", "combo");
@@ -429,14 +433,19 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
       return;
     }
 
+    if (!await Dialogs.Confirm("Reboot", "Reboot?")) {
+      return;
+    }
+
     try {
       await Task.Run(() => comPort.doCommand(
           (byte)comPort.sysidcurrent,
           (byte)comPort.compidcurrent,
           MAVLink.MAV_CMD.PREFLIGHT_REBOOT_SHUTDOWN,
           1, 0, 0, 0, 0, 0, 0));
-    } catch (Exception ex) {
-      MagResult = ex.Message;
+      _rebootRequired = false;
+    } catch (Exception) {
+      await Dialogs.Alert("Error", Strings.ErrorCommunicating);
     }
   }
 
@@ -451,10 +460,16 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
       return;
     }
 
-    await SetParamSafe("COMPASS_PRIO1_ID", Compasses.Count >= 1 ? Compasses[0].DevID : 0);
-    await SetParamSafe("COMPASS_PRIO2_ID", Compasses.Count >= 2 ? Compasses[1].DevID : 0);
-    await SetParamSafe("COMPASS_PRIO3_ID", Compasses.Count >= 3 ? Compasses[2].DevID : 0);
+    bool p1 = await SetParamSafe("COMPASS_PRIO1_ID", Compasses.Count >= 1 ? Compasses[0].DevID : 0);
+    bool p2 = await SetParamSafe("COMPASS_PRIO2_ID", Compasses.Count >= 2 ? Compasses[1].DevID : 0);
+    bool p3 = await SetParamSafe("COMPASS_PRIO3_ID", Compasses.Count >= 3 ? Compasses[2].DevID : 0);
 
+    if ((Compasses.Count >= 1 && !p1) || (Compasses.Count >= 2 && !p2)
+        || (Compasses.Count >= 3 && !p3)) {
+      await Dialogs.Alert("Error", Strings.ErrorSettingParameter);
+    }
+
+    _rebootRequired = true;
     MagResult = "Compass priority updated. A reboot is required for it to take effect.";
     BuildCompassList();
   }
@@ -483,7 +498,25 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
   [RelayCommand]
   private async Task StartMagCal() {
     if (!IsConnected) {
-      MagResult = "Connect to a vehicle first.";
+      await Dialogs.Alert("Error", "Connect to a vehicle first.");
+      return;
+    }
+
+    if (_rebootRequired) {
+      if (await Dialogs.Confirm("Reboot", "Reboot required, reboot now?")) {
+        try {
+          await Task.Run(() => comPort.doCommand(
+              (byte)comPort.sysidcurrent,
+              (byte)comPort.compidcurrent,
+              MAVLink.MAV_CMD.PREFLIGHT_REBOOT_SHUTDOWN,
+              1, 0, 0, 0, 0, 0, 0));
+          _rebootRequired = false;
+        } catch (Exception) {
+          await Dialogs.Alert("Error", Strings.ErrorCommunicating);
+        }
+        return;
+      }
+
       return;
     }
 
@@ -494,7 +527,9 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
           MAVLink.MAV_CMD.DO_START_MAG_CAL,
           0, 1, 1, 0, 0, 0, 0));
     } catch (Exception ex) {
-      MagResult = "Failed to start MAG CAL: " + ex.Message;
+      await Dialogs.Alert(
+          "Error",
+          "Failed to start MAG CAL, check the autopilot is still responding.\n" + ex);
       return;
     }
 
@@ -502,7 +537,6 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
     Prog2 = 0;
     Prog3 = 0;
     MagResult = "";
-    OnMagSphereClear?.Invoke();
 
     if (_sub1 == -1) {
       _sub1 = comPort.SubscribeToPacketType(
@@ -563,21 +597,34 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
   [RelayCommand]
   private async Task LargeVehicleMagCal() {
     if (!IsConnected) {
-      MagResult = "Connect to a vehicle first.";
+      await Dialogs.Alert("Error", "Connect to a vehicle first.");
       return;
     }
 
+    var entered = await Dialogs.InputBox(
+        "MagCal Yaw",
+        "Enter current heading in degrees\nNOTE: gps lock is required. Heading is true, not magnetic",
+        LargeVehicleHeading.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    if (entered == null
+        || !double.TryParse(entered, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out double value)) {
+      return;
+    }
+
+    LargeVehicleHeading = value;
     try {
       bool ok = await Task.Run(() => comPort.doCommand(
           comPort.MAV.sysid,
           comPort.MAV.compid,
           MAVLink.MAV_CMD.FIXED_MAG_CAL_YAW,
-          (float)LargeVehicleHeading, 0, 0, 0, 0, 0, 0));
-      MagResult = ok
-          ? "Large-vehicle (fixed yaw) calibration completed."
-          : "Command failed. GPS lock is required.";
-    } catch (Exception ex) {
-      MagResult = ex.Message;
+          (float)value, 0, 0, 0, 0, 0, 0));
+      if (ok) {
+        await Dialogs.Alert(Strings.Completed, Strings.Completed);
+      } else {
+        await Dialogs.Alert("Error", Strings.CommandFailed);
+      }
+    } catch (Exception) {
+      await Dialogs.Alert("Error", Strings.CommandFailed);
     }
   }
 
@@ -616,14 +663,6 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
     if (packet.msgid == (byte)MAVLink.MAVLINK_MSG_ID.MAG_CAL_PROGRESS) {
       var obj = (MAVLink.mavlink_mag_cal_progress_t)packet.data;
       Dispatcher.UIThread.Post(() => {
-        // Feed the primary compass's body-frame direction vector into the sphere visualisation so
-        // the operator can see sample coverage build up as the vehicle is rotated (mirrors upstream
-        // ProgressReporterSphere.sphere1.AddPoint).
-        if (obj.compass_id == 0
-            && (obj.direction_x != 0 || obj.direction_y != 0 || obj.direction_z != 0)) {
-          OnMagSample?.Invoke(obj.direction_x, obj.direction_y, obj.direction_z);
-        }
-
         if (obj.compass_id == 0) {
           Prog1 = obj.completion_pct;
         }
@@ -662,6 +701,8 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
         if (obj.autosaved == 1) {
           MagResult += "Calibration saved. Please reboot the autopilot.\n";
           StopCal();
+          _rebootRequired = true;
+          _ = Dialogs.Alert("Mag Cal", "Please reboot the autopilot");
         }
       });
     }
@@ -679,6 +720,11 @@ public partial class ConfigCompassViewModel : ParamPageBase, IDisposable {
     ReloadDeclination();
     LoadCompassFlags();
     BuildCompassList();
+    if (!string.IsNullOrEmpty(CompassStatus)) {
+      _ = Dialogs.Alert(
+          Strings.ERROR,
+          "Your compass configuration has changed, please review the missing compass");
+    }
   }
 
   private void StopCal() {

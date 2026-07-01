@@ -5,11 +5,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigADSBViewModel : ParamPageBase {
-  private static readonly HashSet<string> BitmaskParams = new(StringComparer.OrdinalIgnoreCase) {
+  private static readonly HashSet<string> _bitmaskParams = new(StringComparer.OrdinalIgnoreCase) {
     "ADSB_OPTIONS",
     "ADSB_RF_CAPABLE",
     "ADSB_RF_SELECT",
@@ -49,7 +50,7 @@ public partial class ConfigADSBViewModel : ParamPageBase {
                  .Where(k => k.StartsWith("ADSB_", StringComparison.OrdinalIgnoreCase) ||
                              k.StartsWith("AVD_", StringComparison.OrdinalIgnoreCase))
                  .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)) {
-      F(key, BitmaskParams.Contains(key) ? "bitmask" : null);
+      F(key, _bitmaskParams.Contains(key) ? "bitmask" : null);
     }
     ApplyFilter();
   }
@@ -68,13 +69,50 @@ public partial class ConfigADSBViewModel : ParamPageBase {
   }
 
   [RelayCommand]
-  private void SaveFlightId() {
-    Status = "Flight ID over MAVLink not yet wired in this port.";
+  private async Task SaveFlightId() {
+    if (comPort.BaseStream?.IsOpen != true) {
+      Status = "offline";
+      return;
+    }
+    try {
+      var flid = new MAVLink.mavlink_uavionix_adsb_out_cfg_flightid_t(FlightId.MakeBytesSize(9));
+      await Task.Run(() => {
+        comPort.sendPacket(flid, comPort.sysidcurrent, comPort.compidcurrent);
+        System.Threading.Thread.Sleep(200);
+        comPort.sendPacket(flid, comPort.sysidcurrent, comPort.compidcurrent);
+        System.Threading.Thread.Sleep(200);
+        comPort.generatePacket(MAVLink.MAVLINK_MSG_ID.UAVIONIX_ADSB_GET,
+            new MAVLink.mavlink_uavionix_adsb_get_t(10005), comPort.sysidcurrent,
+            comPort.compidcurrent);
+      });
+      Status = "Flight ID sent.";
+    } catch (Exception ex) {
+      Status = "send failed: " + ex.Message;
+    }
   }
 
   [RelayCommand]
-  private void SaveAircraftRegistration() {
-    Status = "Aircraft registration over MAVLink not yet wired in this port.";
+  private async Task SaveAircraftRegistration() {
+    if (comPort.BaseStream?.IsOpen != true) {
+      Status = "offline";
+      return;
+    }
+    try {
+      var acreg = new MAVLink.mavlink_uavionix_adsb_out_cfg_registration_t(
+          AircraftRegistration.MakeBytesSize(9));
+      await Task.Run(() => {
+        comPort.sendPacket(acreg, comPort.sysidcurrent, comPort.compidcurrent);
+        System.Threading.Thread.Sleep(200);
+        comPort.sendPacket(acreg, comPort.sysidcurrent, comPort.compidcurrent);
+        System.Threading.Thread.Sleep(200);
+        comPort.generatePacket(MAVLink.MAVLINK_MSG_ID.UAVIONIX_ADSB_GET,
+            new MAVLink.mavlink_uavionix_adsb_get_t(10004), comPort.sysidcurrent,
+            comPort.compidcurrent);
+      });
+      Status = "Aircraft registration sent.";
+    } catch (Exception ex) {
+      Status = "send failed: " + ex.Message;
+    }
   }
 
   [RelayCommand]
@@ -85,7 +123,6 @@ public partial class ConfigADSBViewModel : ParamPageBase {
       return;
     }
 
-    // set ENABLE params last
     var ordered = Fields
         .OrderBy(f => f.Name.Contains("ENABLE", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
         .ToList();

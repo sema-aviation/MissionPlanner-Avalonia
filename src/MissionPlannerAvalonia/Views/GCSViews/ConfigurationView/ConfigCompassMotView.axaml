@@ -10,7 +10,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigCompassMotView"
   x:DataType="cv:ConfigCompassMotViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Compass/Motor Calibration" />

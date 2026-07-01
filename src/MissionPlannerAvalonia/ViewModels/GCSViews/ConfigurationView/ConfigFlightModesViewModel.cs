@@ -41,7 +41,7 @@ public partial class FlightModeRow : ObservableObject {
 }
 
 public partial class ConfigFlightModesViewModel : ViewModelBase, IDisposable {
-  private static readonly string[] Bands = {
+  private static readonly string[] _bands = {
     "PWM 0 - 1230", "1231 - 1360", "1361 - 1490", "1491 - 1620", "1621 - 1749", "1750 +",
   };
 
@@ -50,7 +50,7 @@ public partial class ConfigFlightModesViewModel : ViewModelBase, IDisposable {
   private readonly string _prefix;
   private readonly bool _isCopter;
 
-  private const string SuperSimpleWikiUrl =
+  private const string _superSimpleWikiUrl =
       "https://ardupilot.org/copter/docs/simpleandsuper-simple-modes.html";
 
   public ObservableCollection<ParamOption> ModeOptions { get; } = new();
@@ -80,7 +80,7 @@ public partial class ConfigFlightModesViewModel : ViewModelBase, IDisposable {
     LoadOptions(fw);
 
     for (int i = 1; i <= 6; i++) {
-      Rows.Add(new FlightModeRow(i, Bands[i - 1], ShowSimple, ModeOptions));
+      Rows.Add(new FlightModeRow(i, _bands[i - 1], ShowSimple, ModeOptions));
     }
 
     LoadValues();
@@ -205,7 +205,7 @@ public partial class ConfigFlightModesViewModel : ViewModelBase, IDisposable {
   }
 
   [RelayCommand]
-  private void OpenSuperSimpleWiki() => Dialogs.OpenUrl(SuperSimpleWikiUrl);
+  private void OpenSuperSimpleWiki() => Dialogs.OpenUrl(_superSimpleWikiUrl);
 
   [RelayCommand]
   private async Task SaveModes() {

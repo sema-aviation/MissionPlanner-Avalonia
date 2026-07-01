@@ -14,7 +14,7 @@ using MissionPlanner.Comms;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigHWBTViewModel : ViewModelBase {
-  private static readonly Dictionary<int, int> Baudmap = new Dictionary<int, int>
+  private static readonly Dictionary<int, int> _baudmap = new Dictionary<int, int>
   {
         { 57600, 7 },
         { 38400, 6 },
@@ -53,7 +53,7 @@ public partial class ConfigHWBTViewModel : ViewModelBase {
   public bool IsConnected => _comPort.BaseStream?.IsOpen == true;
 
   public ConfigHWBTViewModel() {
-    foreach (var b in Baudmap.Keys.OrderBy(x => x)) {
+    foreach (var b in _baudmap.Keys.OrderBy(x => x)) {
       Bauds.Add(b.ToString());
     }
 
@@ -88,7 +88,7 @@ public partial class ConfigHWBTViewModel : ViewModelBase {
       return;
     }
 
-    if (!int.TryParse(SelectedBaud, out var baudKey) || !Baudmap.ContainsKey(baudKey)) {
+    if (!int.TryParse(SelectedBaud, out var baudKey) || !_baudmap.ContainsKey(baudKey)) {
       Append("Invalid baud rate.");
       return;
     }
@@ -108,7 +108,7 @@ public partial class ConfigHWBTViewModel : ViewModelBase {
             string.Format("AT+NAME={0}\r\n", name),
             string.Format("AT+NAME{0}", name),
             string.Format("AT+BAUD={0}\r\n", SelectedBaud),
-            string.Format("AT+BAUD{0}", Baudmap[baudKey]),
+            string.Format("AT+BAUD{0}", _baudmap[baudKey]),
             string.Format("AT+PSWD={0}\r\n", pin),
             string.Format("AT+PIN{0}", pin),
             "AT+RESET",
@@ -126,7 +126,7 @@ public partial class ConfigHWBTViewModel : ViewModelBase {
   }
 
   private bool RunSequence(string portName, string[] commands) {
-    foreach (var baud in Baudmap) {
+    foreach (var baud in _baudmap) {
       Append("Try baud " + baud.Key);
       try {
         using var port = new SerialPort(portName, baud.Key);

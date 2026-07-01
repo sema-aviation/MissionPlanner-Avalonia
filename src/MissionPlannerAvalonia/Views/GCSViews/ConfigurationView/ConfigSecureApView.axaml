@@ -9,7 +9,7 @@
   d:DesignHeight="480"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigSecureApView"
   x:DataType="cv:ConfigSecureApViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Secure (Signed Firmware)" />
@@ -34,7 +34,7 @@
         IsReadOnly="True"
         MinWidth="420"
         FontFamily="Consolas,monospace"
-        Background="#262728"
+        Background="{DynamicResource MpBg}"
         Foreground="#DDDDDD"
       />
     </StackPanel>
@@ -50,7 +50,7 @@
       IsReadOnly="True"
       AcceptsReturn="True"
       TextWrapping="Wrap"
-      Background="#262728"
+      Background="{DynamicResource MpBg}"
       Foreground="#DDDDDD"
       FontFamily="Consolas,monospace"
     />

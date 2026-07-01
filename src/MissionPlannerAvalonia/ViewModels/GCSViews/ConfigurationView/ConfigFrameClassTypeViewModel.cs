@@ -1,16 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
-using MissionPlanner;
 using MissionPlanner.ArduPilot;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Mirrors upstream GCSViews/ConfigurationView/ConfigFrameClassType.cs: FRAME_CLASS /
-// FRAME_TYPE selection where the available types are filtered per class via
-// ArduPilot.Common.ValidList, and a diagram image is shown for the chosen type.
-// Combos are used here instead of upstream's radio-button + PictureBox grid.
 public partial class ConfigFrameClassTypeViewModel : ParamPageBase {
   private bool _suppress;
 
@@ -29,12 +27,8 @@ public partial class ConfigFrameClassTypeViewModel : ParamPageBase {
   [ObservableProperty]
   private bool _isAvailable;
 
-  // ponytail: upstream shows per-type frame diagrams (Resources.frames_plus / frames_x /
-  // new_3DR_04 / frames_h / y6b ...). Those bitmaps are not yet imported into the Avalonia
-  // asset pipeline, so FrameImage stays null and the View shows a textual placeholder.
-  // Once the art is bundled under Assets/, set this to the matching avares:// path in DoType.
   [ObservableProperty]
-  private string? _frameImage;
+  private Bitmap? _frameImage;
 
   [ObservableProperty]
   private string _frameImageCaption = "";
@@ -62,7 +56,6 @@ public partial class ConfigFrameClassTypeViewModel : ParamPageBase {
 
     IsAvailable = true;
 
-    // distinct classes present in the valid list, friendly labelled
     foreach (var cls in Common.ValidList.Select(a => a.Item1).Distinct()) {
       ClassOptions.Add(new ParamOption((int)cls, Friendly(cls.ToString())));
     }
@@ -124,15 +117,56 @@ public partial class ConfigFrameClassTypeViewModel : ParamPageBase {
     if (SelectedType != null) {
       UpdateImage((motor_frame_type)SelectedType.Value);
     } else {
-      FrameImage = null;
-      FrameImageCaption = "(no sub-types for this class)";
+      FrameImage = LoadClassImage(cls);
+      FrameImageCaption = FrameImage == null ? "(no sub-types for this class)" : "";
     }
   }
 
   private void UpdateImage(motor_frame_type type) {
-    // ponytail: art assets not imported yet — only set the caption.
-    FrameImage = null;
-    FrameImageCaption = Friendly(type.ToString()) + " (diagram pending asset import)";
+    var bmp = LoadTypeImage(type);
+    if (bmp == null && SelectedClass != null) {
+      bmp = LoadClassImage((motor_frame_class)SelectedClass.Value);
+    }
+    FrameImage = bmp;
+    FrameImageCaption = bmp == null ? Friendly(type.ToString()) : "";
+  }
+
+  private static Bitmap? LoadTypeImage(motor_frame_type type) => type switch {
+    motor_frame_type.MOTOR_FRAME_TYPE_PLUS => Load("type_plus"),
+    motor_frame_type.MOTOR_FRAME_TYPE_X => Load("type_x"),
+    motor_frame_type.MOTOR_FRAME_TYPE_V => Load("type_v"),
+    motor_frame_type.MOTOR_FRAME_TYPE_H => Load("type_h"),
+    motor_frame_type.MOTOR_FRAME_TYPE_Y6B => Load("type_y6b"),
+    _ => null,
+  };
+
+  private static Bitmap? LoadClassImage(motor_frame_class cls) => cls switch {
+    motor_frame_class.MOTOR_FRAME_QUAD => Load("class_quad"),
+    motor_frame_class.MOTOR_FRAME_HEXA => Load("class_hexa"),
+    motor_frame_class.MOTOR_FRAME_OCTA => Load("class_octa"),
+    motor_frame_class.MOTOR_FRAME_OCTAQUAD => Load("class_octaquad"),
+    motor_frame_class.MOTOR_FRAME_Y6 => Load("class_y6"),
+    motor_frame_class.MOTOR_FRAME_HELI => Load("class_heli"),
+    motor_frame_class.MOTOR_FRAME_TRI => Load("class_tri"),
+    _ => null,
+  };
+
+  private static readonly Dictionary<string, Bitmap?> _imageCache = new();
+
+  private static Bitmap? Load(string name) {
+    if (_imageCache.TryGetValue(name, out var cached)) {
+      return cached;
+    }
+    Bitmap? bmp = null;
+    try {
+      var uri = new Uri($"avares://MissionPlannerAvalonia/Assets/Frames/{name}.png");
+      using var stream = AssetLoader.Open(uri);
+      bmp = new Bitmap(stream);
+    } catch {
+      bmp = null;
+    }
+    _imageCache[name] = bmp;
+    return bmp;
   }
 
   private void WriteParam(string name, int value) {

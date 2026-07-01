@@ -9,21 +9,14 @@
   d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigESCCalibrationView"
   x:DataType="cv:ConfigESCCalibrationViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <UserControl.Styles>
-    <Style Selector="TextBlock.lbl">
-      <Setter Property="Foreground" Value="#E6E6E6" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
     <Style Selector="TextBlock.desc">
       <Setter Property="Foreground" Value="#C8C8C8" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="Margin" Value="10,0,0,0" />
-    </Style>
-    <Style Selector="NumericUpDown.spin">
-      <Setter Property="MinWidth" Value="120" />
     </Style>
   </UserControl.Styles>
 
@@ -31,7 +24,6 @@
     <StackPanel Margin="16" Spacing="0">
       <TextBlock Classes="pagetitle" Text="{Binding Title}" />
 
-      <!-- Calibrate button (left) + instructions (right), as in MP -->
       <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0">
         <Button Grid.Column="0" Content="{Binding CalButtonText}" Command="{Binding CalibrateEscCommand}"
                 MinWidth="120" VerticalAlignment="Top" Margin="0,2,16,0" />
@@ -46,40 +38,39 @@
         </StackPanel>
       </Grid>
 
-      <!-- Param fields: label | control | description (bound to ordered Fields[0..5]) -->
       <Grid ColumnDefinitions="150,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,18,0,0">
         <TextBlock Grid.Row="0" Grid.Column="0" Classes="lbl" Text="ESC Type:" />
         <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="200"
                   ItemsSource="{Binding Fields[0].Options}" SelectedItem="{Binding Fields[0].SelectedOption}" />
 
         <TextBlock Grid.Row="1" Grid.Column="0" Classes="lbl" Text="Output PWM Min" Margin="0,6,0,0" />
-        <NumericUpDown Grid.Row="1" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+        <NumericUpDown Grid.Row="1" Grid.Column="1" Classes="md" Margin="0,6,0,0"
                        Value="{Binding Fields[1].Value}" Minimum="{Binding Fields[1].Min}"
                        Maximum="{Binding Fields[1].Max}" Increment="{Binding Fields[1].Increment}" FormatString="0.######" />
         <TextBlock Grid.Row="1" Grid.Column="2" Classes="desc" Text="Leave as 0 to use RX input range" Margin="10,6,0,0" />
 
         <TextBlock Grid.Row="2" Grid.Column="0" Classes="lbl" Text="Output PWM Max" Margin="0,6,0,0" />
-        <NumericUpDown Grid.Row="2" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+        <NumericUpDown Grid.Row="2" Grid.Column="1" Classes="md" Margin="0,6,0,0"
                        Value="{Binding Fields[2].Value}" Minimum="{Binding Fields[2].Min}"
                        Maximum="{Binding Fields[2].Max}" Increment="{Binding Fields[2].Increment}" FormatString="0.######" />
         <TextBlock Grid.Row="2" Grid.Column="2" Classes="desc" Text="Leave as 0 to use RX input range" Margin="10,6,0,0" />
 
         <TextBlock Grid.Row="3" Grid.Column="0" Classes="lbl" Text="Spin when Armed" Margin="0,6,0,0" />
-        <NumericUpDown Grid.Row="3" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+        <NumericUpDown Grid.Row="3" Grid.Column="1" Classes="md" Margin="0,6,0,0"
                        Value="{Binding Fields[3].Value}" Minimum="{Binding Fields[3].Min}"
                        Maximum="{Binding Fields[3].Max}" Increment="{Binding Fields[3].Increment}" FormatString="0.######" />
         <TextBlock Grid.Row="3" Grid.Column="2" Classes="desc"
                    Text="speed when motors are armed but throttle is at zero (idle)" Margin="10,6,0,0" />
 
         <TextBlock Grid.Row="4" Grid.Column="0" Classes="lbl" Text="Spin minimum" Margin="0,6,0,0" />
-        <NumericUpDown Grid.Row="4" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+        <NumericUpDown Grid.Row="4" Grid.Column="1" Classes="md" Margin="0,6,0,0"
                        Value="{Binding Fields[4].Value}" Minimum="{Binding Fields[4].Min}"
                        Maximum="{Binding Fields[4].Max}" Increment="{Binding Fields[4].Increment}" FormatString="0.######" />
         <TextBlock Grid.Row="4" Grid.Column="2" Classes="desc"
                    Text="minimum speed of motors while in flight (slightly higher than &quot;Spin when Armed&quot;)" Margin="10,6,0,0" />
 
         <TextBlock Grid.Row="5" Grid.Column="0" Classes="lbl" Text="Spin Maximum" Margin="0,6,0,0" />
-        <NumericUpDown Grid.Row="5" Grid.Column="1" Classes="spin" Margin="0,6,0,0"
+        <NumericUpDown Grid.Row="5" Grid.Column="1" Classes="md" Margin="0,6,0,0"
                        Value="{Binding Fields[5].Value}" Minimum="{Binding Fields[5].Min}"
                        Maximum="{Binding Fields[5].Max}" Increment="{Binding Fields[5].Increment}" FormatString="0.######" />
         <TextBlock Grid.Row="5" Grid.Column="2" Classes="desc"
@@ -88,7 +79,7 @@
 
       <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,14,0,0">
         <Button Content="Refresh Params" Command="{Binding RefreshCommand}" />
-        <TextBlock Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
       </StackPanel>
     </StackPanel>
   </ScrollViewer>

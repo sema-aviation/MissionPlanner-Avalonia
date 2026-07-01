@@ -9,12 +9,9 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of MissionPlanner.GCSViews.ConfigurationView.ConfigCubeID — CubeID / DroneCAN ODID node
-// firmware update over MAVLink serial passthrough. The upload worker mirrors upstream exactly
-// (CUBEPILOT_FIRMWARE_UPDATE_START + ENCAPSULATED_DATA chunks, crc32, RESP-driven offsets).
 public partial class ConfigCubeIDViewModel : ViewModelBase {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
-  private const string Url =
+  private const string _url =
       "https://firmware.cubepilot.org/UAVCAN/com.cubepilot.cubeid/1.0/serial_fw_update.bin";
 
   private volatile bool _done;
@@ -41,8 +38,7 @@ public partial class ConfigCubeIDViewModel : ViewModelBase {
   [ObservableProperty]
   private string _status = "";
 
-  // SERIAL passthrough params. ponytail divergence: upstream binds these to MAVlist[1,1].param;
-  // here they reflect the connected autopilot's params (the normal CubeID passthrough setup).
+  // ponytail: upstream binds SERIAL passthrough to MAVlist[1,1].param; here they reflect the connected autopilot's params (normal CubeID passthrough).
   [ObservableProperty]
   private ParamField? _serialPass2;
 
@@ -121,7 +117,7 @@ public partial class ConfigCubeIDViewModel : ViewModelBase {
     try {
       if (_file == string.Empty) {
         _file = Path.GetTempFileName();
-        if (!Download.getFilefromNet(Url, _file)) {
+        if (!Download.getFilefromNet(_url, _file)) {
           Report(0, "Bad Download");
           return;
         }

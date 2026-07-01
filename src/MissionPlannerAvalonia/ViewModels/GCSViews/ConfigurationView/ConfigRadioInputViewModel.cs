@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,7 +15,7 @@ public partial class ConfigRadioInputViewModel : ViewModelBase, IDisposable {
   private readonly float[] _max = new float[16];
   private readonly float[] _trim = new float[16];
   private bool _calibrating;
-  private bool _startup = true;
+  private readonly bool _startup = true;
 
   private int _chRoll = 1, _chPitch = 2, _chThro = 3, _chYaw = 4;
 
@@ -88,16 +87,16 @@ public partial class ConfigRadioInputViewModel : ViewModelBase, IDisposable {
       _chYaw = (int)P("RCMAP_YAW");
     }
 
-    _revRoll = P($"RC{_chRoll}_REVERSED") == 1;
-    _revPitch = P($"RC{_chPitch}_REVERSED") == 1;
-    _revThrottle = P($"RC{_chThro}_REVERSED") == 1;
-    _revYaw = P($"RC{_chYaw}_REVERSED") == 1;
+    RevRoll = P($"RC{_chRoll}_REVERSED") == 1;
+    RevPitch = P($"RC{_chPitch}_REVERSED") == 1;
+    RevThrottle = P($"RC{_chThro}_REVERSED") == 1;
+    RevYaw = P($"RC{_chYaw}_REVERSED") == 1;
 
     if (IsPlane) {
-      _elevonMixing = P("ELEVON_MIXING") == 1;
-      _elevonReverse = P("ELEVON_REVERSE") == 1;
-      _elevonCh1Rev = P("ELEVON_CH1_REV") == 1;
-      _elevonCh2Rev = P("ELEVON_CH2_REV") == 1;
+      ElevonMixing = P("ELEVON_MIXING") == 1;
+      ElevonReverse = P("ELEVON_REVERSE") == 1;
+      ElevonCh1Rev = P("ELEVON_CH1_REV") == 1;
+      ElevonCh2Rev = P("ELEVON_CH2_REV") == 1;
     }
 
     try {
@@ -141,6 +140,7 @@ public partial class ConfigRadioInputViewModel : ViewModelBase, IDisposable {
     WriteParam($"RC{ch}_REVERSED", reversed ? 1 : 0);
   }
 
+  [Obsolete]
   private void WriteParam(string name, double value) {
     if (_startup || !IsConnected || !Has(name)) {
       return;

@@ -9,7 +9,7 @@ using MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 namespace MissionPlannerAvalonia.Views.GCSViews.ConfigurationView;
 
 public partial class ConfigOSDView : UserControl {
-  private Canvas? _canvas;
+  private readonly Canvas? _canvas;
   private OsdItemVm? _drag;
 
   public ConfigOSDView() {
@@ -23,7 +23,7 @@ public partial class ConfigOSDView : UserControl {
   }
 
   private void OnPointerPressed(object? sender, PointerPressedEventArgs e) {
-    // Walk up from the hit visual to find the bound OSD item.
+
     if (e.Source is Visual v) {
       var ctrl = v as Control ?? v.FindAncestorOfType<Control>();
       while (ctrl != null && ctrl != _canvas) {

@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigHWESP8266View"
   x:DataType="cv:ConfigHWESP8266ViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="16">
@@ -53,7 +53,7 @@
         />
       </Grid>
 
-      <Border Grid.Row="3" BorderBrush="#262728" BorderThickness="1" Padding="12" Margin="0,0,0,12">
+      <Border Grid.Row="3" BorderBrush="{DynamicResource MpBg}" BorderThickness="1" Padding="12" Margin="0,0,0,12">
         <StackPanel Spacing="8">
           <CheckBox Content="Station (STA) mode" IsChecked="{Binding StaMode}" />
           <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" IsEnabled="{Binding StaMode}">

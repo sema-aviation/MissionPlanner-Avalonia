@@ -9,7 +9,7 @@
   d:DesignHeight="760"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigGpsInjectView"
   x:DataType="cv:ConfigGpsInjectViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="10">
@@ -17,7 +17,6 @@
 
       <TextBlock Text="{Binding Status}" Classes="fieldlbl" TextWrapping="Wrap" />
 
-      <!-- Port / baud / connect -->
       <StackPanel Orientation="Horizontal" Spacing="8">
         <ComboBox Width="160" ItemsSource="{Binding Ports}" SelectedItem="{Binding SelectedPort}" />
         <ComboBox Width="110" ItemsSource="{Binding BaudRates}" SelectedItem="{Binding SelectedBaud}"
@@ -26,7 +25,6 @@
         <Button Content="Refresh" Command="{Binding RefreshPortsCommand}" />
       </StackPanel>
 
-      <!-- NTRIP fields -->
       <Grid ColumnDefinitions="120,*,120,*" RowDefinitions="Auto,Auto,Auto" IsVisible="{Binding IsNtrip}">
         <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Caster Host" VerticalAlignment="Center" Margin="0,4" />
         <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Host}" Watermark="caster.example.com" Margin="0,4,8,4" />
@@ -42,7 +40,6 @@
         <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding Password}" PasswordChar="*" Margin="0,4" />
       </Grid>
 
-      <!-- Options -->
       <WrapPanel Orientation="Horizontal">
         <CheckBox Content="Send NTRIP GGA? (VRS/Smart)" IsChecked="{Binding SendGga}" Margin="0,0,16,0" />
         <CheckBox Content="Send NTRIP protocol v1.0 ?" IsChecked="{Binding NtripV1}" Margin="0,0,16,0" />
@@ -51,7 +48,6 @@
                   IsVisible="{Binding AutoConfig}" />
       </WrapPanel>
 
-      <!-- Link status -->
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10">
         <StackPanel Spacing="4">
           <TextBlock Classes="fieldlbl" Text="Link Status" FontWeight="Bold" />
@@ -72,7 +68,6 @@
         </StackPanel>
       </Border>
 
-      <!-- RTCM -->
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10">
         <StackPanel Spacing="6">
           <TextBlock Classes="fieldlbl" Text="RTCM" FontWeight="Bold" />
@@ -100,7 +95,6 @@
         </StackPanel>
       </Border>
 
-      <!-- Automatic Config Options -->
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10" IsVisible="{Binding AutoConfig}">
         <StackPanel Spacing="6">
           <TextBlock Classes="fieldlbl" Text="Automatic Config Options" FontWeight="Bold" />
@@ -119,7 +113,6 @@
         </StackPanel>
       </Border>
 
-      <!-- Septentrio config -->
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10" IsVisible="{Binding IsSeptentrio}">
         <StackPanel Spacing="8">
           <TextBlock Classes="fieldlbl" Text="Septentrio" FontWeight="Bold" />
@@ -158,7 +151,6 @@
         </StackPanel>
       </Border>
 
-      <!-- Base positions -->
       <Border BorderBrush="#666" BorderThickness="1" CornerRadius="3" Padding="10">
         <StackPanel Spacing="6">
           <TextBlock Classes="fieldlbl" Text="Saved Base Positions" FontWeight="Bold" />

@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigHWBTView"
   x:DataType="cv:ConfigHWBTViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Bluetooth Setup" />
@@ -62,7 +62,7 @@
 
     <Border
       Grid.Row="6"
-      Background="#262728"
+      Background="{DynamicResource MpBg}"
       Margin="0,12,0,0"
     >
       <ScrollViewer>

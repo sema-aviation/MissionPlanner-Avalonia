@@ -9,16 +9,9 @@ using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of upstream GCSViews/ConfigurationView/ConfigFailSafe.cs(.Designer.cs).
-// Upstream groups the failsafe params into three group boxes ("Radio", "GCS",
-// "Battery") and wires each MavlinkComboBox/CheckBox/NumericUpDown to the param
-// that exists for the connected vehicle (FS_THR_ENABLE/FS_GCS_ENABLE/BATT_* for
-// ArduCopter & Rover, THR_FAILSAFE/FS_*_ACTN/FS_BATT_* for ArduPlane). Here the
-// vehicle is selected from comPort.MAV.cs.firmware and only the matching field set
-// is built into each group. The 16 RC in/out PWM bars are mirrored on the right.
 public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
-  private static readonly IBrush NormalBrush = new SolidColorBrush(Color.Parse("#94C11F"));
-  private static readonly IBrush ThrottleLowBrush = Brushes.Red;
+  private static readonly IBrush _normalBrush = new SolidColorBrush(Color.Parse("#94C11F"));
+  private static readonly IBrush _throttleLowBrush = Brushes.Red;
 
   private readonly DispatcherTimer _timer;
 
@@ -28,15 +21,12 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
   public bool IsRover { get; }
   public string WikiUrl { get; }
 
-  // Upstream group boxes 2/3/4. Each field is also added to the base Fields
-  // collection (via FG) so ParamPageBase.Refresh reloads them.
   public ObservableCollection<ParamField> RadioFields { get; } = new();
   public ObservableCollection<ParamField> GcsFields { get; } = new();
   public ObservableCollection<ParamField> BatteryFields { get; } = new();
 
   public FailsafeChannel[] Channels { get; }
 
-  // Live status trio (upstream lbl_currentmode / lbl_armed / lbl_gpslock).
   [ObservableProperty]
   private string _currentMode = "—";
 
@@ -46,9 +36,8 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
   [ObservableProperty]
   private string _gpsText = "GPS: No GPS";
 
-  // Mode label turns red when the throttle channel is below the failsafe threshold.
   [ObservableProperty]
-  private IBrush _modeBrush = NormalBrush;
+  private IBrush _modeBrush = _normalBrush;
 
   [RelayCommand]
   private void OpenWiki() => Dialogs.OpenUrl(WikiUrl);
@@ -67,30 +56,29 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
         : "https://ardupilot.org/plane/docs/advanced-failsafe-configuration.html";
 
     if (IsPlane) {
-      // groupBox2 "Radio"
+
       FG(RadioFields, "THR_FAILSAFE", "combo");
       FG(RadioFields, "THR_FS_VALUE");
       FG(RadioFields, "THR_FS_ACTION", "combo");
-      // groupBox3 "GCS"
+
       FG(GcsFields, "FS_GCS_ENABL", "combo");
       FG(GcsFields, "FS_SHORT_ACTN", "combo");
       FG(GcsFields, "FS_LONG_ACTN", "combo");
-      // groupBox4 "Battery"
+
       FG(BatteryFields, "FS_BATT_ENABLE", "combo");
       FG(BatteryFields, "FS_BATT_VOLTAGE");
       FG(BatteryFields, "FS_BATT_MAH");
     } else {
-      // ArduCopter / Rover / other: copter-style failsafe params.
-      // groupBox2 "Radio"
+
       FG(RadioFields, "FS_THR_ENABLE", "combo");
       FG(RadioFields, "FS_THR_VALUE");
-      // groupBox3 "GCS"
+
       FG(GcsFields, "FS_GCS_ENABLE", "combo");
-      // groupBox4 "Battery" — upstream picks the first param that exists, in priority order.
+
       FGfirst(BatteryFields, "combo", "BATT_FS_LOW_ACT", "FS_BATT_ENABLE");
       FGfirst(BatteryFields, null, "LOW_VOLT", "FS_BATT_VOLTAGE", "BATT_LOW_VOLT");
       FGfirst(BatteryFields, null, "FS_BATT_MAH", "BATT_LOW_MAH");
-      // Low Timer is Copter-only; upstream omits the control when the param is absent.
+
       if (comPort.MAV.param.ContainsKey("BATT_LOW_TIMER")) {
         FG(BatteryFields, "BATT_LOW_TIMER");
       }
@@ -98,7 +86,7 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
 
     Channels = new FailsafeChannel[16];
     for (int i = 0; i < 16; i++) {
-      Channels[i] = new FailsafeChannel(i + 1) { InBrush = NormalBrush, OutBrush = NormalBrush };
+      Channels[i] = new FailsafeChannel(i + 1) { InBrush = _normalBrush, OutBrush = _normalBrush };
     }
 
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
@@ -112,8 +100,6 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
     return f;
   }
 
-  // Adds the first of the candidate params that the vehicle actually exposes (mirrors upstream's
-  // BATT_FS_LOW_ACT→FS_BATT_ENABLE / LOW_VOLT→FS_BATT_VOLTAGE→BATT_LOW_VOLT fallbacks).
   private void FGfirst(ObservableCollection<ParamField> group, string? kind, params string[] names) {
     foreach (var n in names) {
       if (comPort.MAV.param.ContainsKey(n)) {
@@ -143,12 +129,11 @@ public partial class ConfigFailSafeViewModel : ParamPageBase, IDisposable {
       Channels[i].Out = outs[i];
     }
 
-    // ch3 is the throttle channel: recolor red when below the failsafe threshold.
     bool thrLow = fsThr > 0 && ins[2] > 0 && ins[2] < fsThr;
-    Channels[2].InBrush = thrLow ? ThrottleLowBrush : NormalBrush;
+    Channels[2].InBrush = thrLow ? _throttleLowBrush : _normalBrush;
 
     CurrentMode = cs.mode ?? "—";
-    ModeBrush = thrLow ? ThrottleLowBrush : NormalBrush;
+    ModeBrush = thrLow ? _throttleLowBrush : _normalBrush;
     ArmedText = cs.armed ? "Armed" : "Disarmed";
     GpsText = (int)cs.gpsstatus switch {
       0 => "GPS: No GPS",

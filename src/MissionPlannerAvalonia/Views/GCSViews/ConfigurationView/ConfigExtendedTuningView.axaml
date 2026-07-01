@@ -9,7 +9,7 @@
   d:DesignHeight="800"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigExtendedTuningView"
   x:DataType="cv:ConfigExtendedTuningViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -104,7 +104,7 @@
                         <TextBlock
                           Grid.Column="3"
                           Text="{Binding Status}"
-                          Foreground="#94C11F"
+                          Foreground="{DynamicResource MpAccentBrush}"
                           VerticalAlignment="Center"
                         />
                       </Grid>

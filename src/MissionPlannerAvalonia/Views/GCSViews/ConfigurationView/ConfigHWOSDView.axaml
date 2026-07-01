@@ -9,7 +9,7 @@
   d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigHWOSDView"
   x:DataType="cv:ConfigHWOSDViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <StackPanel Margin="16" Spacing="10">
     <TextBlock Classes="pagetitle" Text="{Binding Title}" />
@@ -17,7 +17,7 @@
 
     <StackPanel Orientation="Horizontal" Spacing="8">
       <Button Content="Enable Telemetry" Command="{Binding EnableTelemetryCommand}" />
-      <TextBlock Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+      <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
     </StackPanel>
 
     <TextBlock Classes="fieldlbl" Text="{Binding Note}" TextWrapping="Wrap" Foreground="#BBBBBB" />

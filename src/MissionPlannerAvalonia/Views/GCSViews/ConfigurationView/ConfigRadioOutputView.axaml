@@ -9,7 +9,7 @@
   d:DesignHeight="700"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigRadioOutputView"
   x:DataType="cv:ConfigRadioOutputViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Servo Output" />
@@ -41,7 +41,7 @@
                   Maximum="2200"
                   Value="{Binding Pwm}"
                   Height="22"
-                  Foreground="#94C11F"
+                  Foreground="{DynamicResource MpAccentBrush}"
                 />
                 <TextBlock
                   Text="{Binding Pwm, StringFormat='0'}"

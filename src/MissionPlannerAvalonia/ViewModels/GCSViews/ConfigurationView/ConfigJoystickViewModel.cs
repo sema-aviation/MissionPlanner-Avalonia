@@ -23,7 +23,7 @@ using MissionPlannerAvalonia.Services;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
-  private const int MaxAxis = 16;
+  private const int _maxAxis = 16;
 
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private readonly DispatcherTimer _timer;
@@ -64,9 +64,8 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     RefreshDevices();
     LoadedConfig = "Loaded Config for " + _comPort.MAV.cs.firmware;
 
-    // build a config-only joystick so the axis rows reflect any saved xml mapping
     var temp = JoystickBase.Create(() => _comPort);
-    for (int a = 1; a <= MaxAxis; a++) {
+    for (int a = 1; a <= _maxAxis; a++) {
       var cfg = temp.getChannel(a);
       Axes.Add(new JoyAxisRow(a) {
         Axis = (cfg.axis).ToString(),
@@ -159,8 +158,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     Status = "Joystick configuration saved.";
   }
 
-  // Mirrors JoystickSetup.but_settings_Click: each button function has a small dialog that
-  // edits that action's Joy_* params (mode / p1..p4) directly on the live JoyButton config.
   [RelayCommand]
   private async Task ButtonSettings(JoyButtonRow row) {
     if (row == null) {
@@ -172,8 +169,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
       return;
     }
 
-    // Sync this row's chosen function/buttonno into the live config first so the dialog
-    // reads/writes the JoyButton entry it is about to edit.
     ApplyButtonToJoystick(row);
 
     var fn = ParseFunction(row.Function);
@@ -208,7 +203,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // Export every joystickbutton*/joystickaxis* xml into a single .joycfg zip (JoystickBase.ExportConfig).
   [RelayCommand]
   private async Task ExportConfig() {
     if (_joystick == null) {
@@ -232,7 +226,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // Import a .joycfg zip back into the user data dir and reload the axis rows (JoystickBase.ImportConfig).
   [RelayCommand]
   private async Task ImportConfig() {
     if (!await Dialogs.Confirm("Import Joystick Config",
@@ -246,7 +239,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
       return;
     }
 
-    // A live, enabled joystick holds the old config in memory; drop it so the reload wins.
     if (_joystick != null && _joystick.enabled) {
       ToggleEnable();
     }
@@ -255,7 +247,7 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
       var temp = JoystickBase.Create(() => _comPort);
       temp.ImportConfig(path);
       temp.loadconfig();
-      for (int a = 1; a <= MaxAxis && a - 1 < Axes.Count; a++) {
+      for (int a = 1; a <= _maxAxis && a - 1 < Axes.Count; a++) {
         var cfg = temp.getChannel(a);
         var rowidx = a - 1;
         Axes[rowidx].Axis = cfg.axis.ToString();
@@ -388,7 +380,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     return buttonfunction.ChangeMode;
   }
 
-  // ChangeMode dialog (mirrors Joy_ChangeMode): pick a flight mode string -> config.mode.
   private async Task ShowModeDialog(int index) {
     if (_joystick == null) {
       return;
@@ -419,7 +410,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // Mount_Mode dialog (mirrors Joy_Mount_Mode): pick MNT*_DEFLT_MODE option -> config.p1.
   private async Task ShowMountModeDialog(int index) {
     if (_joystick == null) {
       return;
@@ -459,7 +449,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // Generic numeric-param dialog (mirrors the Joy_Do_* / Joy_Button_axis NumericUpDown forms).
   private async Task ShowParamDialog(int index, string title,
       params (string Label, string Field)[] fields) {
     if (_joystick == null) {
@@ -508,7 +497,6 @@ public partial class ConfigJoystickViewModel : ViewModelBase, IDisposable {
     return cfg;
   }
 
-  // Minimal modal dialog (OK/Cancel) built in code, in the spirit of Services/Dialogs.cs.
   private static Task<bool> ShowDialog(string title, Control[] body) {
     var panel = new StackPanel { Margin = new Thickness(16), Spacing = 8 };
     panel.Children.Add(new TextBlock {
@@ -637,11 +625,11 @@ public partial class JoyButtonRow : ObservableObject {
 public class JoyPressedConverter : IValueConverter {
   public static readonly JoyPressedConverter Instance = new();
 
-  private static readonly IBrush On = new SolidColorBrush(Color.FromRgb(0x94, 0xC1, 0x1F));
-  private static readonly IBrush Off = new SolidColorBrush(Color.FromRgb(0x26, 0x27, 0x28));
+  private static readonly IBrush _on = new SolidColorBrush(Color.FromRgb(0x94, 0xC1, 0x1F));
+  private static readonly IBrush _off = new SolidColorBrush(Color.FromRgb(0x26, 0x27, 0x28));
 
   public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
-    return value is true ? On : Off;
+    return value is true ? _on : _off;
   }
 
   public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) {

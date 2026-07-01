@@ -14,7 +14,7 @@ public record SimpleRelation(string Name, double Multiplier);
 
 public partial class SimplePidItem : ObservableObject {
   private readonly Action<SimplePidItem>? _onChanged;
-  private bool _suppress;
+  private readonly bool _suppress;
 
   public string Title { get; }
   public string Description { get; }
@@ -70,7 +70,7 @@ public partial class ConfigBasicTuningViewModel : ViewModelBase {
   }
 
   private static readonly (string Title, string Desc, string Name, double Min, double Max,
-      SimpleRelation[] Relations)[] Template = {
+      SimpleRelation[] Relations)[] _template = {
     ("RC Feel Roll/Pitch",
      "Slide to the left for softer response to user RC input or slide to the right for crisper response.",
      "RC_FEEL_RP", 0, 100, new SimpleRelation[0]),
@@ -108,7 +108,7 @@ public partial class ConfigBasicTuningViewModel : ViewModelBase {
     Items.Clear();
     var fw = _comPort.MAV.cs.firmware.ToString();
 
-    foreach (var t in Template) {
+    foreach (var t in _template) {
       if (!_comPort.MAV.param.ContainsKey(t.Name)) {
         continue;
       }

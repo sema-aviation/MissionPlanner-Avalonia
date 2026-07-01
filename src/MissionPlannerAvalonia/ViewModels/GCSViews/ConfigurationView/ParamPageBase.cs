@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MissionPlanner;
 
@@ -43,9 +41,6 @@ public partial class ParamPageBase : ViewModelBase {
       return;
     }
 
-    // getParamListMavftp (what Open uses); the no-arg getParamList() NREs here because it builds a
-    // WinForms progress dialog via a static event that's unregistered in this port — that null-event
-    // NRE was the ESC-calibration "Refresh Params" crash. try/catch keeps any other fault contained.
     try {
       await Task.Run(() => comPort.getParamListMavftp(comPort.MAV.sysid, comPort.MAV.compid));
     } catch (System.Exception ex) {

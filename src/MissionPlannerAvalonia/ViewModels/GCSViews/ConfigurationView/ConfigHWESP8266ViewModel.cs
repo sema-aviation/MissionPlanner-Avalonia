@@ -10,7 +10,7 @@ using MissionPlanner;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigHWESP8266ViewModel : ViewModelBase {
-  private const byte UdpBridge = (byte)MAVLink.MAV_COMPONENT.MAV_COMP_ID_UDP_BRIDGE;
+  private const byte _udpBridge = (byte)MAVLink.MAV_COMPONENT.MAV_COMP_ID_UDP_BRIDGE;
 
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 
@@ -73,13 +73,13 @@ public partial class ConfigHWESP8266ViewModel : ViewModelBase {
 
     await Task.Run(() => _comPort.sendPacket(new MAVLink.mavlink_param_request_list_t() {
       target_system = 0,
-      target_component = UdpBridge,
-    }, _comPort.sysidcurrent, UdpBridge));
+      target_component = _udpBridge,
+    }, _comPort.sysidcurrent, _udpBridge));
 
     await Task.Delay(2000);
 
     byte sysid = _comPort.MAV.sysid;
-    var mav = _comPort.MAVlist[sysid, UdpBridge];
+    var mav = _comPort.MAVlist[sysid, _udpBridge];
 
     if (mav == null || !mav.param.ContainsKey("WIFI_SSID1")) {
       await Dispatcher.UIThread.InvokeAsync(() => {
@@ -151,7 +151,7 @@ public partial class ConfigHWESP8266ViewModel : ViewModelBase {
   }
 
   private void SetU32(string name, string source, int start) {
-    _comPort.setParam((byte)_comPort.sysidcurrent, UdpBridge, name,
+    _comPort.setParam((byte)_comPort.sysidcurrent, _udpBridge, name,
       BitConverter.ToUInt32(StringToByteArray(source, start, 4), 0));
   }
 
@@ -165,8 +165,8 @@ public partial class ConfigHWESP8266ViewModel : ViewModelBase {
     Status = "Saving…";
     bool pass = await Task.Run(() => {
       try {
-        _comPort.setParam((byte)_comPort.sysidcurrent, UdpBridge, "WIFI_CHANNEL", int.Parse(Channel));
-        _comPort.setParam((byte)_comPort.sysidcurrent, UdpBridge, "UART_BAUDRATE", int.Parse(Baud));
+        _comPort.setParam((byte)_comPort.sysidcurrent, _udpBridge, "WIFI_CHANNEL", int.Parse(Channel));
+        _comPort.setParam((byte)_comPort.sysidcurrent, _udpBridge, "UART_BAUDRATE", int.Parse(Baud));
 
         SetU32("WIFI_SSID1", Ssid, 0);
         SetU32("WIFI_SSID2", Ssid, 4);
@@ -188,18 +188,18 @@ public partial class ConfigHWESP8266ViewModel : ViewModelBase {
         SetU32("WIFI_PWDSTA3", Password, 8);
         SetU32("WIFI_PWDSTA4", Password, 12);
 
-        _comPort.setParam((byte)_comPort.sysidcurrent, UdpBridge, "WIFI_IPSTA",
+        _comPort.setParam((byte)_comPort.sysidcurrent, _udpBridge, "WIFI_IPSTA",
           BitConverter.ToUInt32(IPAddress.Parse(IpSta).GetAddressBytes(), 0));
-        _comPort.setParam((byte)_comPort.sysidcurrent, UdpBridge, "WIFI_GATEWAYSTA",
+        _comPort.setParam((byte)_comPort.sysidcurrent, _udpBridge, "WIFI_GATEWAYSTA",
           BitConverter.ToUInt32(IPAddress.Parse(GatewaySta).GetAddressBytes(), 0));
-        _comPort.setParam((byte)_comPort.sysidcurrent, UdpBridge, "WIFI_SUBNET_STA",
+        _comPort.setParam((byte)_comPort.sysidcurrent, _udpBridge, "WIFI_SUBNET_STA",
           BitConverter.ToUInt32(IPAddress.Parse(SubnetSta).GetAddressBytes(), 0));
 
-        _comPort.setParam((byte)_comPort.sysidcurrent, UdpBridge, "WIFI_MODE", StaMode ? 1 : 0);
+        _comPort.setParam((byte)_comPort.sysidcurrent, _udpBridge, "WIFI_MODE", StaMode ? 1 : 0);
 
-        bool ok = _comPort.doCommand((byte)_comPort.sysidcurrent, UdpBridge,
+        bool ok = _comPort.doCommand((byte)_comPort.sysidcurrent, _udpBridge,
           MAVLink.MAV_CMD.PREFLIGHT_STORAGE, 1, 0, 0, 0, 0, 0, 0);
-        ok = ok & _comPort.doCommand((byte)_comPort.sysidcurrent, UdpBridge,
+        ok = ok & _comPort.doCommand((byte)_comPort.sysidcurrent, _udpBridge,
           MAVLink.MAV_CMD.PREFLIGHT_REBOOT_SHUTDOWN, 0, 1, 0, 0, 0, 0, 0);
         return ok;
       } catch {
@@ -220,11 +220,11 @@ public partial class ConfigHWESP8266ViewModel : ViewModelBase {
     Status = "Resetting to defaults…";
     bool pass = await Task.Run(() => {
       try {
-        if (!_comPort.doCommand((byte)_comPort.sysidcurrent, UdpBridge,
+        if (!_comPort.doCommand((byte)_comPort.sysidcurrent, _udpBridge,
           MAVLink.MAV_CMD.PREFLIGHT_STORAGE, 2, 0, 0, 0, 0, 0, 0)) {
           return false;
         }
-        return _comPort.doCommand((byte)_comPort.sysidcurrent, UdpBridge,
+        return _comPort.doCommand((byte)_comPort.sysidcurrent, _udpBridge,
           MAVLink.MAV_CMD.PREFLIGHT_STORAGE, 1, 0, 0, 0, 0, 0, 0);
       } catch {
         return false;

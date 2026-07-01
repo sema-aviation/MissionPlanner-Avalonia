@@ -79,7 +79,7 @@ public partial class ConfigRangeFinderViewModel : ParamPageBase, IDisposable {
       return;
     }
     try {
-      // TeraRangerOne-I2C: set min and max to 20cm - 1m
+
       comPort.setParam("RNGFND1_MAX_CM", 100);
       comPort.setParam("RNGFND1_MIN_CM", 20);
       Min.Reload();

@@ -9,15 +9,15 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigScriptReplView"
   x:DataType="cv:ConfigScriptReplViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Script REPL" Margin="0,0,0,8" />
 
     <Border
       Grid.Row="1"
-      Background="#262728"
-      BorderBrush="#2D2D2D"
+      Background="{DynamicResource MpBg}"
+      BorderBrush="{DynamicResource MpInputBg}"
       BorderThickness="1"
       CornerRadius="2"
     >

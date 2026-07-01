@@ -10,15 +10,10 @@ using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Upstream ConfigOSD.cs is a bespoke ArduPilot OSD panel editor (the OSDConfigurator screen
-// preview where each OSD item has an Enable + X/Y position laid out on a screen-rectangle).
-// This is a modern-stack equivalent: a screen-rectangle canvas whose items (OSD<n>_<ITEM>_EN /
-// _X / _Y) are draggable AND X/Y-editable, each wired to its real OSD param via setParam.
 public partial class ConfigOSDViewModel : ParamPageBase {
-  private static readonly Regex EnRegex =
+  private static readonly Regex _enRegex =
       new("^OSD(\\d+)_(.+)_EN$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-  // Analog OSD character grid (PAL/NTSC max). Items snap to whole cells.
   public int Columns { get; } = 30;
   public int Rows { get; } = 16;
   public double CellWidth { get; } = 26;
@@ -52,7 +47,7 @@ public partial class ConfigOSDViewModel : ParamPageBase {
   private void BuildScreens() {
     var screens = new SortedSet<int>();
     foreach (var key in comPort.MAV.param.Keys) {
-      var m = EnRegex.Match(key);
+      var m = _enRegex.Match(key);
       if (m.Success && int.TryParse(m.Groups[1].Value, out var n)) {
         screens.Add(n);
       }
@@ -70,7 +65,7 @@ public partial class ConfigOSDViewModel : ParamPageBase {
     }
 
     if (!Screens.Contains(SelectedScreen)) {
-      SelectedScreen = Screens.First();  // triggers LoadItems
+      SelectedScreen = Screens.First();
     } else {
       LoadItems();
     }
@@ -85,12 +80,12 @@ public partial class ConfigOSDViewModel : ParamPageBase {
     var prefix = $"OSD{SelectedScreen}_";
     var items = new List<OsdItemVm>();
     foreach (var key in comPort.MAV.param.Keys) {
-      var m = EnRegex.Match(key);
+      var m = _enRegex.Match(key);
       if (!m.Success || m.Groups[1].Value != SelectedScreen.ToString()) {
         continue;
       }
 
-      var item = m.Groups[2].Value;  // e.g. "BAT_VOLT"
+      var item = m.Groups[2].Value;
       var xName = prefix + item + "_X";
       var yName = prefix + item + "_Y";
       if (!comPort.MAV.param.ContainsKey(xName) || !comPort.MAV.param.ContainsKey(yName)) {
@@ -127,7 +122,7 @@ public partial class ConfigOSDViewModel : ParamPageBase {
 public partial class OsdItemVm : ObservableObject {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private readonly ConfigOSDViewModel _owner;
-  private bool _suppress;
+  private readonly bool _suppress;
 
   public string Name { get; }
   public string EnName { get; }
@@ -161,7 +156,6 @@ public partial class OsdItemVm : ObservableObject {
     _suppress = false;
   }
 
-  // Snap to a grid cell during drag (clamped to the screen rectangle).
   public void SetCell(int col, int row) {
     X = Math.Clamp(col, 0, _owner.Columns - 1);
     Y = Math.Clamp(row, 0, _owner.Rows - 1);

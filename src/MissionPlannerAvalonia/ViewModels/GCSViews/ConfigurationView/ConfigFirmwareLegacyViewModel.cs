@@ -226,7 +226,7 @@ public partial class ConfigFirmwareLegacyViewModel : ViewModelBase {
         found.close();
         return;
       } catch {
-        // checksum mismatch -> proceed to upload
+
       }
 
       try {

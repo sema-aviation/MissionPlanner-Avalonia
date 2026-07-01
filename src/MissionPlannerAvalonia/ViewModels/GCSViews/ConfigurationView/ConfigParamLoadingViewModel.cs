@@ -7,8 +7,6 @@ using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of MissionPlanner.GCSViews.ConfigurationView.ConfigParamLoading — the transient
-// "parameters still loading" page. Shows getParamList() progress and a Retry Now button.
 public partial class ConfigParamLoadingViewModel : ViewModelBase, IDisposable {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private readonly DispatcherTimer _timer;
@@ -45,8 +43,7 @@ public partial class ConfigParamLoadingViewModel : ViewModelBase, IDisposable {
   [RelayCommand]
   private async Task Retry() {
     Status = "Requesting parameters…";
-    // getParamListMavftp (what Open uses) — the no-arg getParamList() NREs on macOS because it
-    // builds a WinForms progress dialog via the unregistered CreateIProgressReporterDialogue event.
+
     await Task.Run(() => _comPort.getParamListMavftp(_comPort.MAV.sysid, _comPort.MAV.compid));
   }
 

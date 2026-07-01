@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigSecureView"
   x:DataType="cv:ConfigSecureViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Secure (Public Key Management)" />
@@ -35,9 +35,9 @@
 
     <Border
       Grid.Row="3"
-      BorderBrush="#262728"
+      BorderBrush="{DynamicResource MpBg}"
       BorderThickness="1"
-      Background="#262728"
+      Background="{DynamicResource MpBg}"
       Padding="4"
     >
       <ItemsControl ItemsSource="{Binding Keys}">
@@ -73,7 +73,7 @@
       AcceptsReturn="True"
       TextWrapping="Wrap"
       Height="160"
-      Background="#262728"
+      Background="{DynamicResource MpBg}"
       Foreground="#DDDDDD"
       FontFamily="Consolas,monospace"
     />

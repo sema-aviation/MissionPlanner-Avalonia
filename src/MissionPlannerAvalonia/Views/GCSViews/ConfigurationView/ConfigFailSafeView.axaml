@@ -9,7 +9,7 @@
   d:DesignHeight="700"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFailSafeView"
   x:DataType="cv:ConfigFailSafeViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <UserControl.Resources>
     <DataTemplate x:Key="FieldTemplate" x:DataType="cv:ParamField">
@@ -19,7 +19,7 @@
         <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
         <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="160" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
         <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-        <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
       </Grid>
     </DataTemplate>
   </UserControl.Resources>
@@ -32,7 +32,7 @@
       <Setter Property="Margin" Value="0,0,0,10" />
     </Style>
     <Style Selector="TextBlock.grouptitle">
-      <Setter Property="Foreground" Value="#94C11F" />
+      <Setter Property="Foreground" Value="{DynamicResource MpAccentBrush}" />
       <Setter Property="FontWeight" Value="Bold" />
       <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
@@ -51,7 +51,6 @@
                   ToolTip.Tip="{Binding WikiUrl}" />
         </StackPanel>
 
-        <!-- Status trio (upstream lbl_currentmode / lbl_armed / lbl_gpslock) -->
         <Border Classes="group">
           <Grid ColumnDefinitions="*,*,*">
             <StackPanel Grid.Column="0" HorizontalAlignment="Center">
@@ -72,7 +71,6 @@
           </Grid>
         </Border>
 
-        <!-- groupBox2 Radio -->
         <Border Classes="group">
           <StackPanel>
             <TextBlock Classes="grouptitle" Text="Radio" />
@@ -80,7 +78,6 @@
           </StackPanel>
         </Border>
 
-        <!-- groupBox3 GCS -->
         <Border Classes="group">
           <StackPanel>
             <TextBlock Classes="grouptitle" Text="GCS" />
@@ -88,7 +85,6 @@
           </StackPanel>
         </Border>
 
-        <!-- groupBox4 Battery -->
         <Border Classes="group">
           <StackPanel>
             <TextBlock Classes="grouptitle" Text="Battery" />

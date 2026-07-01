@@ -13,7 +13,6 @@ public record ParamOption(int Value, string Text) {
   public override string ToString() => Text;
 }
 
-// One bit in a bitmask parameter (mirrors the upstream Bitmask metadata: "bit:Name").
 public partial class BitOption : ObservableObject {
   private readonly ParamField _owner;
 
@@ -51,17 +50,15 @@ public partial class ParamField : ObservableObject {
   public double Min { get; } = double.MinValue;
   public double Max { get; } = double.MaxValue;
   public double Increment { get; } = 0.01;
-  private bool _hasRange;
+  private readonly bool _hasRange;
 
   public ObservableCollection<ParamOption> Options { get; } = new();
   public ObservableCollection<BitOption> BitOptions { get; } = new();
 
   public bool Exists => _comPort.MAV.param.ContainsKey(Name);
 
-  // Out-of-range highlight: value below Min or above Max (only when a range is published).
   public bool IsOutOfRange => Exists && _hasRange && (Value < Min || Value > Max);
 
-  // Favourite flag (used by friendly-param ordering/persistence). Additive; default false.
   [ObservableProperty]
   private bool _fav;
 
@@ -97,8 +94,7 @@ public partial class ParamField : ObservableObject {
 
     var opts = SafeOptions(name, fw);
     var bits = SafeBitmask(name, fw);
-    // Bitmask is opt-in via kind=="bitmask" so existing pages (whose templates have no bitmask
-    // control) keep their numeric/combo editors. Callers that own a bitmask-aware view request it.
+
     if (kind == "bitmask" && bits.Count > 0) {
       IsBitmask = true;
       foreach (var kv in bits) {
@@ -150,7 +146,6 @@ public partial class ParamField : ObservableObject {
     OnPropertyChanged(nameof(IsOutOfRange));
   }
 
-  // Called by BitOption when a checkbox toggles; recompute the numeric value and push it.
   [Obsolete]
   internal void OnBitToggled() {
     if (_suppress) {
@@ -236,6 +231,5 @@ public partial class ParamField : ObservableObject {
     }
   }
 
-  // Lets a bitmask-aware page decide whether to request kind=="bitmask" for a param.
   public static bool HasBitmask(string name, string fw) => SafeBitmask(name, fw).Count > 0;
 }

@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigInitialParamsView"
   x:DataType="cv:ConfigInitialParamsViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="10">
@@ -44,7 +44,7 @@
         <Button Content="Write to FC" Command="{Binding WriteToFcCommand}" IsEnabled="{Binding HasResults}" />
       </StackPanel>
 
-      <TextBlock Classes="fieldlbl" Text="{Binding Status}" TextWrapping="Wrap" Foreground="#94C11F" />
+      <TextBlock Classes="fieldlbl" Text="{Binding Status}" TextWrapping="Wrap" Foreground="{DynamicResource MpAccentBrush}" />
 
       <DataGrid ItemsSource="{Binding Results}" AutoGenerateColumns="False" IsVisible="{Binding HasResults}"
                 CanUserResizeColumns="True" Height="280" MinHeight="160">

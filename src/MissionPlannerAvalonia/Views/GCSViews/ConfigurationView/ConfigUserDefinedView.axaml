@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigUserDefinedView"
   x:DataType="cv:ConfigUserDefinedViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="User Params" />
@@ -56,7 +56,7 @@
               <TextBlock
                 Grid.Column="3"
                 Text="{Binding Status}"
-                Foreground="#94C11F"
+                Foreground="{DynamicResource MpAccentBrush}"
                 VerticalAlignment="Center"
               />
             </Grid>

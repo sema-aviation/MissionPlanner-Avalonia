@@ -9,11 +9,11 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigRadioInputView"
   x:DataType="cv:ConfigRadioInputViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <UserControl.Styles>
     <Style Selector="ProgressBar.rc">
-      <Setter Property="Foreground" Value="#94C11F" />
+      <Setter Property="Foreground" Value="{DynamicResource MpAccentBrush}" />
       <Setter Property="Background" Value="#43494C" />
     </Style>
   </UserControl.Styles>
@@ -24,9 +24,9 @@
       <TextBlock Text="{Binding Status}" Classes="fieldlbl" TextWrapping="Wrap" />
 
       <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
-        <!-- Left: mapped sticks -->
+
         <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,16,0">
-          <!-- Roll (horizontal) -->
+
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Grid Width="340" Height="26">
               <ProgressBar Classes="rc" Minimum="1000" Maximum="2000" Value="{Binding Roll.Value}" Height="26" />
@@ -38,7 +38,6 @@
             <CheckBox Content="Reverse" IsChecked="{Binding RevRoll}" IsVisible="{Binding ShowReverse}" />
           </StackPanel>
 
-          <!-- Pitch + Throttle (vertical) -->
           <StackPanel Orientation="Horizontal" Spacing="24">
             <StackPanel Spacing="4">
               <Grid Width="64" Height="200">
@@ -64,7 +63,6 @@
             </StackPanel>
           </StackPanel>
 
-          <!-- Yaw (horizontal) -->
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Grid Width="340" Height="26">
               <ProgressBar Classes="rc" Minimum="1000" Maximum="2000" Value="{Binding Yaw.Value}" Height="26" />
@@ -77,7 +75,6 @@
           </StackPanel>
         </StackPanel>
 
-        <!-- Right: aux channels 5-16 + Calibrate -->
         <StackPanel Grid.Column="1" Spacing="6">
           <ItemsControl ItemsSource="{Binding Aux}">
             <ItemsControl.ItemsPanel>
@@ -102,7 +99,6 @@
         </StackPanel>
       </Grid>
 
-      <!-- Elevon + Spektrum groups -->
       <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
         <Border Grid.Column="0" BorderBrush="#666" BorderThickness="1" Padding="10" Margin="0,0,16,0"
                 IsVisible="{Binding IsPlane}" HorizontalAlignment="Left">

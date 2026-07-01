@@ -9,7 +9,7 @@
   d:DesignHeight="480"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigPlannerAdvView"
   x:DataType="cv:ConfigPlannerAdvViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Planner Advanced (config.xml)" />
@@ -24,7 +24,7 @@
       IsReadOnly="True"
       CanUserSortColumns="True"
       GridLinesVisibility="All"
-      Background="#262728"
+      Background="{DynamicResource MpBg}"
     >
       <DataGrid.Columns>
         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />

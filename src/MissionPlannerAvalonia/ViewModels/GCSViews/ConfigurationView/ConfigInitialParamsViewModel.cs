@@ -10,9 +10,6 @@ using MissionPlanner.ArduPilot;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of MissionPlanner.GCSViews.ConfigurationView.ConfigInitialParams — the initial/vehicle
-// default parameter calculator. The upstream WinForms ParamCompare dialog is replaced by an
-// inline compare grid + "Write to FC" button that performs real comPort.setParam writes.
 public partial class ConfigInitialParamsViewModel : ViewModelBase {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 

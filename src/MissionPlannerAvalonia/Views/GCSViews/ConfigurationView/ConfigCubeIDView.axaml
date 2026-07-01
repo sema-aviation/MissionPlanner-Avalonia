@@ -9,7 +9,7 @@
   d:DesignHeight="420"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigCubeIDView"
   x:DataType="cv:ConfigCubeIDViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="10">

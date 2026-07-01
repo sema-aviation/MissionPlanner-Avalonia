@@ -9,7 +9,7 @@
   d:DesignHeight="760"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigTradHeliView"
   x:DataType="cv:ConfigTradHeliViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -19,14 +19,12 @@
       <TextBlock Text="{Binding Intro}" Classes="fieldlbl" TextWrapping="Wrap" VerticalAlignment="Center" />
     </StackPanel>
 
-    <!-- Swashplate type -->
     <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="16" Margin="0,0,0,8">
       <TextBlock Text="Swashplate Type" Classes="fieldlbl" VerticalAlignment="Center" />
       <RadioButton GroupName="swash" Content="CCPM" IsChecked="{Binding SwashIsCcpm}" />
       <RadioButton GroupName="swash" Content="H1 (Single Servo)" IsChecked="{Binding !SwashIsCcpm}" />
     </StackPanel>
 
-    <!-- Manual servo test (H_SV_MAN) -->
     <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="6" Margin="0,0,0,10">
       <TextBlock Text="Manual Servo:" Classes="fieldlbl" VerticalAlignment="Center" />
       <Button Content="Manual" Command="{Binding SetServoManCommand}" CommandParameter="1" />
@@ -35,7 +33,7 @@
       <Button Content="Min" Command="{Binding SetServoManCommand}" CommandParameter="4" />
       <Button Content="Test" Command="{Binding SetServoManCommand}" CommandParameter="5" />
       <Button Content="Disable" Command="{Binding SetServoManCommand}" CommandParameter="0" />
-      <TextBlock Text="{Binding ServoStatus}" Foreground="#94C11F" VerticalAlignment="Center" Margin="8,0,0,0" />
+      <TextBlock Text="{Binding ServoStatus}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
     </StackPanel>
 
     <ScrollViewer Grid.Row="4">
@@ -52,7 +50,7 @@
                              Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}"
                              Increment="{Binding Increment}" FormatString="0.######" />
               <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
             </Grid>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

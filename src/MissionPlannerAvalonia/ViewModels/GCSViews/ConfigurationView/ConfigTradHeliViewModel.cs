@@ -5,10 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// Port of MissionPlanner.GCSViews.ConfigurationView.ConfigTradHeli (legacy 3.x heli page).
-// Full parameter set + swashplate type radios + H_SV_MAN manual servo-test buttons.
-// ponytail: the live ZedGraph collective curve and the HS3/HS4 live servo-input bars are
-// telemetry visualizations only and are not ported here; all writable params are present.
+// ponytail: live ZedGraph collective curve + HS3/HS4 servo-input bars are telemetry visualizations only, not ported; all writable params are present.
 public partial class ConfigTradHeliViewModel : ParamPageBase {
   private bool _suppressSwash;
 
@@ -123,7 +120,6 @@ public partial class ConfigTradHeliViewModel : ParamPageBase {
     }
   }
 
-  // H_SV_MAN: 0=stop/disable, 1=manual, 2=max, 3=center, 4=min, 5=test (mirrors upstream buttons).
   [RelayCommand]
   [System.Obsolete]
   private async Task SetServoMan(string mode) {

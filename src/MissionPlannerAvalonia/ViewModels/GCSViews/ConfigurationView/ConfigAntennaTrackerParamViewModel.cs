@@ -8,12 +8,11 @@ using MissionPlanner.ArduPilot;
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
 public partial class ConfigAntennaTrackerParamViewModel : ParamPageBase, IDisposable {
-  private const double SliderMin = 0;
-  private const double SliderMax = 100;
+  private const double _sliderMin = 0;
+  private const double _sliderMax = 100;
 
   private readonly DispatcherTimer _timer;
 
-  // combos
   [ObservableProperty]
   private ParamField _orientation = null!;
 
@@ -26,7 +25,6 @@ public partial class ConfigAntennaTrackerParamViewModel : ParamPageBase, IDispos
   [ObservableProperty]
   private ParamField _altSource = null!;
 
-  // yaw rc
   [ObservableProperty]
   private ParamField _yawMin = null!;
 
@@ -39,7 +37,6 @@ public partial class ConfigAntennaTrackerParamViewModel : ParamPageBase, IDispos
   [ObservableProperty]
   private ParamField _yawRev = null!;
 
-  // pitch rc
   [ObservableProperty]
   private ParamField _pitchRcMin = null!;
 
@@ -52,7 +49,6 @@ public partial class ConfigAntennaTrackerParamViewModel : ParamPageBase, IDispos
   [ObservableProperty]
   private ParamField _pitchRev = null!;
 
-  // ranges
   [ObservableProperty]
   private ParamField _yawRange = null!;
 
@@ -62,7 +58,6 @@ public partial class ConfigAntennaTrackerParamViewModel : ParamPageBase, IDispos
   [ObservableProperty]
   private ParamField _pitchMax = null!;
 
-  // yaw pid
   [ObservableProperty]
   private ParamField _yawP = null!;
 
@@ -78,7 +73,6 @@ public partial class ConfigAntennaTrackerParamViewModel : ParamPageBase, IDispos
   [ObservableProperty]
   private ParamField _yawSlewTime = null!;
 
-  // pitch pid
   [ObservableProperty]
   private ParamField _pitchP = null!;
 
@@ -173,16 +167,16 @@ public partial class ConfigAntennaTrackerParamViewModel : ParamPageBase, IDispos
   [RelayCommand]
   private async Task TestYaw() {
     double output = YawRev.Checked
-        ? Map(YawTest, SliderMin, SliderMax, YawMin.Value, YawMax.Value)
-        : Map(YawTest, SliderMax, SliderMin, YawMin.Value, YawMax.Value);
+        ? Map(YawTest, _sliderMin, _sliderMax, YawMin.Value, YawMax.Value)
+        : Map(YawTest, _sliderMax, _sliderMin, YawMin.Value, YawMax.Value);
     await SetServo(1, output);
   }
 
   [RelayCommand]
   private async Task TestPitch() {
     double output = PitchRev.Checked
-        ? Map(PitchTest, SliderMax, SliderMin, PitchRcMin.Value, PitchRcMax.Value)
-        : Map(PitchTest, SliderMin, SliderMax, PitchRcMin.Value, PitchRcMax.Value);
+        ? Map(PitchTest, _sliderMax, _sliderMin, PitchRcMin.Value, PitchRcMax.Value)
+        : Map(PitchTest, _sliderMin, _sliderMax, PitchRcMin.Value, PitchRcMax.Value);
     await SetServo(2, output);
   }
 
@@ -200,6 +194,7 @@ public partial class ConfigAntennaTrackerParamViewModel : ParamPageBase, IDispos
   }
 
   [RelayCommand]
+  [Obsolete]
   private async Task WritePids() {
     if (comPort.BaseStream?.IsOpen != true) {
       WriteStatus = "offline";

@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigOSDView"
   x:DataType="cv:ConfigOSDViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -20,11 +20,11 @@
       <ComboBox MinWidth="80" ItemsSource="{Binding Screens}" SelectedItem="{Binding SelectedScreen}" />
       <Button Content="Enable All" Command="{Binding EnableAllCommand}" />
       <Button Content="Disable All" Command="{Binding DisableAllCommand}" />
-      <TextBlock Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+      <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
     </StackPanel>
 
     <Grid Grid.Row="2" ColumnDefinitions="*,300">
-      <!-- Screen-rectangle preview with draggable items. -->
+
       <Border
         Grid.Column="0"
         BorderBrush="#666"
@@ -71,7 +71,6 @@
         </Canvas>
       </Border>
 
-      <!-- Per-item Enable + X/Y precise editors. -->
       <ScrollViewer Grid.Column="1" Margin="12,0,0,0">
         <ItemsControl ItemsSource="{Binding Items}">
           <ItemsControl.ItemTemplate>

@@ -9,7 +9,7 @@
   d:DesignHeight="700"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigJoystickView"
   x:DataType="cv:ConfigJoystickViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Joystick" />
@@ -65,7 +65,7 @@
                   Value="{Binding Value}"
                   Height="20"
                   Margin="8,0"
-                  Foreground="#94C11F"
+                  Foreground="{DynamicResource MpAccentBrush}"
                   VerticalAlignment="Center"
                 />
                 <NumericUpDown
@@ -79,8 +79,8 @@
                 <Button
                   Grid.Column="5"
                   Content="Auto Detect"
-                  Background="#94C11F"
-                  Foreground="#262728"
+                  Background="{DynamicResource MpAccentBrush}"
+                  Foreground="{DynamicResource MpBg}"
                   Command="{Binding $parent[ItemsControl].((cv:ConfigJoystickViewModel)DataContext).DetectAxisCommand}"
                   CommandParameter="{Binding}"
                 />

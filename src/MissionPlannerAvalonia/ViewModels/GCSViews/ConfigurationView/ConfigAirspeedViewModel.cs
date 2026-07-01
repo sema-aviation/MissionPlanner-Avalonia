@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
@@ -22,7 +21,6 @@ public partial class ConfigAirspeedViewModel : ParamPageBase, IDisposable {
   [ObservableProperty]
   private ParamField _pin = null!;
 
-  // ARSPD_RATIO: pressure to airspeed scaling (upstream ConfigArduplane sets 0..2.5, inc 0.005).
   [ObservableProperty]
   private ParamField _ratio = null!;
 
@@ -76,9 +74,6 @@ public partial class ConfigAirspeedViewModel : ParamPageBase, IDisposable {
     Airspeed = comPort.MAV.cs.airspeed.ToString("0.0");
   }
 
-  // Upstream airspeed ground calibration triggers PREFLIGHT_CALIBRATION with the
-  // ground-pressure flag (param3 = 1), which zeroes the airspeed sensor offset.
-  // Mirror of ConfigAteryxSensors BUT_zero_press_Click airborne guard.
   [RelayCommand]
   private async Task GroundCalibration() {
     if (comPort.BaseStream?.IsOpen != true) {

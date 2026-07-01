@@ -8,11 +8,6 @@ using Org.BouncyCastle.OpenSsl;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// 1:1 port of upstream ConfigSecureAP. All crypto is delegated to the upstream
-// MissionPlanner.Utilities.SignedFW helper (Ed25519 keygen + APJ/BL signing) which is
-// reachable through the referenced MissionPlanner assemblies, with BouncyCastle (2.4.0)
-// used directly for PEM read/write exactly as upstream does. File picking is performed in
-// the code-behind via TopLevel.StorageProvider; these methods receive the chosen paths.
 public partial class ConfigSecureApViewModel : ViewModelBase {
   private AsymmetricCipherKeyPair? _keyPair;
 

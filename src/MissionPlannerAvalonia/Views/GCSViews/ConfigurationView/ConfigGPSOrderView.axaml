@@ -9,7 +9,7 @@
   d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigGPSOrderView"
   x:DataType="cv:ConfigGPSOrderViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -56,7 +56,7 @@
     </DataGrid>
 
     <StackPanel Grid.Row="4" Margin="0,8,0,0">
-      <TextBlock Text="{Binding Status}" Foreground="#94C11F" Margin="0,0,0,6" />
+      <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" Margin="0,0,0,6" />
       <ItemsControl ItemsSource="{Binding Fields}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="cv:ParamField">
@@ -66,7 +66,7 @@
               <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
               <NumericUpDown Grid.Column="1" IsVisible="{Binding IsNumeric}" MinWidth="180" Value="{Binding Value}" Minimum="{Binding Min}" Maximum="{Binding Max}" Increment="{Binding Increment}" FormatString="0.######" />
               <TextBlock Grid.Column="2" Text="{Binding Units}" Classes="fieldlbl" Margin="8,0" />
-              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="#94C11F" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="3" Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" VerticalAlignment="Center" />
             </Grid>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

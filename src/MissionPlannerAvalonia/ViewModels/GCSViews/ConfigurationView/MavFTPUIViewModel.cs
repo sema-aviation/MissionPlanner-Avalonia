@@ -12,16 +12,12 @@ using MissionPlanner.ArduPilot.Mavlink;
 
 namespace MissionPlannerAvalonia.ViewModels.GCSViews.ConfigurationView;
 
-// MAVFTP remote file browser. Mirrors MissionPlanner/Controls/MavFTPUI.cs, using the
-// real MAVFtp transport (kCmdListDirectory / GetFile / UploadFile / kCmdCreateDirectory /
-// kCmdRemoveFile / kCmdRemoveDirectory / kCmdCalcFileCRC32) against AppState.comPort.
 public partial class MavFTPUIViewModel : ViewModelBase {
   private readonly MAVLinkInterface _mav = AppState.comPort;
   private readonly MAVFtp _mavftp;
 
   public ObservableCollection<FtpDirNode> Roots { get; } = new();
 
-  // Contents (sub-directories + files) of the currently selected tree directory.
   public ObservableCollection<FtpEntry> Entries { get; } = new();
 
   [ObservableProperty]
@@ -61,7 +57,6 @@ public partial class MavFTPUIViewModel : ViewModelBase {
     };
   }
 
-  // Blocking directory listing — always called from a background task.
   internal List<MAVFtp.FtpFileInfo> ListDir(string path) {
     lock (_mavftp) {
       return _mavftp.kCmdListDirectory(path, new CancellationTokenSource());
@@ -131,7 +126,6 @@ public partial class MavFTPUIViewModel : ViewModelBase {
     IsBusy = false;
   }
 
-  // Called from the view with a chosen destination folder.
   public async Task DownloadAsync(string destFolder) {
     var entry = SelectedEntry;
     if (entry == null || entry.IsDirectory) {
@@ -161,7 +155,6 @@ public partial class MavFTPUIViewModel : ViewModelBase {
     }
   }
 
-  // Called from the view with a chosen local file; uploads into the selected directory.
   public async Task UploadAsync(string localFile) {
     var dir = SelectedDir;
     if (dir == null) {
@@ -248,7 +241,6 @@ public partial class MavFTPUIViewModel : ViewModelBase {
     await ListEntriesAsync(dir);
   }
 
-  // Double-clicking a directory in the list drills into it (keeps tree + list in sync).
   public async Task OpenSelectedEntryAsync() {
     var dir = SelectedDir;
     var entry = SelectedEntry;
@@ -275,7 +267,6 @@ public partial class MavFTPUIViewModel : ViewModelBase {
   }
 }
 
-// Lazy-loaded directory node for the tree (sub-directories only).
 public partial class FtpDirNode : ObservableObject {
   private readonly MavFTPUIViewModel? _vm;
   private readonly bool _isPlaceholder;
@@ -287,7 +278,7 @@ public partial class FtpDirNode : ObservableObject {
     _vm = vm;
     _isPlaceholder = isPlaceholder;
     if (!isPlaceholder) {
-      // A non-null placeholder so the expander arrow shows before children are fetched.
+
       Children.Add(new FtpDirNode("…", "", null, true));
     }
   }

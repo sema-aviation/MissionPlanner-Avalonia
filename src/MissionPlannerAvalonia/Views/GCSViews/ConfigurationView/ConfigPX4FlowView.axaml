@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigPX4FlowView"
   x:DataType="cv:ConfigPX4FlowViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="PX4Flow" />
@@ -23,7 +23,7 @@
 
     <Border
       Grid.Row="2"
-      Background="#262728"
+      Background="{DynamicResource MpBg}"
       CornerRadius="4"
       Padding="8"
     >

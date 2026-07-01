@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigTerminalView"
   x:DataType="cv:ConfigTerminalViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Terminal" />
@@ -28,7 +28,7 @@
       AcceptsReturn="True"
       TextWrapping="NoWrap"
       FontFamily="Consolas,Menlo,monospace"
-      Background="#262728"
+      Background="{DynamicResource MpBg}"
       Foreground="#DDDDDD"
       VerticalContentAlignment="Top"
     />

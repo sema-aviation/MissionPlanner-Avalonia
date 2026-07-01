@@ -13,9 +13,6 @@ public record SerialOptionRule(int Baudrate, int Options, string Comment);
 public partial class ConfigSerialViewModel : ViewModelBase {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 
-  // Mirror of upstream SerialOptionRules.json (keyed by SERIALx_PROTOCOL value). The upstream file
-  // lives in the submodule but is not bundled into the app output (bundling would require a csproj
-  // edit outside this page's owned files), so the rules are embedded here for 1:1 behaviour.
   public static readonly IReadOnlyDictionary<int, SerialOptionRule> OptionRules =
       new Dictionary<int, SerialOptionRule> {
         [1] = new SerialOptionRule(115, 0,
@@ -43,8 +40,6 @@ public partial class ConfigSerialViewModel : ViewModelBase {
   public void Activate() {
     Ports.Clear();
 
-    // Divergence from upstream: the uarts.txt MAVFtp lookup is skipped; rows are derived
-    // purely from the SERIALx_* parameters already present in comPort.MAV.param.
     int serialPorts = 0;
     foreach (var key in _comPort.MAV.param.Keys) {
       if (key.StartsWith("SERIAL") && key.EndsWith("_BAUD")) {
@@ -78,7 +73,6 @@ public partial class ConfigSerialViewModel : ViewModelBase {
     RecomputeStatus("");
   }
 
-  // Apply baud/options presets when a protocol changes, then refresh the status line.
   internal void OnProtocolChanged(SerialPortRow row, int protocol) {
     string comment = "";
     if (OptionRules.TryGetValue(protocol, out var rule)) {
@@ -96,8 +90,6 @@ public partial class ConfigSerialViewModel : ViewModelBase {
     RecomputeStatus(comment);
   }
 
-  // ArduPilot allows MAVLINK_COMM_NUM_BUFFERS (5) mavlink ports including USB, so only 4 serial
-  // ports may carry MAVLink (protocol 1 or 2) before the warning is shown.
   private void RecomputeStatus(string comment) {
     int mavlinkPorts = Ports.Count(p =>
         p.SelectedProtocol is { Value: 1 } || p.SelectedProtocol is { Value: 2 });
@@ -218,10 +210,11 @@ public partial class SerialPortRow : ObservableObject {
     UpdateOptionsText();
   }
 
-  // Called when a bitmask checkbox toggles: rebuild the numeric value from the set bits.
   internal void OnBitToggled() {
-    if (_suppress)
+    if (_suppress) {
       return;
+    }
+
     long v = 0;
     foreach (var b in OptionBits) {
       if (b.IsSet) {
@@ -231,7 +224,6 @@ public partial class SerialPortRow : ObservableObject {
     OptionsValue = v;
   }
 
-  // Applied by the parent VM when a protocol preset carries an options byte.
   public void SetOptionsFromRule(int options) {
     OptionsValue = options;
   }

@@ -9,7 +9,7 @@
   d:DesignHeight="360"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigHWCANView"
   x:DataType="cv:ConfigHWCANViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="8">
@@ -31,7 +31,7 @@
         Margin="0,2,0,8"
       />
 
-      <Border BorderBrush="#262728" BorderThickness="1" Padding="12">
+      <Border BorderBrush="{DynamicResource MpBg}" BorderThickness="1" Padding="12">
         <StackPanel Spacing="8">
           <Button Content="Start Enumeration" Command="{Binding StartEnumerationCommand}" Width="200" />
           <Button Content="Stop Enumeration" Command="{Binding StopEnumerationCommand}" Width="200" />

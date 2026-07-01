@@ -9,7 +9,7 @@
   d:DesignHeight="480"
   x:Class="MissionPlannerAvalonia.Views.GCSViews.ConfigurationView.ConfigFrameTypeView"
   x:DataType="cv:ConfigFrameTypeViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="8" IsEnabled="{Binding IsAvailable}">
@@ -21,7 +21,7 @@
         Margin="0,0,0,8"
       />
 
-      <Border BorderBrush="#262728" BorderThickness="1" Padding="12">
+      <Border BorderBrush="{DynamicResource MpBg}" BorderThickness="1" Padding="12">
         <StackPanel Spacing="10">
           <RadioButton GroupName="frame" IsChecked="{Binding IsPlus}" Content="'+' Plus" Foreground="#DDDDDD" />
           <RadioButton GroupName="frame" IsChecked="{Binding IsX}" Content="'X' , 'Y6A'" Foreground="#DDDDDD" />
