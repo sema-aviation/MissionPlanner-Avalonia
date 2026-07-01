@@ -32,6 +32,26 @@ public static class Dialogs {
   public static Task Alert(string title, string text) =>
       ShowButtons(title, text, ("OK", true));
 
+  // Multi-button chooser. Returns the clicked label, or null if the window is closed without a pick.
+  public static Task<string?> Choice(string title, string text, params string[] labels) {
+    var panel = Shell(title);
+    panel.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap });
+    var row = new StackPanel {
+      Orientation = Orientation.Horizontal,
+      HorizontalAlignment = HorizontalAlignment.Right,
+      Spacing = 8,
+      Margin = new Thickness(0, 6, 0, 0),
+    };
+    var w = Frame(title, panel);
+    foreach (var label in labels) {
+      var b = new Button { Content = label, MinWidth = 80 };
+      b.Click += (_, _) => w.Close(label);
+      row.Children.Add(b);
+    }
+    panel.Children.Add(row);
+    return ShowOwned<string?>(w);
+  }
+
   // Altitude + frame prompt (mirrors MP AltInputBox). Returns (alt, frame) or null on cancel.
   public static Task<(double Alt, string Frame)?> AltInputBox(
       string title = "Altitude", double defaultAlt = 50, string defaultFrame = "Relative") =>

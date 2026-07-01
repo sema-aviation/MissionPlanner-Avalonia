@@ -36,7 +36,6 @@
       <TextBlock Text="F5 - Refresh full param list" />
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,16,0,0">
         <Button Content="Check for Updates" Command="{Binding CheckForUpdatesCommand}" />
-        <Button Content="Check for BETA Updates" Command="{Binding CheckForBetaUpdatesCommand}" />
       </StackPanel>
       <TextBlock
         Text="{Binding UpdateStatus}"

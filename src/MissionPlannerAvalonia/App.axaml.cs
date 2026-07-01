@@ -19,6 +19,8 @@ public partial class App : Application {
       desktop.MainWindow = new MainWindow { DataContext = new MainWindowViewModel() };
       // Kill any running SITL when the app exits (mirrors MP killing simulator procs on shutdown).
       desktop.Exit += (_, _) => Services.SitlLauncher.StopAll();
+      // Background update check; silent when offline or already up to date.
+      _ = Services.Updater.CheckOnStartupAsync();
     }
 
     base.OnFrameworkInitializationCompleted();
