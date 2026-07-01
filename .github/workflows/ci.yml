@@ -29,8 +29,8 @@ jobs:
       - name: Format check
         run: |
           for p in src/MissionPlannerAvalonia/MissionPlannerAvalonia.csproj tests/MissionPlannerAvalonia.Tests/MissionPlannerAvalonia.Tests.csproj; do
-            dotnet format whitespace "$p" --verify-no-changes
-            dotnet format style "$p" --verify-no-changes
+            dotnet format whitespace "$p" --verify-no-changes --exclude external/
+            dotnet format style "$p" --verify-no-changes --exclude external/
           done
 
       - name: Test
