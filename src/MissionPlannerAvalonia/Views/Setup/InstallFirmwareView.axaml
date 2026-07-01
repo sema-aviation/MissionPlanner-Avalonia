@@ -10,7 +10,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.Setup.InstallFirmwareView"
   x:DataType="vm:InstallFirmwareViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Margin="16">
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
@@ -32,7 +32,7 @@
               Width="150"
               Height="140"
               Margin="6"
-              Background="#262728"
+              Background="{DynamicResource MpBg}"
               Command="{Binding $parent[ItemsControl].((vm:InstallFirmwareViewModel)DataContext).FlashTileCommand}"
               CommandParameter="{Binding}"
             >
@@ -46,7 +46,7 @@
                   TextAlignment="Center"
                   TextWrapping="Wrap"
                   FontSize="11"
-                  Foreground="#94C11F"
+                  Foreground="{DynamicResource MpAccentBrush}"
                 />
               </StackPanel>
             </Button>
@@ -64,7 +64,7 @@
     </WrapPanel>
 
     <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
-      <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding Progress}" Height="22" Foreground="#94C11F" />
+      <ProgressBar Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding Progress}" Height="22" Foreground="{DynamicResource MpAccentBrush}" />
       <TextBlock Grid.Column="1" Text="{Binding Progress, StringFormat='\{0:0\}%'}" Classes="fieldlbl" VerticalAlignment="Center" Margin="8,0,0,0" />
     </Grid>
 
@@ -76,7 +76,7 @@
         AcceptsReturn="True"
         TextWrapping="NoWrap"
         Height="120"
-        Background="#262728"
+        Background="{DynamicResource MpBg}"
         Foreground="#DDDDDD"
         FontFamily="Consolas,Menlo,monospace"
       />

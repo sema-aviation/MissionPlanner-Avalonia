@@ -8,7 +8,7 @@ namespace MissionPlannerAvalonia.Views.Setup;
 
 public partial class SikRadioView : UserControl {
   private SikRadioViewModel? _vm;
-  private LivePlot? _plot;
+  private readonly LivePlot? _plot;
 
   public SikRadioView() {
     InitializeComponent();
@@ -35,7 +35,6 @@ public partial class SikRadioView : UserControl {
     }
   }
 
-  // Append the four series the modem reports (LivePlot marshals to the UI thread itself).
   private void OnRssiSample(double t, double rssiL, double rssiR, double noiseL, double noiseR) {
     if (_plot == null) {
       return;

@@ -3,22 +3,21 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO.Ports;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.ViewModels.Setup;
 
 public partial class SikRadioViewModel : ViewModelBase {
-  // S-register map per SiK ATI5 output (S0..S15). FORMAT (S0) is read-only and never written.
-  private static readonly (int Num, string Name, string Label)[] RegMap = {
+
+  private static readonly (int Num, string Name, string Label)[] _regMap = {
     (0, "FORMAT", "Format"),
     (1, "SERIAL_SPEED", "Baud"),
     (2, "AIR_SPEED", "Air Speed"),
@@ -37,10 +36,10 @@ public partial class SikRadioViewModel : ViewModelBase {
     (15, "MAX_WINDOW", "Max Window"),
   };
 
-  private static readonly int[] CandidateBauds = { 57600, 115200, 38400, 19200, 9600 };
-  private static readonly Regex RegLine =
+  private static readonly int[] _candidateBauds = { 57600, 115200, 38400, 19200, 9600 };
+  private static readonly Regex _regLine =
       new(@"S(\d+):\s*([A-Za-z0-9_/]+)\s*=\s*(\S+)", RegexOptions.Compiled);
-  private static readonly Regex SikBanner = new(@"SiK|RFD", RegexOptions.Compiled);
+  private static readonly Regex _sikBanner = new(@"SiK|RFD", RegexOptions.Compiled);
 
   public partial class SikRegister : ObservableObject {
     public SikRegister(int num, string name, string label) {
@@ -49,8 +48,6 @@ public partial class SikRadioViewModel : ViewModelBase {
       Label = label;
     }
 
-    // Num is captured from the radio's ATI5 dump for dynamically-discovered extra/GPIO/
-    // encryption registers, so the eventual ATS<n>= write targets the right register.
     public int Num { get; set; }
     public string Name { get; }
     public string Label { get; }
@@ -58,7 +55,6 @@ public partial class SikRadioViewModel : ViewModelBase {
     public string OrigRemote { get; set; } = "";
     public bool HasRemote { get; set; }
 
-    // Allowed values for this register on the connected firmware (typed combo). Empty => free text.
     public ObservableCollection<string> Options { get; } = new();
     public bool HasOptions => Options.Count > 0;
 
@@ -70,7 +66,6 @@ public partial class SikRadioViewModel : ViewModelBase {
       OnPropertyChanged(nameof(HasOptions));
     }
 
-    // Keep the live value selectable even if it is outside the canned option set.
     public void EnsureOption(string value) {
       if (Options.Count > 0 && !string.IsNullOrEmpty(value) && !Options.Contains(value)) {
         Options.Insert(0, value);
@@ -117,7 +112,6 @@ public partial class SikRadioViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _isBusy;
 
-  // ATI2 / ATI3 / ATI7 readouts (board, frequency band, live RSSI string).
   [ObservableProperty]
   private string _boardType = "";
 
@@ -127,28 +121,24 @@ public partial class SikRadioViewModel : ViewModelBase {
   [ObservableProperty]
   private string _rssiInfo = "";
 
-  // AES encryption key (hex) — round-tripped via AT&E? / AT&E=.
   [ObservableProperty]
   private string _aesKey = "";
 
   [ObservableProperty]
   private bool _aesEnabled;
 
-  // AT command terminal.
   [ObservableProperty]
   private string _commandText = "ATI";
 
   [ObservableProperty]
   private bool _terminalOpen;
 
-  // Live RSSI streaming.
   [ObservableProperty]
   private bool _rssiRunning;
 
   public string TerminalButtonLabel => TerminalOpen ? "Close Terminal" : "Open Terminal";
   public string RssiButtonLabel => RssiRunning ? "Stop RSSI" : "Start RSSI";
 
-  // Status LED: green = RSSI link streaming, amber = busy/AT session, grey = idle.
   public IBrush StatusLed =>
       RssiRunning ? Brushes.LimeGreen
       : (IsBusy || _session != null || TerminalOpen) ? Brushes.Goldenrod
@@ -157,17 +147,14 @@ public partial class SikRadioViewModel : ViewModelBase {
   public string StatusLedLabel =>
       RssiRunning ? "Link live" : (IsBusy || _session != null || TerminalOpen) ? "Active" : "Idle";
 
-  // RSSI samples for the ScottPlot LivePlot (time, rssiLocal, rssiRemote, noiseLocal, noiseRemote).
-  // The view code-behind subscribes and appends to the plot.
   public event Action<double, double, double, double, double>? RssiSample;
   public event Action? RssiReset;
 
-  // Typed option sets (numeric strings) for the standard SiK S-registers; refined for RFD radios.
-  private static readonly Regex RssiLine =
+  private static readonly Regex _rssiLine =
       new(@"RSSI:\s*([0-9]+)/([0-9]+)\s+L/R noise:\s*([0-9]+)/([0-9]+)", RegexOptions.Compiled);
 
   public SikRadioViewModel() {
-    foreach (var (num, name, label) in RegMap) {
+    foreach (var (num, name, label) in _regMap) {
       var reg = new SikRegister(num, name, label);
       var opts = DefaultOptions(name, rfd: false);
       if (opts != null) {
@@ -186,7 +173,6 @@ public partial class SikRadioViewModel : ViewModelBase {
 
   private string _origAesKey = "";
 
-  // Persistent terminal / RSSI session.
   private SerialPort? _session;
   private System.Threading.CancellationTokenSource? _rssiCts;
 
@@ -266,11 +252,9 @@ public partial class SikRadioViewModel : ViewModelBase {
         var ati = DoCommand(sp, "ATI").Trim();
         Ui(() => LocalVersion = ati);
 
-        // Per-firmware typed combos: RFD-class radios use a different value range.
         var isRfd = ati.IndexOf("RFD", StringComparison.OrdinalIgnoreCase) >= 0
             || ati.IndexOf("MP on", StringComparison.OrdinalIgnoreCase) >= 0;
 
-        // ATI2 = board type, ATI3 = frequency band, ATI7 = live RSSI snapshot.
         var ati2 = DoCommand(sp, "ATI2").Trim();
         Ui(() => BoardType = ati2);
         var ati3 = DoCommand(sp, "ATI3").Trim();
@@ -278,7 +262,6 @@ public partial class SikRadioViewModel : ViewModelBase {
         var ati7 = DoCommand(sp, "ATI7").Trim();
         Ui(() => RssiInfo = ati7);
 
-        // AES key (AT&E?). ERROR => firmware has no encryption support.
         var aes = DoCommand(sp, "AT&E?").Trim();
         if (aes.Length == 0 || aes.Contains("ERROR")) {
           _origAesKey = "";
@@ -293,7 +276,7 @@ public partial class SikRadioViewModel : ViewModelBase {
         ApplyFirmwareOptions(isRfd);
 
         var rti = DoCommand(sp, "RTI").Trim();
-        if (SikBanner.IsMatch(rti)) {
+        if (_sikBanner.IsMatch(rti)) {
           Ui(() => RemoteVersion = rti);
           ResetOrig(remote: true);
           ParseInto(DoCommand(sp, "RTI5", true), remote: true);
@@ -302,7 +285,6 @@ public partial class SikRadioViewModel : ViewModelBase {
           AppendLog("No remote radio responded to RTI.");
         }
 
-        // Leave AT mode without rebooting.
         DoCommand(sp, "ATO", false);
         SetStatus("Loaded");
       } catch (Exception ex) {
@@ -364,7 +346,7 @@ public partial class SikRadioViewModel : ViewModelBase {
         DoCommand(sp, "ATI5", true);
         foreach (var s in snapshot) {
           if (s.Num != 0 && s.LocalValue != s.OrigLocal) {
-            // Validation: SiK S-registers are integers; refuse to push a non-numeric value.
+
             if (!int.TryParse(s.LocalValue, out _)) {
               AppendLog("ATS" + s.Num + " (" + s.Name + ")='" + s.LocalValue
                   + "' SKIPPED (not a valid integer)");
@@ -376,7 +358,6 @@ public partial class SikRadioViewModel : ViewModelBase {
           }
         }
 
-        // AES key (AT&E=) — pad to the reported key width; hex only.
         if (aesEnabled && aesKey != origAes) {
           if (Regex.IsMatch(aesKey, @"\A[0-9a-fA-F]*\Z")) {
             var ans = DoCommand(sp, "AT&E=" + aesKey, true);
@@ -450,14 +431,9 @@ public partial class SikRadioViewModel : ViewModelBase {
     IsBusy = false;
   }
 
-  // Download stable vs beta SiK firmware.
   [ObservableProperty]
   private bool _betaFirmware;
 
-  // Real SiK reflash via the linked upstream STK500 bootloader Uploader + IHex parser:
-  // AT mode -> AT&UPDATE (reboot to bootloader) -> reopen @115200 -> sync + getDevice ->
-  // download the matching radio~*.ihx -> upload+verify+reboot. Covers the .ihx SiK boards
-  // (HM_TRP, RFD900/a/p/u). RFD900x/ux (.bin / bootloaderX) need the RFD vendor path — reported.
   [RelayCommand(CanExecute = nameof(NotBusy))]
   private async Task UploadFirmware() {
     if (!GuardLink()) {
@@ -490,7 +466,9 @@ public partial class SikRadioViewModel : ViewModelBase {
         atsp = null;
 
         boot = new MissionPlanner.Comms.SerialPort {
-          PortName = port, BaudRate = 115200, ReadTimeout = 3000,
+          PortName = port,
+          BaudRate = 115200,
+          ReadTimeout = 3000,
         };
         boot.Open();
         Thread.Sleep(300);
@@ -539,7 +517,7 @@ public partial class SikRadioViewModel : ViewModelBase {
             boot.Close();
           }
         } catch {
-          // ignore
+
         }
       }
     });
@@ -547,7 +525,6 @@ public partial class SikRadioViewModel : ViewModelBase {
     IsBusy = false;
   }
 
-  // Maps the bootloader-reported board to its firmware .ihx URL (mirrors upstream getFirmware).
   private static string? FirmwareUrl(MissionPlanner.Radio.Uploader.Board board, bool beta) {
     string ch = beta ? "beta" : "stable";
     return board switch {
@@ -570,7 +547,6 @@ public partial class SikRadioViewModel : ViewModelBase {
   public string UploadFirmwareTooltip { get; } =
       "Reflash SiK firmware (HM_TRP / RFD900/a/p/u). Disconnect MAVLink first.";
 
-  // Fills the AES key with 32 random hex chars (16 bytes). Mirrors upstream btnRandom_Click.
   [RelayCommand]
   private void RandomAesKey() {
     Span<byte> bytes = stackalloc byte[16];
@@ -579,8 +555,6 @@ public partial class SikRadioViewModel : ViewModelBase {
     AppendLog("Generated random AES key.");
   }
 
-  // Copies every Local register value into the Remote column (in-memory). Mirrors upstream
-  // btnCopyRequired — the user must still Save to push the changes to the remote radio.
   [RelayCommand]
   private void CopyRequiredToRemote() {
     foreach (var s in Registers) {
@@ -594,8 +568,6 @@ public partial class SikRadioViewModel : ViewModelBase {
     Status = "Copy then Save to apply";
     AppendLog("Copied Local register values to Remote. Save to apply to the remote radio.");
   }
-
-  // ---- AT command terminal (persistent session) ----
 
   private bool CanOpenTerminal => !IsBusy && !RssiRunning;
   private bool CanSendCommand => _session != null && TerminalOpen;
@@ -657,8 +629,6 @@ public partial class SikRadioViewModel : ViewModelBase {
     });
   }
 
-  // ---- Live RSSI graph (ScottPlot) ----
-
   private bool CanStartRssi => !IsBusy && !TerminalOpen;
 
   [RelayCommand(CanExecute = nameof(CanStartRssi))]
@@ -677,7 +647,6 @@ public partial class SikRadioViewModel : ViewModelBase {
     AppendLog("=== Start RSSI stream ===");
     RssiReset?.Invoke();
 
-    // Enter AT mode + arm the RSSI debug report, then drop back to transparent mode.
     var ok = await Task.Run(() => {
       var sp = Connect(port, baud, out var used);
       if (sp == null) {
@@ -686,7 +655,7 @@ public partial class SikRadioViewModel : ViewModelBase {
       }
       AppendLog("AT mode @ " + used + " baud. Enabling RSSI debug report.");
       DoCommand(sp, "AT&T=RSSI", true);
-      DoCommand(sp, "ATO", false); // back to transparent mode; radio now streams RSSI lines
+      DoCommand(sp, "ATO", false);
       _session = sp;
       return true;
     });
@@ -700,7 +669,6 @@ public partial class SikRadioViewModel : ViewModelBase {
     RssiRunning = true;
     Status = "RSSI streaming";
 
-    // Detached reader so the command returns and the same button can Stop it.
     _ = Task.Run(() => RssiLoop(token));
   }
 
@@ -719,7 +687,7 @@ public partial class SikRadioViewModel : ViewModelBase {
             continue;
           }
           var line = ReadLine(sp);
-          var match = RssiLine.Match(line);
+          var match = _rssiLine.Match(line);
           if (match.Success) {
             var t = (Environment.TickCount - tickStart) / 1000.0;
             RssiSample?.Invoke(t,
@@ -740,13 +708,13 @@ public partial class SikRadioViewModel : ViewModelBase {
     _rssiCts?.Cancel();
     Ui(() => { RssiRunning = false; Status = "Idle"; });
     await Task.Run(() => {
-      System.Threading.Thread.Sleep(250); // let the detached reader loop observe the cancel
+      System.Threading.Thread.Sleep(250);
       var sp = _session;
       if (sp == null) {
         return;
       }
       try {
-        // leave transparent mode, disable RSSI report, resume transparent, then drop the port
+
         EnterCommandMode(sp);
         DoCommand(sp, "AT&T", false);
         DoCommand(sp, "ATO", false);
@@ -755,7 +723,7 @@ public partial class SikRadioViewModel : ViewModelBase {
       ClosePort(sp);
       _session = null;
     });
-    OnIsBusyChanged(false); // _session is null again: re-enable Load/Save/etc.
+    OnIsBusyChanged(false);
     AppendLog("RSSI stream stopped.");
   }
 
@@ -777,7 +745,7 @@ public partial class SikRadioViewModel : ViewModelBase {
   }
 
   private SerialPort? Connect(string port, int preferredBaud, out int usedBaud) {
-    foreach (var baud in new[] { preferredBaud }.Concat(CandidateBauds).Distinct()) {
+    foreach (var baud in new[] { preferredBaud }.Concat(_candidateBauds).Distinct()) {
       SerialPort? sp = null;
       try {
         sp = OpenPort(port, baud);
@@ -816,7 +784,7 @@ public partial class SikRadioViewModel : ViewModelBase {
         sp.Dispose();
       }
     } catch {
-      // ignore
+
     }
   }
 
@@ -828,7 +796,7 @@ public partial class SikRadioViewModel : ViewModelBase {
     for (var t = 0; t < 3; t++) {
       try {
         sp.DiscardInBuffer();
-        // 1s guard time of silence, +++ (no CR), 1s guard time.
+
         Thread.Sleep(1200);
         sp.Write("+++");
         Thread.Sleep(1200);
@@ -837,7 +805,7 @@ public partial class SikRadioViewModel : ViewModelBase {
           return true;
         }
       } catch {
-        // retry
+
       }
     }
     return false;
@@ -845,7 +813,7 @@ public partial class SikRadioViewModel : ViewModelBase {
 
   private bool ProbeAt(SerialPort sp) {
     var v = DoCommand(sp, "ATI").Trim();
-    return SikBanner.IsMatch(v) || v.Contains(" on ");
+    return _sikBanner.IsMatch(v) || v.Contains(" on ");
   }
 
   private string DoCommand(SerialPort sp, string cmd, bool multiLine = false) {
@@ -905,7 +873,6 @@ public partial class SikRadioViewModel : ViewModelBase {
     }
   }
 
-  // Allowed numeric values per register name. null => keep as a free-text numeric field.
   private static string[]? DefaultOptions(string name, bool rfd) {
     static string[] Range(int from, int step, int to) {
       var list = new List<string>();
@@ -938,11 +905,10 @@ public partial class SikRadioViewModel : ViewModelBase {
       case "LBT_RSSI":
         return rfd ? Range(0, 25, 220) : new[] { "0" };
       default:
-        return null; // FORMAT/NETID/MIN_FREQ/MAX_FREQ/NUM_CHANNELS/MAX_WINDOW => free text.
+        return null;
     }
   }
 
-  // Re-key the option sets once the firmware banner tells us whether this is an RFD-class radio.
   private void ApplyFirmwareOptions(bool rfd) {
     Ui(() => {
       foreach (var r in Registers) {
@@ -957,7 +923,7 @@ public partial class SikRadioViewModel : ViewModelBase {
 
   private void ParseInto(string block, bool remote) {
     foreach (var raw in block.Split('\n')) {
-      var m = RegLine.Match(raw);
+      var m = _regLine.Match(raw);
       if (!m.Success) {
         continue;
       }
@@ -967,11 +933,9 @@ public partial class SikRadioViewModel : ViewModelBase {
       var val = m.Groups[3].Value.Trim();
       var reg = Registers.FirstOrDefault(r => r.Name == name);
 
-      // Surface extra/GPIO/encryption registers the radio reports beyond the standard S0..S15
-      // set, capturing the real S-number so writes target the correct register.
       if (reg == null) {
         if (remote) {
-          continue; // only attach remote values to registers we already know locally
+          continue;
         }
         var added = new SikRegister(num, name, name);
         var opts = DefaultOptions(name, rfd: false);

@@ -224,7 +224,7 @@ public partial class InstallFirmwareViewModel : ViewModelBase {
       await Task.Run(() => {
         try {
           SetStatus("Sending bootloader update command…");
-          // FLASH_BOOTLOADER magic param mirrors upstream ConfigFirmwareManifest.Lbl_bootloaderupdate_Click.
+
           var ok = _comPort.doCommand(MAVLink.MAV_CMD.FLASH_BOOTLOADER, 0, 0, 0, 0, 290876, 0, 0);
           SetStatus(ok ? "Bootloader upgraded." : "Bootloader upgrade failed.");
         } catch (Exception ex) {
@@ -374,7 +374,7 @@ public partial class InstallFirmwareViewModel : ViewModelBase {
         found.close();
         return;
       } catch {
-        // checksum mismatch -> proceed to upload
+
       }
 
       try {

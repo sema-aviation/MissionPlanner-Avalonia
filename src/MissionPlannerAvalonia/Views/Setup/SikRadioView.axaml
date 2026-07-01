@@ -10,7 +10,7 @@
   d:DesignHeight="680"
   x:Class="MissionPlannerAvalonia.Views.Setup.SikRadioView"
   x:DataType="vm:SikRadioViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -135,11 +135,11 @@
             />
           </WrapPanel>
 
-          <Border Grid.Row="3" Background="Black" BorderBrush="#262728" BorderThickness="1" Margin="0,4,0,0">
+          <Border Grid.Row="3" Background="Black" BorderBrush="{DynamicResource MpBg}" BorderThickness="1" Margin="0,4,0,0">
             <ScrollViewer>
               <TextBlock
                 Text="{Binding Log}"
-                Foreground="#94C11F"
+                Foreground="{DynamicResource MpAccentBrush}"
                 FontFamily="Consolas,Menlo,monospace"
                 FontSize="12"
                 Padding="8"
@@ -183,11 +183,11 @@
             />
             <Button Content="Send" Command="{Binding SendCommandCommand}" />
           </WrapPanel>
-          <Border Grid.Row="1" Background="Black" BorderBrush="#262728" BorderThickness="1">
+          <Border Grid.Row="1" Background="Black" BorderBrush="{DynamicResource MpBg}" BorderThickness="1">
             <ScrollViewer>
               <TextBlock
                 Text="{Binding Log}"
-                Foreground="#94C11F"
+                Foreground="{DynamicResource MpAccentBrush}"
                 FontFamily="Consolas,Menlo,monospace"
                 FontSize="12"
                 Padding="8"
