@@ -88,18 +88,17 @@ jobs:
           ( cd dist && ditto -c -k --sequesterRsrc --keepParent \
               "Mission Planner.app" "../upload/MissionPlannerAvalonia-$V-osx-arm64.zip" )
 
-      - name: Package Windows (self-contained single-file)
+      - name: Package Windows (self-contained folder)
         if: matrix.rid == 'win-x64'
         shell: bash
         run: |
           V=${{ steps.ver.outputs.v }}
           rm -rf out/win stage
-          # Bundle managed code into one exe, but leave native libs loose: libvlc's large
-          # plugins folder otherwise lands both inside the exe AND beside it (~100MB dup).
+          # Self-contained folder (loose dlls) so the auto-updater can diff and download only the
+          # changed files instead of the whole exe.
           dotnet publish "$APP" -c Release -r win-x64 --self-contained true \
             -p:DebugType=none \
             -p:VersionPatch="${{ steps.ver.outputs.patch }}" -p:FileVersion="${{ steps.ver.outputs.fv }}" -p:AssemblyVersion="${{ steps.ver.outputs.fv }}" \
-            -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true \
             -o out/win
           DIR="MissionPlannerAvalonia-$V-win-x64"
           mkdir -p "stage/$DIR"
@@ -126,9 +125,38 @@ jobs:
           mkdir -p upload
           tar -czf "upload/$DIR.tar.gz" -C out "$DIR"
 
+      - name: Build + sign update manifest
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          V=${{ steps.ver.outputs.v }}
+          RID=${{ matrix.rid }}
+          case "$RID" in
+            win-x64)   PUB=out/win ;;
+            osx-arm64) PUB=out/osx ;;
+            linux-x64) PUB="out/MissionPlannerAvalonia-$V-linux-x64" ;;
+          esac
+          SITE="site/$RID"
+          rm -rf "$SITE"; mkdir -p "$SITE"
+          cp -R "$PUB"/. "$SITE"/
+          NOTES="https://github.com/sema-aviation/MissionPlanner-Avalonia/releases/tag/v$V"
+          python3 build/gen-manifest.py "$SITE" "$V" "$NOTES" "$SITE/manifest.json"
+          # Sign the exact manifest bytes with the Ed25519 private key (raw 64-byte sig, base64).
+          printf '%s' "$SIGNING_KEY" > update_key.pem
+          openssl pkeyutl -sign -rawin -inkey update_key.pem -in "$SITE/manifest.json" -out update.sig.bin
+          base64 update.sig.bin | tr -d '\n' > "$SITE/manifest.sig"
+          rm -f update_key.pem update.sig.bin
+
       - uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.rid }}
+          name: pages-${{ matrix.rid }}
+          path: site/${{ matrix.rid }}
+          include-hidden-files: true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-${{ matrix.rid }}
           path: upload/*
 
   release:
@@ -138,6 +166,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
+          pattern: dist-*
           path: artifacts
       - uses: softprops/action-gh-release@v3
         with:
@@ -161,3 +190,35 @@ jobs:
             Standard desktop libs required: `libfontconfig1`, `libice6`, `libsm6`, `libgl1`.
 
             Independent project, GPLv3, not affiliated with ArduPilot.
+
+  # Host the per-platform loose file tree + signed manifest for the in-app auto-updater.
+  pages:
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pages-*
+          path: site-dl
+      - name: Assemble site
+        shell: bash
+        run: |
+          mkdir -p site
+          for d in site-dl/pages-*; do
+            rid="$(basename "$d" | sed 's/^pages-//')"
+            mkdir -p "site/$rid"
+            cp -R "$d"/. "site/$rid"/
+          done
+          ls -R site | head -50
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
