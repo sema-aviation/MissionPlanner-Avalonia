@@ -173,23 +173,6 @@ jobs:
           files: artifacts/**/*
           generate_release_notes: true
           prerelease: false
-          body: |
-            **Stable release.** Native Avalonia port of the ArduPilot Mission Planner UI.
-            Many screens are wired to the real MAVLink API; some pages are still stubs and the app
-            has not yet been verified end-to-end against a real vehicle or SITL. Expect rough edges.
-
-            All three downloads are self-contained, no .NET runtime needed. macOS is **Apple Silicon only**.
-
-            **macOS** (unsigned): right-click -> Open, or
-            `xattr -dr com.apple.quarantine "Mission Planner.app"`.
-
-            **Windows** (unsigned): SmartScreen will warn. **More info** -> **Run anyway**.
-
-            **Linux**: extract, run `./install.sh` for a launcher entry, then `./MissionPlannerAvalonia`.
-            Serial access needs the `dialout` group (`sudo usermod -aG dialout $USER`, then re-login).
-            Standard desktop libs required: `libfontconfig1`, `libice6`, `libsm6`, `libgl1`.
-
-            Independent project, GPLv3, not affiliated with ArduPilot.
 
   # Host the per-platform loose file tree + signed manifest for the in-app auto-updater.
   pages:
