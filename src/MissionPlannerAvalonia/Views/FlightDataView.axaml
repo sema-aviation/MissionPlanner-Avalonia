@@ -12,14 +12,14 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.FlightDataView"
   x:DataType="vm:FlightDataViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid>
     <Grid.ColumnDefinitions>
-      <!-- MinWidth stops the splitter dragging a pane to nothing and exposing the gray backdrop -->
-      <ColumnDefinition Width="2*" MinWidth="220" />
+
+      <ColumnDefinition Width="2*" MinWidth="300" />
       <ColumnDefinition Width="4" />
-      <ColumnDefinition Width="3*" MinWidth="220" />
+      <ColumnDefinition Width="3*" MinWidth="300" />
     </Grid.ColumnDefinitions>
     <Grid Grid.Column="{Binding HudColumn}" RowDefinitions="*,4,*">
       <Border Grid.Row="0" Background="Black">
@@ -52,6 +52,8 @@
           Ssa="{Binding Ssa}"
           XTrackError="{Binding XTrackError}"
           TurnRate="{Binding TurnRate}"
+          WpDist="{Binding WpDist}"
+          WpNo="{Binding WpNo}"
           BatteryVoltage2="{Binding BatteryVoltage2}"
           BatteryRemaining2="{Binding BatteryRemaining2}"
           CurrentAmps2="{Binding BatCurrent2}"
@@ -121,12 +123,11 @@
         </ctl:HudControl>
       </Border>
 
-      <GridSplitter Grid.Row="1" Background="#262728" ResizeDirection="Rows" />
+      <GridSplitter Grid.Row="1" Background="{DynamicResource MpBg}" ResizeDirection="Rows" IsEnabled="False" />
 
-      <TabControl x:Name="FdTabs" Grid.Row="2" Background="#434445">
+      <TabControl x:Name="FdTabs" Grid.Row="2" Background="{DynamicResource MpControlBg}">
         <TabItem Header="Quick">
-          <!-- Grid of QuickView cells; double-click a cell to pick which cs field it shows
-               (mirrors MP quickView controls + quickView_DoubleClick). -->
+
           <ItemsControl x:Name="QuickGrid" ItemsSource="{Binding QuickItems}" Margin="2"
                         DoubleTapped="OnQuickViewDoubleTapped">
             <ItemsControl.ItemsPanel>
@@ -149,8 +150,7 @@
         </TabItem>
 
         <TabItem Header="Actions">
-          <!-- Fixed-width cells reflow in a WrapPanel; each combo/value action keeps its input
-               beside its own button so the pair never splits. -->
+
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <WrapPanel Margin="6" Orientation="Horizontal">
               <WrapPanel.Styles>
@@ -186,7 +186,6 @@
                 </Style>
               </WrapPanel.Styles>
 
-              <!-- combo + button pairs (selector beside its own action button) -->
               <Panel>
                 <DockPanel>
                   <Button DockPanel.Dock="Right" Width="78" Content="Set Mode"
@@ -220,7 +219,6 @@
                 </DockPanel>
               </Panel>
 
-              <!-- value + button pairs -->
               <Panel>
                 <DockPanel>
                   <NumericUpDown DockPanel.Dock="Right" Width="74" ShowButtonSpinner="False"
@@ -246,19 +244,16 @@
                 </DockPanel>
               </Panel>
 
-              <!-- quick mode + arm -->
               <Button Content="Auto" Command="{Binding QuickAutoCommand}" />
               <Button Content="RTL" Command="{Binding QuickRtlCommand}" />
               <Button Content="Loiter" Command="{Binding QuickLoiterCommand}" />
               <Button Content="Arm/ Disarm" Command="{Binding ToggleArmCommand}" />
 
-              <!-- mission -->
               <Button Content="Restart Mission" Command="{Binding RestartMissionCommand}" />
               <Button Content="Resume Mission" Command="{Binding ResumeMissionCommand}" />
               <Button Content="Abort Landing" Command="{Binding AbortLandCommand}" />
               <Button Content="Set Home Alt" Command="{Binding SetHomeCommand}" />
 
-              <!-- misc -->
               <Button Content="Raw Sensor View" Command="{Binding RawSensorViewCommand}" />
               <Button Content="Clear Track" Command="{Binding ClearTrackCommand}" />
               <Button Content="Message" Command="{Binding ShowMessageCommand}" />
@@ -273,7 +268,7 @@
             AcceptsReturn="True"
             IsReadOnly="True"
             TextWrapping="Wrap"
-            Background="#1F1F20"
+            Background="{DynamicResource MpBorderBrush}"
             Foreground="WhiteSmoke"
           />
         </TabItem>
@@ -286,16 +281,16 @@
               <ItemsControl ItemsSource="{Binding PreflightChecks}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:CheckItem">
-                    <Grid ColumnDefinitions="*,120,28" Margin="0,2" Background="#3A3B3C">
+                    <Grid ColumnDefinitions="*,120,28" Margin="0,2" Background="{DynamicResource MpPanelBg}">
                       <TextBlock Grid.Column="0" Text="{Binding Name}" Margin="6,4"
                                  VerticalAlignment="Center" />
                       <Panel Grid.Column="1">
-                        <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Foreground="#94C11F"
+                        <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Foreground="{DynamicResource MpAccentBrush}"
                                    IsVisible="{Binding Ok}" />
                         <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Foreground="#E03030"
                                    IsVisible="{Binding !Ok}" />
                       </Panel>
-                      <!-- manual items are user-checkable; auto items reflect telemetry read-only -->
+
                       <CheckBox Grid.Column="2" IsChecked="{Binding Ok, Mode=TwoWay}"
                                 IsHitTestVisible="{Binding Manual}" />
                     </Grid>
@@ -307,8 +302,7 @@
         </TabItem>
 
         <TabItem Header="Gauges">
-          <!-- Double-click a gauge to set its Min/Max; persisted via Settings (mirrors
-               Gspeed_DoubleClick). The Heading cell is an HSI (cs.yaw/nav_bearing/wp_dist). -->
+
           <Grid Margin="6" RowDefinitions="*,*" ColumnDefinitions="*,*">
             <ctl:Gauge x:Name="GVsi" Grid.Row="0" Grid.Column="0" Margin="6" MinHeight="120"
                        Label="VSI" Units="m/s" Min="-10" Max="10" Value="{Binding VerticalSpeed}"
@@ -346,8 +340,7 @@
         </TabItem>
 
         <TabItem Header="Servo/Relay">
-          <!-- Vertical list, one row per channel. Auto-width columns size to content so buttons
-               and inputs can't overlap; horizontal scroll appears only if the pane gets narrow. -->
+
           <ScrollViewer HorizontalScrollBarVisibility="Auto"
                         VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding ServoRelayItems}" Margin="4">
@@ -421,12 +414,12 @@
             </StackPanel>
             <TextBox Grid.Row="3" Text="{Binding ScriptEditorText}" AcceptsReturn="True"
                      AcceptsTab="True" FontFamily="Consolas,Menlo,monospace" FontSize="12"
-                     Background="#1F1F20" Foreground="WhiteSmoke"
+                     Background="{DynamicResource MpBorderBrush}" Foreground="WhiteSmoke"
                      Watermark="Lua code (leave empty to run the selected file)" />
             <TextBlock Grid.Row="4" Text="Output" Margin="0,6,0,2" />
             <TextBox Grid.Row="5" Text="{Binding ScriptOutput}" AcceptsReturn="True" IsReadOnly="True"
                      TextWrapping="Wrap" FontFamily="Consolas,Menlo,monospace" FontSize="12"
-                     Background="#1F1F20" Foreground="#9BD" />
+                     Background="{DynamicResource MpBorderBrush}" Foreground="#9BD" />
           </Grid>
         </TabItem>
 
@@ -518,7 +511,7 @@
           <StackPanel Margin="10" Spacing="8">
             <Button Content="Connect to Transponder" HorizontalAlignment="Left"
                     Command="{Binding ConnectTransponderCommand}" />
-            <TextBlock Text="{Binding TransponderStatus}" Foreground="#94C11F" />
+            <TextBlock Text="{Binding TransponderStatus}" Foreground="{DynamicResource MpAccentBrush}" />
             <Grid ColumnDefinitions="Auto,160" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="6">
               <TextBlock Grid.Row="0" Grid.Column="0" Text="Squawk" VerticalAlignment="Center" />
               <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="7777"
@@ -572,7 +565,7 @@
                     <NumericUpDown Width="240" IsVisible="{Binding Field.IsNumeric}"
                                    Value="{Binding Field.Value}" FormatString="0" />
                     <TextBlock Text="{Binding Field.Status}" VerticalAlignment="Center"
-                               Foreground="#94C11F" />
+                               Foreground="{DynamicResource MpAccentBrush}" />
                   </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -582,13 +575,12 @@
       </TabControl>
     </Grid>
 
-    <GridSplitter Grid.Column="1" Background="#262728" ResizeDirection="Columns" />
+    <GridSplitter Grid.Column="1" Background="{DynamicResource MpBg}" ResizeDirection="Columns" IsEnabled="False" />
 
-    <Border Grid.Column="{Binding MapColumn}" Background="#262728" ClipToBounds="True">
+    <Border Grid.Column="{Binding MapColumn}" Background="{DynamicResource MpBg}" ClipToBounds="True">
       <Grid>
         <ctl:MapView x:Name="FdMap" />
 
-        <!-- top-left controls: Auto Pan + Clear Track + live Tuning graph toggle -->
         <StackPanel Orientation="Horizontal" Spacing="8"
                     HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
           <CheckBox Content="Auto Pan" IsChecked="{Binding AutoPan}" Foreground="White" />
@@ -597,7 +589,6 @@
           <Button Content="Pick…" Click="OnTuningPickClick" Padding="6,2" />
         </StackPanel>
 
-        <!-- bottom-left live readouts (mirrors lbl_hdop / lbl_sats / dist + speed/wind/coords) -->
         <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
                 Background="#99000000" CornerRadius="4" Padding="6,3">
           <StackPanel Spacing="1">
@@ -612,18 +603,18 @@
                          Text="{Binding WindDir, StringFormat='Wind: {0:0}°'}" />
               <TextBlock Foreground="White" Text="{Binding WindVel, StringFormat='{}{0:0.0} m/s'}" />
             </StackPanel>
-            <TextBlock Foreground="#CCCCCC" FontSize="11"
-                       Text="{Binding CursorLat, StringFormat='Cursor: {0:0.000000}'}" />
-            <TextBlock Foreground="#CCCCCC" FontSize="11"
-                       Text="{Binding CursorLng, StringFormat='         {0:0.000000}'}" />
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Foreground="#CCCCCC" FontSize="11"
+                         Text="{Binding CursorLat, StringFormat='Cursor: {0:0.000000}, '}" />
+              <TextBlock Foreground="#CCCCCC" FontSize="11"
+                         Text="{Binding CursorLng, StringFormat='{}{0:0.000000}'}" />
+            </StackPanel>
           </StackPanel>
         </Border>
 
-        <!-- bottom-right legend -->
         <TextBlock HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
                    Foreground="#CCCCCC" FontSize="11" Text="GPS Track (Black)" />
 
-        <!-- live Tuning graph (rolling ~30 s window of picked cs fields); double-click to pick -->
         <Border IsVisible="{Binding Tuning}" VerticalAlignment="Bottom" Height="210"
                 Margin="0,0,0,26" Background="#CC1B1B1B">
           <ctl:LivePlot x:Name="TuningPlot" DoubleTapped="OnTuningPickClick" />

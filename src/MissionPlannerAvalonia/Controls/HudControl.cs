@@ -5,13 +5,11 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 
 namespace MissionPlannerAvalonia.Controls;
 
 public class HudControl : Control {
-  // Raised with "ekf" / "vibe" / "prearm" when the matching HUD indicator is clicked,
-  // so the host can open the EKF/Vibration/Prearm status windows (mirrors MP hud1_*click).
+
   public event Action<string>? IndicatorClicked;
   private Rect _ekfRect, _vibeRect, _prearmRect;
   public static readonly StyledProperty<double> RollProperty = AvaloniaProperty.Register<
@@ -60,7 +58,6 @@ public class HudControl : Control {
       int
   >(nameof(BatteryRemaining));
 
-  // HUD right-click options (mirror MP contextMenuStripHud)
   public static readonly StyledProperty<bool> ShowIconsProperty =
       AvaloniaProperty.Register<HudControl, bool>(nameof(ShowIcons), true);
   public static readonly StyledProperty<bool> RussianProperty =
@@ -70,7 +67,6 @@ public class HudControl : Control {
   public static readonly StyledProperty<bool> GroundBrownProperty =
       AvaloniaProperty.Register<HudControl, bool>(nameof(GroundBrown), false);
 
-  // HUD Items submenu toggles (mirror MP HUD.display* flags)
   public static readonly StyledProperty<bool> DisplayHeadingProperty =
       AvaloniaProperty.Register<HudControl, bool>(nameof(DisplayHeading), true);
   public static readonly StyledProperty<bool> DisplaySpeedProperty =
@@ -100,7 +96,6 @@ public class HudControl : Control {
   public static readonly StyledProperty<string> CustomItemsTextProperty =
       AvaloniaProperty.Register<HudControl, string>(nameof(CustomItemsText), "");
 
-  // ---- new upstream HUD.cs draw items ----
   public static readonly StyledProperty<double> WindDirProperty =
       AvaloniaProperty.Register<HudControl, double>(nameof(WindDir));
   public static readonly StyledProperty<double> WindVelProperty =
@@ -139,6 +134,10 @@ public class HudControl : Control {
       AvaloniaProperty.Register<HudControl, bool>(nameof(PrearmOk));
   public static readonly StyledProperty<int> GpsFixTypeProperty =
       AvaloniaProperty.Register<HudControl, int>(nameof(GpsFixType));
+  public static readonly StyledProperty<double> WpDistProperty =
+      AvaloniaProperty.Register<HudControl, double>(nameof(WpDist));
+  public static readonly StyledProperty<int> WpNoProperty =
+      AvaloniaProperty.Register<HudControl, int>(nameof(WpNo));
 
   public double Roll {
     get => GetValue(RollProperty);
@@ -336,8 +335,16 @@ public class HudControl : Control {
     get => GetValue(GpsFixTypeProperty);
     set => SetValue(GpsFixTypeProperty, value);
   }
+  public double WpDist {
+    get => GetValue(WpDistProperty);
+    set => SetValue(WpDistProperty, value);
+  }
+  public int WpNo {
+    get => GetValue(WpNoProperty);
+    set => SetValue(WpNoProperty, value);
+  }
 
-  private static readonly IBrush SkyBrush = new LinearGradientBrush {
+  private static readonly IBrush _skyBrush = new LinearGradientBrush {
     StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
     EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
     GradientStops =
@@ -346,7 +353,7 @@ public class HudControl : Control {
             new GradientStop(Color.Parse("#7FB3E0"), 1),
         },
   };
-  private static readonly IBrush GroundBrush = new LinearGradientBrush {
+  private static readonly IBrush _groundBrush = new LinearGradientBrush {
     StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
     EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
     GradientStops =
@@ -355,8 +362,8 @@ public class HudControl : Control {
             new GradientStop(Color.Parse("#414F07"), 1),
         },
   };
-  // Brown "actual ground" scheme (mirrors MP groundColorToolStripMenuItem checked state).
-  private static readonly IBrush GroundBrownBrush = new LinearGradientBrush {
+
+  private static readonly IBrush _groundBrownBrush = new LinearGradientBrush {
     StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
     EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
     GradientStops =
@@ -365,13 +372,11 @@ public class HudControl : Control {
             new GradientStop(Color.Parse("#3C2104"), 1),
         },
   };
-  private static readonly IBrush Tape = new SolidColorBrush(Color.FromArgb(140, 0, 0, 0));
-  private static readonly IBrush TextBrush = Brushes.White;
-  private static readonly Pen WhitePen = new(Brushes.White, 1.5);
-  private static readonly Pen ThinPen = new(Brushes.White, 1);
-  private static readonly Pen RedPen = new(Brushes.Red, 2.5);
+  private static readonly IBrush _tape = new SolidColorBrush(Color.FromArgb(140, 0, 0, 0));
+  private static readonly IBrush _textBrush = Brushes.White;
+  private static readonly Pen _whitePen = new(Brushes.White, 1.5);
+  private static readonly Pen _thinPen = new(Brushes.White, 1);
 
-  // 60 Hz render clock eases displayed values toward ~10 Hz telemetry to remove visible stepping.
   private readonly DispatcherTimer _ease;
   private double _eRoll, _ePitch, _eYaw, _eAlt, _eAs, _eGs, _eVs;
   private bool _easeInit;
@@ -487,13 +492,23 @@ public class HudControl : Control {
         DisplayBattery2Property,
         DisplayAoaProperty,
         DisplayXTrackProperty,
-        DisplayConnectionProperty
+        DisplayConnectionProperty,
+        WpDistProperty,
+        WpNoProperty
     );
   }
 
-  private IBrush GroundFill() => GroundBrown ? GroundBrownBrush : GroundBrush;
+  private DateTime _modeChanged = DateTime.MinValue;
 
-  // Faithful port of MissionPlanner HUD.cs OnPaint (ExtLibs/Controls/HUD.cs).
+  protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
+    base.OnPropertyChanged(change);
+    if (change.Property == ModeProperty) {
+      _modeChanged = DateTime.Now;
+    }
+  }
+
+  private IBrush GroundFill() => GroundBrown ? _groundBrownBrush : _groundBrush;
+
   public override void Render(DrawingContext context) {
     var b = Bounds;
     double w = b.Width,
@@ -504,7 +519,6 @@ public class HudControl : Control {
 
     context.FillRectangle(Brushes.Black, new Rect(0, 0, w, h));
 
-    // Sizes scale with the smaller dimension so shapes don't stretch on resize; positions stay on w/h.
     double unit = Math.Min(w, h);
     double fontsize = Math.Clamp(unit / 28.0, 9, 30);
     double cx = w / 2,
@@ -513,16 +527,15 @@ public class HudControl : Control {
     double headH = Math.Clamp(h / 14.0, 16, 48);
     var ground = GroundFill();
 
-    // ---- attitude (sky/ground + pitch ladder), rotated by roll about centre ----
     double rollRad = (Russian ? 0 : _eRoll) * Math.PI / 180.0;
     using (context.PushClip(new Rect(0, headH, w, h - headH)))
     using (context.PushTransform(Matrix.CreateTranslation(cx, cy)))
     using (context.PushTransform(Matrix.CreateRotation(-rollRad))) {
       double big = Math.Max(w, h) * 2;
       double pitchoffset = _ePitch * perDeg;
-      context.FillRectangle(SkyBrush, new Rect(-big, -big, big * 2, big + pitchoffset));
+      context.FillRectangle(_skyBrush, new Rect(-big, -big, big * 2, big + pitchoffset));
       context.FillRectangle(ground, new Rect(-big, pitchoffset, big * 2, big * 2 - pitchoffset));
-      context.DrawLine(WhitePen, new Point(-big, pitchoffset), new Point(big, pitchoffset));
+      context.DrawLine(_whitePen, new Point(-big, pitchoffset), new Point(big, pitchoffset));
 
       if (DisplayRollPitch) {
         for (int a = -90; a <= 90; a += 5) {
@@ -537,9 +550,9 @@ public class HudControl : Control {
 
           bool major = a % 10 == 0;
           double len = major ? unit * 0.11 : unit * 0.075;
-          context.DrawLine(ThinPen, new Point(-len / 2, y), new Point(len / 2, y));
+          context.DrawLine(_thinPen, new Point(-len / 2, y), new Point(len / 2, y));
           if (major) {
-            var br = TextBrush;
+            var br = _textBrush;
             DrawText(context, Math.Abs(a).ToString(), new Point(len / 2 + 3, y - fontsize), fontsize,
                 br);
             DrawText(context, Math.Abs(a).ToString(), new Point(-len / 2 - fontsize * 1.6,
@@ -549,12 +562,10 @@ public class HudControl : Control {
       }
     }
 
-    // ---- roll/bank arc + pointer (ticks rotate with roll, pointer fixed at top) ----
     if (DisplayRollPitch) {
-      DrawRollArc(context, cx, cy, Math.Min(unit * 0.46, cy - headH - unit * 0.05), unit);
+      DrawRollArc(context, cx, cy, Math.Max(0, Math.Min(unit * 0.46, cy - headH - unit * 0.05)), unit);
     }
 
-    // ---- centre aircraft boresight (banks only in Russian mode) ----
     double wing = unit * 0.11;
     double rgap = unit * 0.035;
     double drop = unit * 0.05;
@@ -570,57 +581,64 @@ public class HudControl : Control {
       context.DrawLine(reticle, new Point(cx, cy + drop), new Point(cx + caretHalf, cy));
     }
 
-    // ---- heading ribbon (top) ----
     if (DisplayHeading) {
       DrawHeadingTape(context, w, headH, fontsize, _eYaw, NavBearing);
     }
 
-    // ---- telemetry link quality (top-right corner, like MP) ----
     if (DisplayConnection) {
-      var lc = LinkQuality <= 0 ? Brushes.Red : LinkQuality < 50 ? Brushes.Orange : TextBrush;
+      var lc = LinkQuality <= 0 ? Brushes.Red : LinkQuality < 50 ? Brushes.Orange : _textBrush;
       DrawTextRight(context, $"{LinkQuality:0}%", w - 8, headH + 6, fontsize + 6, lc, outline: true);
     }
 
-    // ---- wind direction + speed arrow (top-left corner) ----
-    DrawWind(context, w, headH, fontsize);
+    if (DisplayXTrack) {
+      DrawXTrack(context, w, h, headH);
+    }
 
-    // ---- AOA / SSA vertical bar (right) ----
     if (DisplayAoa) {
       DrawAoaSsa(context, w, h);
     }
 
-    // ---- speed tape (left) + altitude tape (right) ----
-    double tapeW = Math.Clamp(unit * 0.12, 42, w * 0.16);
+    double tapeW = Math.Max(20, Math.Min(Math.Max(unit * 0.12, 42), w * 0.16));
     var speedRect = new Rect(0, cy - h / 4.0, tapeW, h / 2.0);
     var altRect = new Rect(w - tapeW, cy - h / 4.0, tapeW, h / 2.0);
     double spd = AirSpeed > 0 ? _eAs : _eGs;
     if (DisplaySpeed) {
-      DrawScrollTape(context, speedRect, spd, TargetSpeed, false, fontsize, "");
+      DrawScrollTape(context, speedRect, spd, TargetSpeed, false, fontsize);
       DrawText(context, $"AS {AirSpeed:0.0}", new Point(2, speedRect.Bottom + 4), fontsize);
       DrawText(context, $"GS {GroundSpeed:0.0}", new Point(2, speedRect.Bottom + fontsize + 8),
           fontsize);
-      // throttle % just under the air/ground readouts (mirrors HUD.cs ch3percent)
+
       DrawText(context, $"Thr {ThrottlePercent:0}%",
           new Point(2, speedRect.Bottom + fontsize * 2 + 12), fontsize, Brushes.White);
     }
     if (DisplayAlt) {
-      DrawScrollTape(context, altRect, _eAlt, TargetAlt, true, fontsize, "");
+      DrawScrollTape(context, altRect, _eAlt, TargetAlt, true, fontsize);
       DrawVsi(context, altRect, _eVs);
-      // Right-align to the HUD edge so long mode names (e.g. "Unknown") aren't clipped.
-      DrawTextRight(context, Mode, w - 4, altRect.Bottom + 4, fontsize, TextBrush, outline: true);
+
+      var modeBrush = _modeChanged.AddSeconds(2) > DateTime.Now ? Brushes.Red : _textBrush;
+      DrawText(context, Mode, new Point(altRect.Left - 30, altRect.Bottom + 5), fontsize, modeBrush);
+      double newdist = WpDist;
+      string newdistunit = "m";
+      if (newdist >= 1000) {
+        newdistunit = "k";
+        newdist = Math.Round(newdist / 1000.0, 1);
+      } else {
+        newdist = (int)newdist;
+      }
+      DrawText(context, $"{newdist}{newdistunit}>{WpNo}",
+          new Point(altRect.Left - 30, altRect.Bottom + fontsize + 2 + 10), fontsize, _textBrush);
     }
 
-    // ---- bottom-left battery (Bat1, + optional Bat2 line above it) ----
     if (DisplayBattery) {
       var bb = BatteryRemaining > 0 && BatteryRemaining < 20 ? Brushes.Red
           : BatteryRemaining > 0 && BatteryRemaining < 30 ? Brushes.Orange
-          : TextBrush;
+          : _textBrush;
       double batY = h - fontsize - 4;
-      // Battery2 line (mirrors HUD.cs batteryon2 / Bat2) drawn just above Bat1.
+
       if (DisplayBattery2 && BatteryVoltage2 > 0) {
         string batt2 =
             $"Bat2 {BatteryVoltage2:0.00}v {CurrentAmps2:0.0} A {BatteryRemaining2}%";
-        DrawText(context, batt2, new Point(2, batY - fontsize - 4), fontsize, TextBrush);
+        DrawText(context, batt2, new Point(2, batY - fontsize - 4), fontsize, _textBrush);
       } else if (BatteryCells > 0) {
         DrawText(context, $"Cell {BatteryVoltage / BatteryCells:0.00}v",
             new Point(2, batY - fontsize - 4), fontsize, bb);
@@ -629,13 +647,11 @@ public class HudControl : Control {
       DrawText(context, batt, new Point(2, batY), fontsize, bb);
     }
 
-    // ---- bottom cluster (matches MP tempref): GPS bottom-right; EKF/Vibe + prearm
-    //      centred at the bottom; AS/GS + battery bottom-left ----
     double byline = h - fontsize - 4;
     if (DisplayGps) {
-      // Use the real fix type, not just sat count (a 2D fix with >=3 sats was mislabelled "3D Fix").
+
       string g = GpsFixText(GpsFixType, (int)SatCount);
-      var gpsBrush = GpsFixType >= 3 ? GpsGoodBrush : GpsFixType >= 2 ? Brushes.Orange : Brushes.Red;
+      var gpsBrush = GpsFixType >= 3 ? _gpsGoodBrush : GpsFixType >= 2 ? Brushes.Orange : Brushes.Red;
       DrawTextRight(context, g, w - 6, byline, fontsize, gpsBrush, outline: true);
     }
     _ekfRect = _vibeRect = _prearmRect = default;
@@ -663,7 +679,6 @@ public class HudControl : Control {
       _prearmRect = new Rect(cx - pw / 2, py, pw, fontsize + 4);
     }
 
-    // ---- custom user items (left) ----
     if (!string.IsNullOrEmpty(CustomItemsText)) {
       double yy = headH + 4;
       foreach (var line in CustomItemsText.Split('\n')) {
@@ -672,11 +687,8 @@ public class HudControl : Control {
       }
     }
 
-    // ---- centre armed / disarmed ----
     DrawTextCenter(context, Armed ? "ARMED" : "DISARMED", cx, h / 3.0, fontsize + 10, Brushes.Red);
 
-    // ---- alert flashes (failsafe / safety / low-voltage), mirrors HUD.cs ----
-    // Half-second blink so the alerts grab attention, like the upstream flashing text.
     bool lowVoltage = BatteryRemaining > 0 && BatteryRemaining < 20;
     bool blink = DateTime.UtcNow.Millisecond < 500;
     double ay = h / 3.0 + fontsize + 14;
@@ -696,7 +708,7 @@ public class HudControl : Control {
   private void DrawHeadingTape(DrawingContext ctx, double w, double headH, double fontsize,
       double yaw, double navBearing) {
     var bg = new Rect(0, 0, w, headH);
-    ctx.FillRectangle(Tape, bg);
+    ctx.FillRectangle(_tape, bg);
     ctx.DrawRectangle(null, new Pen(Brushes.Black, 2), bg);
     double space = (w - 10) / 120.0;
     int yawi = (int)Math.Round(yaw);
@@ -705,7 +717,7 @@ public class HudControl : Control {
       double x = w / 2 + d * space;
       bool major = hdg % 15 == 0;
       if (hdg % 5 == 0) {
-        ctx.DrawLine(WhitePen, new Point(x, headH - 5), new Point(x, headH - 10));
+        ctx.DrawLine(_whitePen, new Point(x, headH - 5), new Point(x, headH - 10));
       }
       if (major) {
         string lbl = hdg switch {
@@ -722,7 +734,7 @@ public class HudControl : Control {
         DrawText(ctx, lbl, new Point(x - fontsize, 1), fontsize, Brushes.White);
       }
     }
-    // target heading (nav bearing) — green marker, like MP
+
     if (navBearing != 0) {
       double delta = ((navBearing - yaw + 540) % 360) - 180;
       if (Math.Abs(delta) >= 4 && Math.Abs(delta) <= 60) {
@@ -730,7 +742,7 @@ public class HudControl : Control {
         ctx.DrawLine(new Pen(Brushes.Green, 6), new Point(nx, 0), new Point(nx, headH));
       }
     }
-    // current heading box + value (yellow centre line)
+
     double bw = fontsize * 2.6;
     var box = new Rect(w / 2 - bw / 2, 0, bw, headH);
     ctx.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), box);
@@ -738,29 +750,50 @@ public class HudControl : Control {
         fontsize, Brushes.Black);
   }
 
-  // Wind direction (relative to heading) + speed, top-left corner.
-  private void DrawWind(DrawingContext ctx, double w, double headH, double fontsize) {
-    double cx = fontsize * 3;
-    double cy = headH + fontsize * 2.5;
-    double r = fontsize * 1.6;
-    var ring = new Pen(new SolidColorBrush(Color.FromArgb(160, 255, 255, 255)), 1);
-    ctx.DrawEllipse(null, ring, new Point(cx, cy), r, r);
-    // arrow points the way the wind blows TO (wind_dir is where it comes FROM), relative to yaw.
-    double a = (WindDir - Yaw + 180) * Math.PI / 180.0;
-    double dx = Math.Sin(a), dy = -Math.Cos(a);
-    var tip = new Point(cx + dx * r, cy + dy * r);
-    var tail = new Point(cx - dx * r, cy - dy * r);
-    var ap = new Pen(Brushes.Cyan, 2);
-    ctx.DrawLine(ap, tail, tip);
-    // arrowhead
-    double ha = a + Math.PI;
-    double left = ha + 0.4, right = ha - 0.4;
-    ctx.DrawLine(ap, tip, new Point(tip.X + Math.Sin(left) * r * 0.4, tip.Y - Math.Cos(left) * r * 0.4));
-    ctx.DrawLine(ap, tip, new Point(tip.X + Math.Sin(right) * r * 0.4, tip.Y - Math.Cos(right) * r * 0.4));
-    DrawTextCenter(ctx, $"{WindVel:0.0}", cx, cy + r + 2, fontsize - 1, Brushes.Cyan);
+  private void DrawXTrack(DrawingContext ctx, double w, double h, double headH) {
+    double xtspace = w / 10.0 / 3.0;
+    const double pad = 10;
+    double xtrack = Math.Clamp(XTrackError, -40, 40);
+    double loc = xtrack / 20.0 * xtspace;
+
+    var green = new Pen(Brushes.Green, 2);
+    var greenFaint = new Pen(new SolidColorBrush(Color.FromArgb(128, 0, 128, 0)), 2);
+    var white = new Pen(Brushes.White, 2);
+    double top = headH + 5;
+    double bot = headH + h / 10;
+
+    ctx.DrawLine(Math.Abs(xtrack) == 40 ? greenFaint : green,
+        new Point(w / 10 + loc, top), new Point(w / 10 + loc, bot));
+
+    ctx.DrawLine(white, new Point(w / 10, top), new Point(w / 10, bot));
+    ctx.DrawLine(white, new Point(w / 10 - xtspace, top + pad), new Point(w / 10 - xtspace, bot - pad));
+    ctx.DrawLine(white, new Point(w / 10 - xtspace * 2, top + pad),
+        new Point(w / 10 - xtspace * 2, bot - pad));
+    ctx.DrawLine(white, new Point(w / 10 + xtspace, top + pad), new Point(w / 10 + xtspace, bot - pad));
+    ctx.DrawLine(white, new Point(w / 10 + xtspace * 2, top + pad),
+        new Point(w / 10 + xtspace * 2, bot - pad));
+
+    var white4 = new Pen(Brushes.White, 4);
+    double trY = headH + h / 10 + 10;
+    ctx.DrawLine(white4, new Point(w / 10 - xtspace * 2 - xtspace / 2, trY),
+        new Point(w / 10 - xtspace * 2 - xtspace / 2 + xtspace, trY));
+    ctx.DrawLine(white4, new Point(w / 10 - xtspace / 2, trY),
+        new Point(w / 10 - xtspace / 2 + xtspace, trY));
+    ctx.DrawLine(white4, new Point(w / 10 + xtspace * 2 - xtspace / 2, trY),
+        new Point(w / 10 + xtspace * 2 - xtspace / 2 + xtspace, trY));
+
+    const double range = 12;
+    double turnrate = Math.Clamp(TurnRate, -range / 2, range / 2);
+    double trwidth = (w / 10 + xtspace * 2 - xtspace / 2) - (w / 10 - xtspace * 2 - xtspace / 2);
+    double trloc = turnrate / range * trwidth;
+    var needle = Math.Abs(turnrate) == range / 2
+        ? new Pen(new SolidColorBrush(Color.FromArgb(128, 0, 128, 0)), 4)
+        : new Pen(Brushes.Green, 4);
+    ctx.DrawLine(needle, new Point(w / 10 + trloc - xtspace / 2, trY + 3),
+        new Point(w / 10 + trloc + xtspace / 2, trY + 3));
+    ctx.DrawLine(needle, new Point(w / 10 + trloc, trY + 3), new Point(w / 10 + trloc, trY + 3 + 10));
   }
 
-  // AOA / SSA coloured vertical scale + black arrow (mirrors HUD.cs displayAOASSA bands).
   private void DrawAoaSsa(DrawingContext ctx, double w, double h) {
     double halfh = h / 2;
     double left = w - w / 6.0;
@@ -775,7 +808,7 @@ public class HudControl : Control {
         new Rect(left, top + bh * (100 - yellowSSAp) / 100, bw, bh * (yellowSSAp - greenSSAp) / 100));
     ctx.FillRectangle(Brushes.Blue,
         new Rect(left, top + bh * (100 - greenSSAp) / 100, bw, bh * greenSSAp / 100));
-    ctx.DrawRectangle(null, WhitePen, new Rect(left, top, bw, bh));
+    ctx.DrawRectangle(null, _whitePen, new Rect(left, top, bw, bh));
 
     double ind = bh * (100 - greenSSAp) / 100 - (Aoa / critAOA) * (bh * (redSSAp - greenSSAp) / 100);
     ind = Math.Clamp(ind, 0, bh);
@@ -786,7 +819,7 @@ public class HudControl : Control {
       g.LineTo(new Point(left - bw / 2 + bw / 5, top - bw / 2 + ind));
       g.EndFigure(true);
     }
-    ctx.DrawGeometry(Brushes.Black, WhitePen, arrow);
+    ctx.DrawGeometry(Brushes.Black, _whitePen, arrow);
   }
 
   private void DrawRollArc(DrawingContext ctx, double cx, double cy, double r, double unit) {
@@ -795,11 +828,11 @@ public class HudControl : Control {
       foreach (int a in new[] { -60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60 }) {
         double rad = (a - 90) * Math.PI / 180.0;
         double len = a == 0 ? unit * 0.028 : unit * 0.016;
-        ctx.DrawLine(WhitePen,
+        ctx.DrawLine(_whitePen,
             new Point(cx + r * Math.Cos(rad), cy + r * Math.Sin(rad)),
             new Point(cx + (r - len) * Math.Cos(rad), cy + (r - len) * Math.Sin(rad)));
       }
-      // arc curve
+
       var geo = new StreamGeometry();
       using (var g = geo.Open()) {
         double a0 = -150 * Math.PI / 180.0;
@@ -810,7 +843,7 @@ public class HudControl : Control {
         }
         g.EndFigure(false);
       }
-      ctx.DrawGeometry(null, WhitePen, geo);
+      ctx.DrawGeometry(null, _whitePen, geo);
     }
     double ph = unit * 0.026;
     var pen = new Pen(Brushes.Red, Math.Max(2, unit * (Math.Abs(_eRoll) > 45 ? 0.008 : 0.005)),
@@ -820,9 +853,9 @@ public class HudControl : Control {
   }
 
   private void DrawScrollTape(DrawingContext ctx, Rect rect, double value, double target,
-      bool leftSide, double fontsize, string suffix) {
-    ctx.FillRectangle(Tape, rect);
-    ctx.DrawRectangle(null, WhitePen, rect);
+      bool leftSide, double fontsize) {
+    ctx.FillRectangle(_tape, rect);
+    ctx.DrawRectangle(null, _whitePen, rect);
     const double viewrange = 26;
     double space = rect.Height / viewrange;
     double midY = rect.Center.Y;
@@ -833,27 +866,27 @@ public class HudControl : Control {
         double y = midY - (iv - value) * space;
         if (iv % 5 == 0) {
           if (leftSide) {
-            ctx.DrawLine(WhitePen, new Point(rect.Left, y), new Point(rect.Left + 8, y));
+            ctx.DrawLine(_whitePen, new Point(rect.Left, y), new Point(rect.Left + 8, y));
             DrawText(ctx, iv.ToString(), new Point(rect.Left + 10, y - fontsize / 2), fontsize - 1,
                 Brushes.White);
           } else {
-            ctx.DrawLine(WhitePen, new Point(rect.Right - 8, y), new Point(rect.Right, y));
+            ctx.DrawLine(_whitePen, new Point(rect.Right - 8, y), new Point(rect.Right, y));
             DrawText(ctx, iv.ToString(), new Point(rect.Left + 2, y - fontsize / 2), fontsize - 1,
                 Brushes.White);
           }
         }
       }
-      // target marker (green)
+
       if (target != 0 && Math.Abs(target - value) < viewrange / 2) {
         double ty = midY - (target - value) * space;
         ctx.DrawLine(new Pen(Brushes.Green, 4), new Point(rect.Left, ty), new Point(rect.Right, ty));
       }
     }
-    // centre value box
+
     double bh = fontsize + 6;
     var box = new Rect(rect.Left, midY - bh / 2, rect.Width, bh);
     ctx.FillRectangle(new SolidColorBrush(Color.FromArgb(210, 0, 0, 0)), box);
-    ctx.DrawRectangle(null, WhitePen, box);
+    ctx.DrawRectangle(null, _whitePen, box);
     DrawText(ctx, ((int)Math.Round(value)).ToString(), new Point(rect.Left + 3, midY - fontsize / 2),
         fontsize, Brushes.AliceBlue);
   }
@@ -869,7 +902,7 @@ public class HudControl : Control {
       g.LineTo(new Point(altRect.Left, altRect.Bottom));
       g.EndFigure(false);
     }
-    ctx.DrawGeometry(null, WhitePen, box);
+    ctx.DrawGeometry(null, _whitePen, box);
     double mid = altRect.Center.Y;
     double scaled = Math.Clamp(vspeed / 12.0, -1, 1) * (altRect.Height / 2 - 4);
     var tri = new StreamGeometry();
@@ -890,7 +923,6 @@ public class HudControl : Control {
     ctx.DrawText(MakeText(text, size, brush), at);
   }
 
-  // Right-aligns text so rightX is the right edge; returns the text width.
   private double DrawTextRight(DrawingContext ctx, string text, double rightX, double y, double size,
       IBrush? brush = null, bool outline = true) {
     var ft = MakeText(text, size, brush);
@@ -902,10 +934,8 @@ public class HudControl : Control {
     return ft.Width;
   }
 
-  // Brighter than LimeGreen and paired with a black halo so it reads over the green ground.
-  private static readonly IBrush GpsGoodBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xFF, 0x4C));
+  private static readonly IBrush _gpsGoodBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xFF, 0x4C));
 
-  // GPS_FIX_TYPE -> label (matches MP). 0/1 no fix, 2 = 2D, 3 = 3D, 4 = DGPS, 5 = RTK float, 6 = RTK fixed.
   private static string GpsFixText(int fix, int sats) => fix switch {
     <= 1 => "GPS: No Fix",
     2 => $"GPS: 2D Fix ({sats})",
@@ -915,7 +945,6 @@ public class HudControl : Control {
     _ => $"GPS: RTK Fixed ({sats})",
   };
 
-  // 1px black halo so coloured text (e.g. green GPS over green ground) stays readable.
   private void DrawHalo(DrawingContext ctx, string text, Point at, double size) {
     var dark = MakeText(text, size, Brushes.Black);
     ctx.DrawText(dark, new Point(at.X - 1, at.Y));
@@ -939,7 +968,7 @@ public class HudControl : Control {
         FlowDirection.LeftToRight,
         Typeface.Default,
         size,
-        brush ?? TextBrush
+        brush ?? _textBrush
     );
   }
 

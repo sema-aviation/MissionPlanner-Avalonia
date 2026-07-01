@@ -43,6 +43,9 @@ public partial class FlightDataViewModel : ViewModelBase {
   private double _wpDist;
 
   [ObservableProperty]
+  private int _wpNo;
+
+  [ObservableProperty]
   private double _verticalSpeed;
 
   [ObservableProperty]
@@ -121,15 +124,14 @@ public partial class FlightDataViewModel : ViewModelBase {
     for (int i = 1; i <= 8; i++) {
       Servos.Add(new ServoOut(i));
     }
-    // MP flowLayoutPanelServos = servoOptions ch5..16 then relayOptions 0..3,
-    // wrapped into 2 columns (8 rows each). Single list + vertical wrap reproduces it.
+
     for (int ch = 5; ch <= 16; ch++) {
       ServoRelayItems.Add(new ServoChannel(ch));
     }
     for (int r = 0; r < 16; r++) {
       ServoRelayItems.Add(new RelayChannel(r));
     }
-    // MP tabAuxFunction = 7 auxOptions (RCx_OPTION combos)
+
     for (int ch = 7; ch <= 13; ch++) {
       AuxOptions.Add(new AuxRow(ch, new ParamField($"RC{ch}_OPTION")));
     }
@@ -159,6 +161,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     GroundSpeed = cs.groundspeed;
     AirSpeed = cs.airspeed;
     WpDist = cs.wp_dist;
+    WpNo = (int)cs.wpno;
     VerticalSpeed = cs.verticalspeed;
     DistToHome = cs.DistToHome;
     BatteryVoltage = cs.battery_voltage;
@@ -193,7 +196,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     BatCurrent = cs.current;
     NavBearing = cs.nav_bearing;
 
-    // extra HUD draw items
     WindDir = cs.wind_dir;
     WindVel = cs.wind_vel;
     Aoa = cs.AOA;
@@ -214,9 +216,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     UpdateQuickItems(cs);
     SampleTuning(cs);
 
-    // Live STATUSTEXT for the Messages tab (mirrors Messagetabtimer; last 200, newest at bottom).
-    // The reader thread mutates cs.messages (List, unlocked); a concurrent Add/RemoveAt would throw
-    // mid-enumeration on this UI thread. Snapshot under try/catch and just skip a contended frame.
     if (cs.messages != null && cs.messages.Count != _lastMsgCount) {
       try {
         var snapshot = cs.messages.ToArray();
@@ -224,13 +223,13 @@ public partial class FlightDataViewModel : ViewModelBase {
         StatusText = string.Join("\n",
             snapshot.TakeLast(200).Select(m => $"{m.time:HH:mm:ss}  {m.message?.TrimEnd()}"));
       } catch (InvalidOperationException) {
-        // collection modified by the reader — retry next tick
+
       }
     }
 
     if (_hudUserFields.Count > 0) {
       var sb = new System.Text.StringBuilder();
-      foreach (var p in StatusProps) {
+      foreach (var p in _statusProps) {
         if (!_hudUserFields.Contains(p.Name)) {
           continue;
         }
@@ -251,15 +250,12 @@ public partial class FlightDataViewModel : ViewModelBase {
     RefreshPreflight(cs);
   }
 
-  // Peak pack voltage seen this session — latches the cell count so a sagging pack can't shrink it.
   private double _peakBattVoltage;
 
-  // Prefer coulomb counting (capacity - used mAh) when a current sensor + capacity exist; else fall
-  // back to the voltage curve with a cell count latched from the peak voltage.
   private static double EstimateBatteryPercent(double voltage, double current, double usedMah,
       double capacityMah, ref double peakVoltage, double firmwarePercent) {
     if (voltage < 1.0) {
-      peakVoltage = 0; // pack gone -> forget the latched cell count for the next one
+      peakVoltage = 0;
       return firmwarePercent;
     }
 
@@ -278,9 +274,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     return Services.BatteryEstimator.EstimatePercent(voltage, cells, firmwarePercent);
   }
 
-  // BATT_CAPACITY etc. in mAh; 0 when the param isn't loaded (offline / not configured).
-  // try/catch covers the TOCTOU window where a concurrent getParamList Clear()/AddRange() empties
-  // the list between ContainsKey and the indexer (would NRE on this UI thread).
   private double ParamValue(string name) {
     try {
       var p = _comPort.MAV?.param;
@@ -290,11 +283,9 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // ---- Quick tab ----
   [ObservableProperty]
   private double _batCurrent;
 
-  // ---- extra HUD telemetry (new upstream draw items) ----
   [ObservableProperty]
   private double _windDir;
 
@@ -340,11 +331,9 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private double _targetSpeed;
 
-  // ---- Quick tab: grid of QuickView cells (mirrors MP quickView controls) ----
   public ObservableCollection<QuickItem> QuickItems { get; } = new();
 
-  // Default fields + colours mirror the previous static Quick tab layout.
-  private static readonly (string field, string color)[] QuickDefaults = {
+  private static readonly (string field, string color)[] _quickDefaults = {
     ("alt", "#D197F8"),
     ("groundspeed", "#FE842E"),
     ("current", "#FF605B"),
@@ -355,12 +344,12 @@ public partial class FlightDataViewModel : ViewModelBase {
 
   private void InitQuickItems() {
     var cs = _comPort.MAV?.cs;
-    for (int i = 0; i < QuickDefaults.Length; i++) {
+    for (int i = 0; i < _quickDefaults.Length; i++) {
       var key = $"quickView{i + 1}";
       string field = Settings.Instance.ContainsKey(key) && !string.IsNullOrEmpty(Settings.Instance[key])
           ? Settings.Instance[key]
-          : QuickDefaults[i].field;
-      var item = new QuickItem(field, QuickDefaults[i].color);
+          : _quickDefaults[i].field;
+      var item = new QuickItem(field, _quickDefaults[i].color);
       item.Desc = DescFor(cs, field);
       QuickItems.Add(item);
     }
@@ -376,7 +365,7 @@ public partial class FlightDataViewModel : ViewModelBase {
 
   private void UpdateQuickItems(MissionPlanner.CurrentState cs) {
     foreach (var item in QuickItems) {
-      var pi = StatusProps.FirstOrDefault(p => p.Name == item.Field);
+      var pi = _statusProps.FirstOrDefault(p => p.Name == item.Field);
       if (pi == null) {
         continue;
       }
@@ -388,12 +377,11 @@ public partial class FlightDataViewModel : ViewModelBase {
           _ => item.Number,
         };
       } catch {
-        // leave the previous value if this field can't be read/converted this tick.
+
       }
     }
   }
 
-  // Called by the view after the field picker; persists the chosen field via Settings.
   public void SetQuickField(QuickItem item, string field) {
     item.Field = field;
     item.Desc = DescFor(_comPort.MAV?.cs, field);
@@ -403,11 +391,10 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // Numeric (or bool) CurrentState fields the picker offers, sorted by description.
   public System.Collections.Generic.List<(string name, string desc)> QuickFieldList() {
     var cs = _comPort.MAV?.cs;
     var list = new System.Collections.Generic.List<(string, string)>();
-    foreach (var p in StatusProps) {
+    foreach (var p in _statusProps) {
       var t = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
       if (!IsNumber(t) && t != typeof(bool)) {
         continue;
@@ -418,11 +405,9 @@ public partial class FlightDataViewModel : ViewModelBase {
     return list;
   }
 
-  // ---- Status tab: full cs.GetProperties() reflection dump (mirrors MP tabStatus_Paint) ----
   public ObservableCollection<StatusItem> Statuses { get; } = new();
 
-  // MP: cs.GetItemList(true) -> all public instance props, alpha-sorted.
-  private static readonly System.Reflection.PropertyInfo[] StatusProps =
+  private static readonly System.Reflection.PropertyInfo[] _statusProps =
       typeof(MissionPlanner.CurrentState)
           .GetProperties()
           .Where(p => p.GetIndexParameters().Length == 0 && p.CanRead)
@@ -430,16 +415,16 @@ public partial class FlightDataViewModel : ViewModelBase {
           .ToArray();
 
   private void RefreshStatus(MissionPlanner.CurrentState cs) {
-    if (Statuses.Count != StatusProps.Length) {
+    if (Statuses.Count != _statusProps.Length) {
       Statuses.Clear();
-      foreach (var p in StatusProps) {
+      foreach (var p in _statusProps) {
         Statuses.Add(new StatusItem(p.Name));
       }
     }
-    for (int i = 0; i < StatusProps.Length; i++) {
+    for (int i = 0; i < _statusProps.Length; i++) {
       object? v;
       try {
-        v = StatusProps[i].GetValue(cs);
+        v = _statusProps[i].GetValue(cs);
       } catch {
         v = null;
       }
@@ -447,11 +432,9 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // ---- PreFlight tab (checklist with live status) ----
   public ObservableCollection<CheckItem> PreflightChecks { get; } = new();
 
-  // first N are auto (telemetry-driven); the rest are manual user items the Edit dialog manages.
-  private const int AutoCheckCount = 6;
+  private const int _autoCheckCount = 6;
 
   private void RefreshPreflight(MissionPlanner.CurrentState cs) {
     if (PreflightChecks.Count == 0) {
@@ -485,7 +468,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
     var current = string.Join(
         Environment.NewLine,
-        PreflightChecks.Skip(AutoCheckCount).Select(c => c.Name));
+        PreflightChecks.Skip(_autoCheckCount).Select(c => c.Name));
     var box = new Avalonia.Controls.TextBox {
       Text = current,
       AcceptsReturn = true,
@@ -516,7 +499,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     if (result == null) {
       return;
     }
-    for (int i = PreflightChecks.Count - 1; i >= AutoCheckCount; i--) {
+    for (int i = PreflightChecks.Count - 1; i >= _autoCheckCount; i--) {
       PreflightChecks.RemoveAt(i);
     }
     foreach (var line in result.Split('\n')) {
@@ -527,10 +510,8 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // ---- Servo/Relay tab (servoOptions ch5-16 + relayOptions 0-3) ----
   public ObservableCollection<object> ServoRelayItems { get; } = new();
 
-  // ---- Aux Function tab (RCx_OPTION combos) ----
   public ObservableCollection<AuxRow> AuxOptions { get; } = new();
 
   [RelayCommand]
@@ -559,7 +540,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log($"Servo {ch} -> {pwm}");
   }
 
-  // ---- Scripts tab (Lua via MoonSharp) ----
   [ObservableProperty]
   private string _scriptStatus = "No Script Running";
 
@@ -569,7 +549,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _redirectOutput = true;
 
-  // MP shows Edit/Run/Abort only after a script is selected.
   [ObservableProperty]
   private bool _scriptSelected;
 
@@ -678,7 +657,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     return file?.TryGetLocalPath();
   }
 
-  // ---- Telemetry Logs tab (TlogPlayer) ----
   private string? _tlogPath;
 
   [ObservableProperty]
@@ -734,7 +712,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // Slider drag -> seek (guarded so playback-driven Progress updates don't loop back).
   partial void OnTlogProgressChanged(double value) {
     if (_seekFromUi && _tlog.IsOpen) {
       _tlog.Seek(value / 100.0);
@@ -753,7 +730,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     });
   }
 
-  // Apply tlog packets onto cs so the HUD + map replay the flight (mirrors the live path).
   private void OnTlogPacket(MAVLink.MAVLinkMessage msg) {
     var cs = _comPort.MAV?.cs;
     if (cs == null) {
@@ -800,7 +776,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // ---- DataFlash Logs tab (DataFlashLog) ----
   private string? _binPath;
 
   [RelayCommand]
@@ -894,12 +869,11 @@ public partial class FlightDataViewModel : ViewModelBase {
 
   [RelayCommand]
   private async Task GeoReferenceImages() {
-    // Geo-tag photos against the flight log's CAM/GPS messages (mirrors GeoRef/georefimage.cs).
+
     LogStatus = "Geo Reference: matching images to GPS by EXIF timestamp...";
     await Views.GeoRefWindow.OpenWith();
   }
 
-  // ---- Payload Control tab ----
   [ObservableProperty]
   private double _tilt;
 
@@ -920,7 +894,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   [Obsolete]
   partial void OnRoll2Changed(double value) => NudgeMount();
 
-  // throttle continuous slider drags to ~10 Hz
   [Obsolete]
   private void NudgeMount() {
     if (!Connected) {
@@ -956,14 +929,13 @@ public partial class FlightDataViewModel : ViewModelBase {
     if (!Connected) {
       return;
     }
-    // Mount-neutral: explicitly command (0,0,0) rather than only zeroing local fields.
+
     await Task.Run(() =>
         _comPort.doCommand(_comPort.MAV.sysid, _comPort.MAV.compid, MAVLink.MAV_CMD.DO_MOUNT_CONTROL,
             0, 0, 0, 0, 0, 0, 2));
     Log("Mount reset to neutral");
   }
 
-  // ---- Log tabs ----
   [ObservableProperty]
   private string _logStatus = "";
 
@@ -1030,7 +1002,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     return SetMode();
   }
 
-  // ---- Actions tab ----
   public ObservableCollection<string> Actions { get; } =
       new()
       {
@@ -1060,7 +1031,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private double _homeAlt;
 
-  // ModifyandSet controls (Change Speed / Change Alt / Set Loiter Rad)
   [ObservableProperty]
   private double _changeSpeedValue;
 
@@ -1148,8 +1118,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log("Restart mission");
   }
 
-  // Full upstream BUT_resumemis: reprogram the mission keeping home + do-commands, skipping the
-  // already-flown nav waypoints before the resume point; for copter, GUIDED+arm+takeoff then AUTO.
   [RelayCommand]
   [Obsolete]
   private async Task ResumeMission() {
@@ -1217,8 +1185,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log("Resume mission");
   }
 
-  // Retry an action once a second until it reports success, giving up after 30 s (mirrors the
-  // upstream timeout loops in BUT_resumemis).
   private static bool SpinUntil(Func<bool> tryStep) {
     for (int i = 0; i < 30; i++) {
       if (tryStep()) {
@@ -1244,7 +1210,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   [RelayCommand]
   private void Joystick() => Log("Joystick mapping is under Setup > Joystick.");
 
-  // Upstream BUT_SendMSG: prompt for text and send_text(severity 5) so it lands in the vehicle log.
   [RelayCommand]
   private async Task ShowMessage() {
     if (!_comPort.BaseStream.IsOpen) {
@@ -1261,7 +1226,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // Auto-pan follow + clear-track are applied on the MapView by the view code-behind.
   [ObservableProperty]
   private bool _autoPan;
 
@@ -1273,16 +1237,12 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log("Track cleared.");
   }
 
-  // ---- Live map overlays (mirror MP lbl_sats / lbl_hdop / coords-under-cursor) ----
-  // Cursor lat/lng is pushed by the view from MapView.CursorMoved.
   [ObservableProperty]
   private double _cursorLat;
 
   [ObservableProperty]
   private double _cursorLng;
 
-  // ---- Tuning graph (mirrors MP CB_tuning + zg1: rolling live plot of selected cs fields) ----
-  // Rolling window length, seconds (MP tunx default ~30 s).
   public const double TuningWindowSeconds = 30.0;
 
   [ObservableProperty]
@@ -1291,15 +1251,13 @@ public partial class FlightDataViewModel : ViewModelBase {
   private readonly System.Collections.Generic.HashSet<string> _tuningFields = new();
   private long _tuningStart = Environment.TickCount64;
 
-  // Raised each Pump tick while tuning: (seconds-since-start, field->value snapshot).
   public event Action<double, System.Collections.Generic.IReadOnlyDictionary<string, double>>? TuningSampled;
 
-  // Raised when the picked field set changes so the view can rebuild the plot's series.
   public event Action? TuningFieldsChanged;
 
   private void InitTuningFields() {
     foreach (var f in new[] { "roll", "pitch", "nav_roll", "nav_pitch" }) {
-      if (StatusProps.Any(p => p.Name == f)) {
+      if (_statusProps.Any(p => p.Name == f)) {
         _tuningFields.Add(f);
       }
     }
@@ -1311,7 +1269,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // Numeric cs fields the Tuning picker offers (same catalogue as the QuickView picker).
   public System.Collections.Generic.List<(string name, string desc)> TuningFieldList() => QuickFieldList();
 
   public bool IsTuningField(string name) => _tuningFields.Contains(name);
@@ -1332,7 +1289,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     double t = (Environment.TickCount64 - _tuningStart) / 1000.0;
     var sample = new System.Collections.Generic.Dictionary<string, double>();
     foreach (var name in _tuningFields) {
-      var pi = StatusProps.FirstOrDefault(p => p.Name == name);
+      var pi = _statusProps.FirstOrDefault(p => p.Name == name);
       if (pi == null) {
         continue;
       }
@@ -1341,16 +1298,13 @@ public partial class FlightDataViewModel : ViewModelBase {
           sample[name] = Convert.ToDouble(c, CultureInfo.InvariantCulture);
         }
       } catch {
-        // skip a field that can't be read/converted this tick
+
       }
     }
     if (sample.Count > 0) {
       TuningSampled.Invoke(t, sample);
     }
   }
-
-  // ---- Map context menu (mirrors FlightData contextMenuStripMap) ----
-  // Called from FlightDataView code-behind with the lat/lng under the cursor (MapView.LastClickLatLng).
 
   private byte Sysid => _comPort.MAV.sysid;
   private byte Compid => _comPort.MAV.compid;
@@ -1432,8 +1386,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     if (!await Services.Dialogs.Confirm("Set Home", "Set home to the clicked location?")) {
       return;
     }
-    // COMMAND_INT (lat/lng as int32 *1e7) keeps full GPS precision; COMMAND_LONG's float32
-    // param5/6 would truncate to ~7 sig-figs (tens of metres of error). Mirrors upstream.
+
     await Task.Run(() => _comPort.doCommandInt(Sysid, Compid, MAVLink.MAV_CMD.DO_SET_HOME,
         0, 0, 0, 0, (int)(lat * 1e7), (int)(lng * 1e7), 0,
         frame: MAVLink.MAV_FRAME.GLOBAL));
@@ -1555,8 +1508,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log($"Set current WP {idx}");
   }
 
-  // Upstream BUT_Homealt: toggle the HUD home-altitude display offset (NOT a DO_SET_HOME command).
-  // Off → show altitude relative to home; pressing again clears the offset.
   [RelayCommand]
   private void SetHome() {
     if (!Connected) {
@@ -1581,7 +1532,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log("Abort landing (go-around) sent");
   }
 
-  // ---- Servo / Relay tab ----
   [ObservableProperty]
   private int _servoNumber = 1;
 
@@ -1605,7 +1555,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log($"Servo {n} -> {pwm} us");
   }
 
-  // RelayOptions Low/High/Toggle. spec = "idx:low|high|toggle"
   [RelayCommand]
   [Obsolete]
   private async Task SetRelay(string spec) {
@@ -1628,7 +1577,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     Log($"Relay {idx} {(on ? "ON" : "OFF")}");
   }
 
-  // ---- Payload Control tab ----
   [ObservableProperty]
   private double _gimbalPitch;
 
@@ -1665,7 +1613,6 @@ public partial class FlightDataViewModel : ViewModelBase {
 
   private void Log(string m) => Messages += m + "\n";
 
-  // ---- HUD right-click options (mirror MP contextMenuStripHud) ----
   [ObservableProperty]
   private bool _hudShowIcons = true;
 
@@ -1675,7 +1622,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private int _hudBatteryCells;
 
-  // false = green HUD ground, true = brown "actual ground" (mirrors MP Ground Color toggle).
   [ObservableProperty]
   private bool _hudGroundBrown;
 
@@ -1691,7 +1637,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private string _hudCustomText = "";
 
-  // HUD Items submenu toggles
   [ObservableProperty]
   private bool _hudHeading = true;
 
@@ -1739,11 +1684,9 @@ public partial class FlightDataViewModel : ViewModelBase {
   [RelayCommand]
   private void ToggleRussianHud() => HudRussian = !HudRussian;
 
-
   [RelayCommand]
   private void SwapHudMap() => (HudColumn, MapColumn) = (MapColumn, HudColumn);
 
-  // ---- HUD video (VideoControl in a popup) ----
   private MissionPlannerAvalonia.Controls.VideoControl? _video;
   private Views.VideoPopupWindow? _videoWindow;
 
@@ -1751,8 +1694,7 @@ public partial class FlightDataViewModel : ViewModelBase {
     var top = (Avalonia.Application.Current?.ApplicationLifetime
                as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
     if (_videoWindow == null) {
-      // Fresh control per window: an Avalonia control can't be re-parented after the
-      // previous popup closed, so we don't cache it across windows.
+
       _video = new MissionPlannerAvalonia.Controls.VideoControl();
       _videoWindow = new Views.VideoPopupWindow(_video);
       _videoWindow.Closed += (_, _) => { _video?.Stop(); _videoWindow = null; };
@@ -1847,7 +1789,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   private void SetAspectRatio() =>
       Log("Set Aspect Ratio: VideoControl stretches to fit the popup; no fixed aspect override.");
 
-  // MP "User Items": checkbox per numeric CurrentState field; checked ones render on the HUD.
   [RelayCommand]
   private async Task HudUserItems() {
     var top = (Avalonia.Application.Current?.ApplicationLifetime
@@ -1859,7 +1800,7 @@ public partial class FlightDataViewModel : ViewModelBase {
       Orientation = Avalonia.Layout.Orientation.Vertical,
       MaxHeight = 520,
     };
-    foreach (var p in StatusProps) {
+    foreach (var p in _statusProps) {
       if (!IsNumber(p.PropertyType)) {
         continue;
       }
@@ -1938,9 +1879,6 @@ public partial class FlightDataViewModel : ViewModelBase {
     }
   }
 
-  // ---- Transponder tab (uAvionix ADS-B out) ----
-  // Upstream MP drives this through MAVLinkInterface.uAvionixADSBControl (squawk + mode
-  // state bits + flight id + ident), not individual params, so we mirror that here.
   [ObservableProperty]
   private int _squawk = 1200;
 
@@ -1962,7 +1900,6 @@ public partial class FlightDataViewModel : ViewModelBase {
   [ObservableProperty]
   private string _transponderStatus = "Not connected";
 
-  // UAVIONIX_ADSB_OUT_CONTROL_STATE bits: 8=IDENT, 16=ModeA, 32=ModeC, 64=ModeS, 128=1090ES.
   private void SendTransponder(byte extraState) {
     if (!Connected) {
       TransponderStatus = "Not connected";
@@ -2024,7 +1961,6 @@ public partial class FlightDataViewModel : ViewModelBase {
 
 }
 
-// One Quick-tab cell: a live cs field shown as a big value + small label (mirrors MP QuickView).
 public partial class QuickItem : ObservableObject {
   public QuickItem(string field, string color) {
     _field = field;
@@ -2088,7 +2024,6 @@ public partial class CheckItem : ObservableObject {
   [ObservableProperty]
   private string _name;
 
-  // Manual items have no telemetry value; the user toggles the checkbox themselves.
   public bool Manual { get; }
 
   [ObservableProperty]

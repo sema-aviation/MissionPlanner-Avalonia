@@ -26,7 +26,7 @@ public partial class FlightDataView : UserControl {
     _tuningPlot = this.FindControl<LivePlot>("TuningPlot");
     if (_fdMap != null) {
       _fdMap.ContextMenu = BuildMapMenu(_fdMap);
-      // Cursor coords readout over the map (mirrors MP MainMap_MouseMove coord label).
+
       _fdMap.CursorMoved += (lat, lng) => {
         if (DataContext is FlightDataViewModel vm) {
           vm.CursorLat = lat;
@@ -45,15 +45,14 @@ public partial class FlightDataView : UserControl {
     ApplyGaugeSettings();
   }
 
-  // Gauge x:Name -> Settings key prefix; reload persisted Min/Max and add range bands.
-  private static readonly Dictionary<string, string> GaugeKeys = new() {
+  private static readonly Dictionary<string, string> _gaugeKeys = new() {
     ["GVsi"] = "GaugeVSI",
     ["GSpeed"] = "GaugeSpeed",
     ["GAlt"] = "GaugeAlt",
   };
 
   private void ApplyGaugeSettings() {
-    foreach (var (name, key) in GaugeKeys) {
+    foreach (var (name, key) in _gaugeKeys) {
       var g = this.FindControl<Gauge>(name);
       if (g == null) {
         continue;
@@ -64,7 +63,7 @@ public partial class FlightDataView : UserControl {
       if (TryGetDouble(key + "MAX", out var mx)) {
         g.Max = mx;
       }
-      // green (lower) / red (upper) bands as a quick visual cue (mirrors AGauge ranges).
+
       double span = g.Max - g.Min;
       g.Ranges = new List<GaugeRange> {
         new() { Start = g.Min, End = g.Min + span * 0.75,
@@ -84,9 +83,8 @@ public partial class FlightDataView : UserControl {
             out value);
   }
 
-  // Double-click a gauge -> prompt Min/Max and persist (mirrors Gspeed_DoubleClick).
   private async void OnGaugeDoubleTapped(object? sender, TappedEventArgs e) {
-    if (sender is not Gauge g || g.Name == null || !GaugeKeys.TryGetValue(g.Name, out var key)) {
+    if (sender is not Gauge g || g.Name == null || !_gaugeKeys.TryGetValue(g.Name, out var key)) {
       return;
     }
     var minStr = await Services.Dialogs.InputBox("Set Min", "Enter Min value",
@@ -106,13 +104,11 @@ public partial class FlightDataView : UserControl {
     ApplyGaugeSettings();
   }
 
-  // Double-click a QuickView cell -> field picker over numeric cs properties (mirrors
-  // quickView_DoubleClick). The chosen field is applied + persisted by the view model.
   private async void OnQuickViewDoubleTapped(object? sender, TappedEventArgs e) {
     if (DataContext is not FlightDataViewModel vm) {
       return;
     }
-    // resolve which QuickItem cell was double-clicked from the event source's data context.
+
     QuickItem? item = (e.Source as Control)?.DataContext as QuickItem;
     if (item == null) {
       return;
@@ -150,13 +146,11 @@ public partial class FlightDataView : UserControl {
     }
   }
 
-  private MapView? _fdMap;
-  private LivePlot? _tuningPlot;
-  private TabControl? _fdTabs;
+  private readonly MapView? _fdMap;
+  private readonly LivePlot? _tuningPlot;
+  private readonly TabControl? _fdTabs;
   private FlightDataViewModel? _mapVm;
 
-  // Push AutoPan + Clear-Track from the VM onto the MapView (mirrors MP CHK_autopan / Clear Track),
-  // and wire the live Tuning-graph feed.
   private void BindMap() {
     if (_fdMap == null || ReferenceEquals(_mapVm, DataContext)) {
       return;
@@ -187,11 +181,9 @@ public partial class FlightDataView : UserControl {
     }
   }
 
-  // ---- Tuning graph (mirrors MP zg1): per-field rolling buffers trimmed to a 30 s window. ----
   private readonly Dictionary<string, (List<double> Xs, List<double> Ys)> _tuningBuffers = new();
 
-  // Stable colour per series so a field keeps its colour as the plot redraws each tick.
-  private static readonly ScottPlot.Color[] TuningPalette = {
+  private static readonly ScottPlot.Color[] _tuningPalette = {
     ScottPlot.Colors.Yellow, ScottPlot.Colors.Cyan, ScottPlot.Colors.OrangeRed,
     ScottPlot.Colors.LightGreen, ScottPlot.Colors.Magenta, ScottPlot.Colors.DeepSkyBlue,
   };
@@ -199,7 +191,7 @@ public partial class FlightDataView : UserControl {
 
   private ScottPlot.Color ColorFor(string label) {
     if (!_tuningColors.TryGetValue(label, out var c)) {
-      c = TuningPalette[_tuningColors.Count % TuningPalette.Length];
+      c = _tuningPalette[_tuningColors.Count % _tuningPalette.Length];
       _tuningColors[label] = c;
     }
     return c;
@@ -225,7 +217,7 @@ public partial class FlightDataView : UserControl {
       }
       buf.Xs.Add(t);
       buf.Ys.Add(value);
-      // drop points older than the rolling window
+
       while (buf.Xs.Count > 0 && buf.Xs[0] < cutoff) {
         buf.Xs.RemoveAt(0);
         buf.Ys.RemoveAt(0);
@@ -234,7 +226,6 @@ public partial class FlightDataView : UserControl {
     }
   }
 
-  // Field picker for the Tuning graph (checklist of numeric cs fields; mirrors MP tuning setup).
   private async void OnTuningPickClick(object? sender, RoutedEventArgs e) {
     if (DataContext is not FlightDataViewModel vm
         || TopLevel.GetTopLevel(this) is not Window owner) {
@@ -279,10 +270,8 @@ public partial class FlightDataView : UserControl {
     }
   }
 
-  // One live window per indicator; re-clicking focuses the existing one instead of stacking.
   private readonly Dictionary<string, Window> _indicatorWindows = new();
 
-  // Mirrors MP hud1_ekfclick / hud1_vibeclick / hud1_prearmclick.
   private void OnHudIndicatorClicked(string which) {
     string key = which switch { "ekf" => "ekf", "vibe" => "vibe", _ => "prearm" };
     if (_indicatorWindows.TryGetValue(key, out var existing)) {
@@ -305,7 +294,6 @@ public partial class FlightDataView : UserControl {
     }
   }
 
-  // Mirrors FlightData contextMenuStripMap. Each item acts at the clicked map location.
   [Obsolete]
   private ContextMenu BuildMapMenu(MapView map) {
     FlightDataViewModel? Vm() => DataContext as FlightDataViewModel;
@@ -333,9 +321,7 @@ public partial class FlightDataView : UserControl {
     return menu;
   }
 
-  // ---- Tab bar right-click menu: Customize (visibility) + MultiLine (wrap) ----
-  // Mirrors MP FlightData contextMenuStrip on the tab control (tabcontrolactions setting).
-  private ITemplate<Panel?>? _defaultTabPanel;
+  private readonly ITemplate<Panel?>? _defaultTabPanel;
 
   private static IEnumerable<TabItem> TabItemsOf(TabControl tabs) => tabs.Items.OfType<TabItem>();
 
@@ -366,8 +352,6 @@ public partial class FlightDataView : UserControl {
       Settings.Instance.ContainsKey("tabcontrolmultiline")
       && bool.TryParse(Settings.Instance["tabcontrolmultiline"], out var b) && b;
 
-  // Best-effort wrap: swap the tab strip's panel to a WrapPanel (multi-line) or restore the theme
-  // default (single line). Avalonia has no native MultiLine flag, so this reproduces the effect.
   private void SetTabMultiLine(TabControl tabs, bool on) {
     tabs.ItemsPanel = on ? new FuncTemplate<Panel?>(() => new WrapPanel()) : _defaultTabPanel;
   }

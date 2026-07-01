@@ -11,18 +11,18 @@ using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using Mapsui.UI.Avalonia;
-using MissionPlannerAvalonia.ViewModels;
 using NetTopologySuite.Geometries;
 
 namespace MissionPlannerAvalonia.Controls;
 
 public class FlightPlannerMap : MapControl {
-  private const double HitThresholdPx = 16;
+  private const double _hitThresholdPx = 16;
 
   private readonly WritableLayer _route = new() { Name = "Route" };
   private readonly WritableLayer _drawnPoly = new() { Name = "DrawnPolygon" };
   private readonly WritableLayer _distLabels = new() { Name = "DistLabels" };
   private readonly WritableLayer _midpoints = new() { Name = "Midpoints" };
+  private readonly WritableLayer _rings = new() { Name = "WpRings" };
   private readonly WritableLayer _waypoints = new() { Name = "Waypoints" };
   private readonly WritableLayer _selection = new() { Name = "Selection" };
   private readonly WritableLayer _kml = new() { Name = "KmlTrack" };
@@ -30,7 +30,12 @@ public class FlightPlannerMap : MapControl {
   private readonly GridLayer _graticule = new("Graticule");
   private readonly DispatcherTimer _timer;
 
-  private readonly List<(int Seq, double Lat, double Lng)> _wps = new();
+  private readonly
+      List<(int Seq, double Lat, double Lng, ushort Cmd, double P1, double P2, double P3, double P4)>
+      _wps = new();
+  private double _wpRadius;
+  private double _loiterRadius;
+  private (double Lat, double Lng) _homeLatLng;
   private readonly List<(MPoint Pt, int AfterSeq)> _midSegs = new();
   private string _renderMode = "Mission";
   private ILayer _baseLayer;
@@ -38,7 +43,6 @@ public class FlightPlannerMap : MapControl {
   private bool _centered;
   private int _dragIndex = -1;
 
-  // Group select/move state (Ctrl+drag a rectangle, then drag any selected marker).
   private readonly HashSet<int> _groupSet = new();
   private readonly Dictionary<int, (double Lat, double Lng)> _groupSnapshot = new();
   private bool _ctrlHeld;
@@ -50,13 +54,10 @@ public class FlightPlannerMap : MapControl {
   public event Action<int, double, double>? WaypointDragMoved;
   public event Action<int, double, double>? WaypointDragCommitted;
 
-  // Raised on a left click on empty map (no marker hit, no drag) — adds a waypoint there.
   public event Action<double, double>? MapClicked;
 
-  // Raised when a midline "+" half-marker is clicked: insert a WP after this Seq.
   public event Action<int, double, double>? MidpointInsertRequested;
 
-  // Lat/lng under the last pointer press — the map context menu (Mission/Fence/Rally) acts here.
   public (double Lat, double Lng) LastClickLatLng { get; private set; }
 
   private Avalonia.Point _pressPoint;
@@ -75,13 +76,14 @@ public class FlightPlannerMap : MapControl {
     map.Layers.Add(_midpoints);
     map.Layers.Add(_kml);
     map.Layers.Add(_home);
+    map.Layers.Add(_rings);
     map.Layers.Add(_waypoints);
 
     map.Layers.Add(_poi);
     _vehicle.Style = MavMarker.Vehicle(0);
     map.Layers.Add(_vehicle);
     map.Layers.Add(_selection);
-    // Keep the viewport inside the world extent so you can't zoom/pan past the tiles into gray.
+
     map.Navigator.Limiter = new Mapsui.Limiting.ViewportLimiterKeepWithinExtent();
     Map = map;
 
@@ -94,7 +96,12 @@ public class FlightPlannerMap : MapControl {
     _timer.Start();
   }
 
-  public void SetWaypoints(IReadOnlyList<(int Seq, double Lat, double Lng)> wps) {
+  public void SetWaypoints(
+      IReadOnlyList<(int Seq, double Lat, double Lng, ushort Cmd, double P1, double P2, double P3,
+          double P4)> wps,
+      double wpRadius, double loiterRadius) {
+    _wpRadius = wpRadius;
+    _loiterRadius = loiterRadius;
     _wps.Clear();
     foreach (var w in wps) {
       if (w.Lat == 0 && w.Lng == 0) {
@@ -114,8 +121,8 @@ public class FlightPlannerMap : MapControl {
     }
   }
 
-  // Draw/move the green "H" home marker (mirrors MP home marker on the planner map).
   public void SetHome(double lat, double lng) {
+    _homeLatLng = (lat, lng);
     _home.Clear();
     if (lat != 0 || lng != 0) {
       var (x, y) = SphericalMercator.FromLonLat(lng, lat);
@@ -134,15 +141,14 @@ public class FlightPlannerMap : MapControl {
       _home.Add(f);
     }
     _home.DataHasChanged();
+    RedrawWaypoints();
   }
 
-  // Mission = yellow open route; Fence = red closed polygon; Rally = lime markers, no connecting line.
   public void SetRenderMode(string mode) {
     _renderMode = mode;
     RedrawWaypoints();
   }
 
-  // Draw the persisted POI markers (magenta dots + name labels), mirroring MP's POI overlay.
   public void ShowPois(IReadOnlyList<(double Lat, double Lng, string Name)> pois) {
     _poi.Clear();
     foreach (var p in pois) {
@@ -170,7 +176,6 @@ public class FlightPlannerMap : MapControl {
     RefreshGraphics();
   }
 
-  // Draw the user-drawn polygon: vertex dots, plus a semi-transparent closed fill once it has 3+.
   public void ShowDrawnPolygon(IReadOnlyList<(double Lat, double Lng)> pts) {
     _drawnPoly.Clear();
     var coords = new List<Coordinate>(pts.Count + 1);
@@ -248,7 +253,6 @@ public class FlightPlannerMap : MapControl {
 
   private Mapsui.Layers.ILayer? _nofly;
 
-  // Add/replace (or clear, when null) the NoFly KMZ overlay layer (mirrors MP's NoFly overlay).
   public void SetNoFlyLayer(Mapsui.Layers.ILayer? layer) {
     if (_nofly != null) {
       Map.Layers.Remove(_nofly);
@@ -275,6 +279,7 @@ public class FlightPlannerMap : MapControl {
 
   private void RedrawWaypoints() {
     _waypoints.Clear();
+    _rings.Clear();
     _route.Clear();
     _distLabels.Clear();
     _midpoints.Clear();
@@ -293,19 +298,32 @@ public class FlightPlannerMap : MapControl {
       var (x, y) = SphericalMercator.FromLonLat(w.Lng, w.Lat);
       var pt = new MPoint(x, y);
       line.Add(pt);
+      var (radius, ringColor, ringFill) = RingFor(w.Cmd, w.P1, w.P2, w.P3);
+      if (radius > 0) {
+        _rings.Add(BuildRing(w.Lng, w.Lat, radius, ringColor, ringFill));
+      }
       _waypoints.Add(BuildMarker(pt, w.Seq, markerColor, _groupSet.Contains(i)));
     }
 
-    // Rally points are standalone — no connecting line. A fence polygon is closed back to its start.
     if (!rally) {
       if (fence && line.Count >= 3) {
         line.Add(line[0]);
+        AddPolyline(_route, line, markerColor, 3);
+      } else {
+        AddRoute(line, markerColor, 4);
       }
-      AddPolyline(_route, line, markerColor, fence ? 3 : 4);
       AddDistanceLabels();
     }
 
-    // Midline "+" half-markers at each leg midpoint (mission mode only).
+    if (mission && line.Count > 2 && (_homeLatLng.Lat != 0 || _homeLatLng.Lng != 0)) {
+      var (hx, hy) = SphericalMercator.FromLonLat(_homeLatLng.Lng, _homeLatLng.Lat);
+      var hp = new MPoint(hx, hy);
+      double dLast = Haversine(_homeLatLng.Lat, _homeLatLng.Lng, _wps[^1].Lat, _wps[^1].Lng);
+      double dFirst = Haversine(_homeLatLng.Lat, _homeLatLng.Lng, _wps[0].Lat, _wps[0].Lng);
+      bool dash = dLast < 5000 && dFirst < 5000;
+      AddPolyline(_route, new[] { line[^1], hp, line[0] }, new Color(255, 255, 0), 2, dash);
+    }
+
     if (mission && _wps.Count >= 2) {
       for (int i = 0; i < _wps.Count - 1; i++) {
         var a = _wps[i];
@@ -325,13 +343,13 @@ public class FlightPlannerMap : MapControl {
     }
 
     _waypoints.DataHasChanged();
+    _rings.DataHasChanged();
     _route.DataHasChanged();
     _distLabels.DataHasChanged();
     _midpoints.DataHasChanged();
     RefreshGraphics();
   }
 
-  // Per-leg distance labels at segment midpoints (mirrors MP's on-map distance overlay).
   private void AddDistanceLabels() {
     for (int i = 1; i < _wps.Count; i++) {
       var a = _wps[i - 1];
@@ -359,6 +377,61 @@ public class FlightPlannerMap : MapControl {
     return r * 2 * Math.Atan2(Math.Sqrt(h), Math.Sqrt(1 - h));
   }
 
+  private (double Radius, Color Color, Color? Fill) RingFor(ushort cmd, double p1, double p2,
+      double p3) {
+    var lightBlue = new Color(173, 216, 230);
+    switch ((MAVLink.MAV_CMD)cmd) {
+      case MAVLink.MAV_CMD.SPLINE_WAYPOINT:
+        return (_wpRadius, new Color(0, 128, 0), null);
+      case MAVLink.MAV_CMD.LOITER_TURNS:
+      case MAVLink.MAV_CMD.LOITER_UNLIM:
+        return (Math.Abs(p3 != 0 ? p3 : _loiterRadius), lightBlue, null);
+      case MAVLink.MAV_CMD.LOITER_TO_ALT:
+        return (Math.Abs(p2 != 0 ? p2 : _loiterRadius), lightBlue, null);
+      case MAVLink.MAV_CMD.LOITER_TIME:
+        return (Math.Abs(_loiterRadius), lightBlue, null);
+      case MAVLink.MAV_CMD.FENCE_CIRCLE_INCLUSION:
+        return (p1, new Color(0, 0, 255), null);
+      case MAVLink.MAV_CMD.FENCE_CIRCLE_EXCLUSION:
+        return (p1, new Color(255, 0, 0), new Color(255, 0, 0, 30));
+      case MAVLink.MAV_CMD.WAYPOINT:
+      case MAVLink.MAV_CMD.TAKEOFF:
+      case MAVLink.MAV_CMD.VTOL_TAKEOFF:
+      case MAVLink.MAV_CMD.LAND:
+      case MAVLink.MAV_CMD.VTOL_LAND:
+      case MAVLink.MAV_CMD.DO_LAND_START:
+        return (_wpRadius, Color.White, null);
+      default:
+        return (0, Color.White, null);
+    }
+  }
+
+  private static GeometryFeature BuildRing(double lng, double lat, double radiusM, Color color,
+      Color? fill) {
+    var (cx, cy) = SphericalMercator.FromLonLat(lng, lat);
+    double mr = radiusM / Math.Cos(lat * Math.PI / 180.0);
+    const int seg = 48;
+    var coords = new Coordinate[seg + 1];
+    for (int i = 0; i <= seg; i++) {
+      double t = 2 * Math.PI * i / seg;
+      coords[i] = new Coordinate(cx + Math.Cos(t) * mr, cy + Math.Sin(t) * mr);
+    }
+
+    if (fill.HasValue) {
+      var poly = new GeometryFeature { Geometry = new Polygon(new LinearRing(coords)) };
+      poly.Styles.Add(new VectorStyle {
+        Outline = new Pen(color, 2) { PenStyle = PenStyle.Dash },
+        Line = new Pen(color, 2) { PenStyle = PenStyle.Dash },
+        Fill = new Brush(fill.Value),
+      });
+      return poly;
+    }
+
+    var f = new GeometryFeature { Geometry = new LineString(coords) };
+    f.Styles.Add(new VectorStyle { Line = new Pen(color, 2) { PenStyle = PenStyle.Dash } });
+    return f;
+  }
+
   private static PointFeature BuildMarker(MPoint pt, int seq, Color fill, bool selected) {
     var f = new PointFeature(pt);
     f.Styles.Add(new SymbolStyle {
@@ -377,7 +450,7 @@ public class FlightPlannerMap : MapControl {
   }
 
   private static void AddPolyline(WritableLayer layer, IReadOnlyList<MPoint> pts, Color color,
-      double widthPx) {
+      double widthPx, bool dash = false) {
     if (pts.Count < 2) {
       return;
     }
@@ -388,8 +461,52 @@ public class FlightPlannerMap : MapControl {
     }
 
     var feature = new GeometryFeature { Geometry = new LineString(coords) };
-    feature.Styles.Add(new VectorStyle { Line = new Pen(color, widthPx) });
+    var pen = new Pen(color, widthPx);
+    if (dash) {
+      pen.PenStyle = PenStyle.Dash;
+    }
+    feature.Styles.Add(new VectorStyle { Line = pen });
     layer.Add(feature);
+  }
+
+  // ponytail: centripetal Catmull-Rom is a rendering stand-in for upstream Spline2 physics
+  private void AddRoute(IReadOnlyList<MPoint> pts, Color color, double widthPx) {
+    if (pts.Count < 2) {
+      return;
+    }
+
+    var outc = new List<Coordinate> { new(pts[0].X, pts[0].Y) };
+    for (int i = 0; i < pts.Count - 1; i++) {
+      bool spline = (MAVLink.MAV_CMD)_wps[i + 1].Cmd == MAVLink.MAV_CMD.SPLINE_WAYPOINT;
+      if (spline) {
+        var p0 = pts[Math.Max(0, i - 1)];
+        var p1 = pts[i];
+        var p2 = pts[i + 1];
+        var p3 = pts[Math.Min(pts.Count - 1, i + 2)];
+        const int sub = 12;
+        for (int s = 1; s <= sub; s++) {
+          outc.Add(CatmullRom(p0, p1, p2, p3, (double)s / sub));
+        }
+      } else {
+        outc.Add(new Coordinate(pts[i + 1].X, pts[i + 1].Y));
+      }
+    }
+
+    var feature = new GeometryFeature { Geometry = new LineString(outc.ToArray()) };
+    feature.Styles.Add(new VectorStyle { Line = new Pen(color, widthPx) });
+    _route.Add(feature);
+  }
+
+  private static Coordinate CatmullRom(MPoint p0, MPoint p1, MPoint p2, MPoint p3, double t) {
+    double t2 = t * t;
+    double t3 = t2 * t;
+    double x = 0.5 * (2 * p1.X + (-p0.X + p2.X) * t
+        + (2 * p0.X - 5 * p1.X + 4 * p2.X - p3.X) * t2
+        + (-p0.X + 3 * p1.X - 3 * p2.X + p3.X) * t3);
+    double y = 0.5 * (2 * p1.Y + (-p0.Y + p2.Y) * t
+        + (2 * p0.Y - 5 * p1.Y + 4 * p2.Y - p3.Y) * t2
+        + (-p0.Y + 3 * p1.Y - 3 * p2.Y + p3.Y) * t3);
+    return new Coordinate(x, y);
   }
 
   private static TileLayer BuildTileLayer(string type) {
@@ -413,7 +530,7 @@ public class FlightPlannerMap : MapControl {
     LastClickLatLng = (lat, lng);
     int idx = HitTest(e.ScreenPosition);
     if (idx >= 0) {
-      // Grabbing a marker that's part of the current group selection moves the whole group.
+
       if (_groupSet.Count > 0 && _groupSet.Contains(idx)) {
         _groupDragging = true;
         _groupOriginLat = lat;
@@ -426,7 +543,6 @@ public class FlightPlannerMap : MapControl {
         return;
       }
 
-      // Grabbing any other marker clears the selection and starts a single-marker drag.
       if (_groupSet.Count > 0) {
         _groupSet.Clear();
         RedrawWaypoints();
@@ -436,7 +552,6 @@ public class FlightPlannerMap : MapControl {
       return;
     }
 
-    // Ctrl+drag on empty map starts a rubber-band group selection.
     if (_ctrlHeld) {
       _rubberbanding = true;
       _rubberStart = e.WorldPosition;
@@ -455,7 +570,9 @@ public class FlightPlannerMap : MapControl {
         double nlat = kv.Value.Lat + dLat;
         double nlng = kv.Value.Lng + dLng;
         var gw = _wps[gi];
-        _wps[gi] = (gw.Seq, nlat, nlng);
+        gw.Lat = nlat;
+        gw.Lng = nlng;
+        _wps[gi] = gw;
         WaypointDragMoved?.Invoke(gw.Seq, nlat, nlng);
       }
       RedrawWaypoints();
@@ -477,7 +594,9 @@ public class FlightPlannerMap : MapControl {
     var (lng, lat) = SphericalMercator.ToLonLat(e.WorldPosition.X, e.WorldPosition.Y);
     _didDrag = true;
     var w = _wps[_dragIndex];
-    _wps[_dragIndex] = (w.Seq, lat, lng);
+    w.Lat = lat;
+    w.Lng = lng;
+    _wps[_dragIndex] = w;
     RedrawWaypoints();
     WaypointDragMoved?.Invoke(w.Seq, lat, lng);
     e.Handled = true;
@@ -548,8 +667,6 @@ public class FlightPlannerMap : MapControl {
     }
   }
 
-  // Click-to-add is detected on the Avalonia pointer route so we can gate on the left button
-  // (Mapsui's MapEventArgs doesn't expose which button) and skip it after a marker drag or pan.
   protected override void OnPointerPressed(Avalonia.Input.PointerPressedEventArgs e) {
     _pressPoint = e.GetPosition(this);
     _didDrag = false;
@@ -561,8 +678,8 @@ public class FlightPlannerMap : MapControl {
     base.OnPointerReleased(e);
     if (e.InitialPressMouseButton == Avalonia.Input.MouseButton.Left
         && _dragIndex < 0 && !_didDrag && !_ctrlHeld
-        && Distance(e.GetPosition(this), _pressPoint) < HitThresholdPx) {
-      // A click on a midline "+" inserts a WP there; otherwise it adds one at the click.
+        && Distance(e.GetPosition(this), _pressPoint) < _hitThresholdPx) {
+
       int after = HitTestMidpoint(e.GetPosition(this));
       if (after >= 0) {
         MidpointInsertRequested?.Invoke(after, LastClickLatLng.Lat, LastClickLatLng.Lng);
@@ -579,7 +696,7 @@ public class FlightPlannerMap : MapControl {
 
   private int HitTest(Mapsui.Manipulations.ScreenPosition screen) {
     var vp = Map.Navigator.Viewport;
-    double best = HitThresholdPx;
+    double best = _hitThresholdPx;
     int found = -1;
     for (int i = 0; i < _wps.Count; i++) {
       var (x, y) = SphericalMercator.FromLonLat(_wps[i].Lng, _wps[i].Lat);
@@ -597,7 +714,7 @@ public class FlightPlannerMap : MapControl {
   private int HitTestMidpoint(Avalonia.Point screen) {
     var vp = Map.Navigator.Viewport;
     var sp = new Mapsui.Manipulations.ScreenPosition(screen.X, screen.Y);
-    double best = HitThresholdPx;
+    double best = _hitThresholdPx;
     int after = -1;
     foreach (var (pt, seq) in _midSegs) {
       var s = vp.WorldToScreen(pt.X, pt.Y);
@@ -630,4 +747,49 @@ public class FlightPlannerMap : MapControl {
       _centered = true;
     }
   }
+
+  public void ZoomToHome() {
+    if (_homeLatLng.Lat == 0 && _homeLatLng.Lng == 0) {
+      return;
+    }
+    var (x, y) = SphericalMercator.FromLonLat(_homeLatLng.Lng, _homeLatLng.Lat);
+    Map.Navigator.CenterOnAndZoomTo(new MPoint(x, y), 156543.03392804097 / Math.Pow(2, 17));
+  }
+
+  public void ZoomToVehicle() {
+    var cs = AppState.comPort.MAV?.cs;
+    if (cs == null || (cs.lat == 0 && cs.lng == 0)) {
+      return;
+    }
+    var (x, y) = SphericalMercator.FromLonLat(cs.lng, cs.lat);
+    Map.Navigator.CenterOnAndZoomTo(new MPoint(x, y), 156543.03392804097 / Math.Pow(2, 17));
+  }
+
+  public void ZoomToMission() {
+    if (_wps.Count == 0) {
+      return;
+    }
+    double minX = double.MaxValue, minY = double.MaxValue;
+    double maxX = double.MinValue, maxY = double.MinValue;
+    foreach (var w in _wps) {
+      var (x, y) = SphericalMercator.FromLonLat(w.Lng, w.Lat);
+      minX = Math.Min(minX, x);
+      minY = Math.Min(minY, y);
+      maxX = Math.Max(maxX, x);
+      maxY = Math.Max(maxY, y);
+    }
+    if (maxX - minX < 1 && maxY - minY < 1) {
+      Map.Navigator.CenterOnAndZoomTo(new MPoint(minX, minY), 156543.03392804097 / Math.Pow(2, 17));
+      return;
+    }
+    double padX = (maxX - minX) * 0.1, padY = (maxY - minY) * 0.1;
+    Map.Navigator.ZoomToBox(new MRect(minX - padX, minY - padY, maxX + padX, maxY + padY));
+  }
+
+  public void RotateBy(double deg) => Map.Navigator.RotateTo(Map.Navigator.Viewport.Rotation + deg);
+
+  public void ResetRotation() => Map.Navigator.RotateTo(0);
+
+  public void SetZoomLevel(double level) =>
+      Map.Navigator.ZoomTo(156543.03392804097 / Math.Pow(2, level));
 }

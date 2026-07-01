@@ -9,7 +9,6 @@ using MissionPlannerAvalonia.Controls;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Live raw IMU/mag/baro readout, mirrors MP "Raw Sensor View".
 public class RawSensorWindow : Window {
   private readonly DispatcherTimer _timer;
   private readonly TextBlock _text = new() {
@@ -47,7 +46,6 @@ public class RawSensorWindow : Window {
   }
 }
 
-// Lists recent STATUSTEXT messages logged in cs.messages.
 public class MessagesWindow : Window {
   public MessagesWindow() {
     Title = "Messages";
@@ -76,7 +74,6 @@ public class MessagesWindow : Window {
   }
 }
 
-// Hosts a VideoControl in a popup so the HUD video menu can drive it.
 public class VideoPopupWindow : Window {
   public VideoControl Video { get; }
   private readonly TextBlock _status = new() {
@@ -105,8 +102,6 @@ public class VideoPopupWindow : Window {
   public void UpdateStatus() => _status.Text = Video.Status;
 }
 
-// Live EKF variance bars (velocity/pos-horiz/pos-vert/compass/terrain), mirrors MP EKFStatus.
-// Values are variance*100; orange >50, red >80 — the standard ArduPilot warning thresholds.
 public class EKFStatusWindow : Window {
   private readonly DispatcherTimer _timer;
   private readonly (string label, ProgressBar bar)[] _rows;
@@ -153,8 +148,6 @@ public class EKFStatusWindow : Window {
   }
 }
 
-// Live vibration bars + clip counters, mirrors MP Vibration. >30 m/s/s is the ArduPilot caution
-// line, >60 the danger line.
 public class VibrationWindow : Window {
   private readonly DispatcherTimer _timer;
   private readonly (string label, ProgressBar bar)[] _rows;
@@ -197,28 +190,62 @@ public class VibrationWindow : Window {
   }
 }
 
-// Live prearm status + last high-severity message, mirrors MP PrearmStatus.
 public class PrearmStatusWindow : Window {
+  private static readonly Color _okColor = Color.Parse("#3FB950");
+  private static readonly Color _failColor = Color.Parse("#F85149");
+  private static readonly Color _mutedColor = Color.Parse("#6E7681");
+
   private readonly DispatcherTimer _timer;
-  private readonly TextBlock _state = new() { FontSize = 18, FontWeight = FontWeight.Bold };
-  private readonly TextBlock _summary = new() { Foreground = Brushes.Gray, FontSize = 12 };
-  private readonly ItemsControl _checks = new();
+  private readonly Border _banner;
+  private readonly TextBlock _icon = new() { FontSize = 22, FontWeight = FontWeight.Bold };
+  private readonly TextBlock _state = new() { FontSize = 20, FontWeight = FontWeight.SemiBold };
+  private readonly TextBlock _summary =
+      new() { Foreground = new SolidColorBrush(Color.Parse("#9AA0A6")), FontSize = 12 };
+  private readonly ItemsControl _checks = new() { Margin = new Avalonia.Thickness(0, 12, 0, 0) };
+  private readonly TextBlock _empty = new() {
+    FontSize = 13,
+    Foreground = new SolidColorBrush(_mutedColor),
+    HorizontalAlignment = HorizontalAlignment.Center,
+    Margin = new Avalonia.Thickness(0, 40, 0, 0),
+    TextWrapping = TextWrapping.Wrap,
+    TextAlignment = TextAlignment.Center,
+  };
 
   public PrearmStatusWindow() {
     Title = "Arming Checks";
-    Width = 460;
-    Height = 320;
-    Background = new SolidColorBrush(Color.Parse("#1F1F20"));
+    Width = 480;
+    Height = 380;
+    MinWidth = 360;
+    MinHeight = 240;
+    Background = new SolidColorBrush(Color.Parse("#1B1B1D"));
     WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
-    var header = new StackPanel { Spacing = 2, Children = { _state, _summary } };
-    var list = new ScrollViewer {
-      Content = _checks,
-      VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+    var headerText = new StackPanel {
+      Spacing = 1,
+      VerticalAlignment = VerticalAlignment.Center,
+      Children = { _state, _summary },
     };
-    var root = new DockPanel { Margin = new Avalonia.Thickness(14) };
-    DockPanel.SetDock(header, Avalonia.Controls.Dock.Top);
-    root.Children.Add(header);
+    _banner = new Border {
+      CornerRadius = new Avalonia.CornerRadius(6),
+      BorderThickness = new Avalonia.Thickness(1),
+      Padding = new Avalonia.Thickness(14, 12),
+      Child = new StackPanel {
+        Orientation = Orientation.Horizontal,
+        Spacing = 12,
+        Children = { _icon, headerText },
+      },
+    };
+
+    var body = new Panel { Children = { _empty, _checks } };
+    var list = new ScrollViewer {
+      Content = body,
+      VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+      Margin = new Avalonia.Thickness(0, 12, 0, 0),
+    };
+
+    var root = new DockPanel { Margin = new Avalonia.Thickness(16) };
+    DockPanel.SetDock(_banner, Avalonia.Controls.Dock.Top);
+    root.Children.Add(_banner);
     root.Children.Add(list);
     Content = root;
 
@@ -229,63 +256,85 @@ public class PrearmStatusWindow : Window {
     Refresh();
   }
 
+  private void SetBanner(Color accent, string glyph, string state, string summary) {
+    _banner.Background = new SolidColorBrush(accent, 0.12);
+    _banner.BorderBrush = new SolidColorBrush(accent, 0.55);
+    var accentBrush = new SolidColorBrush(accent);
+    _icon.Text = glyph;
+    _icon.Foreground = accentBrush;
+    _state.Text = state;
+    _state.Foreground = accentBrush;
+    _summary.Text = summary;
+  }
+
+  private static Border MakeCheckCard(string text) => new() {
+    Background = new SolidColorBrush(Color.Parse("#242427")),
+    BorderBrush = new SolidColorBrush(_failColor),
+    BorderThickness = new Avalonia.Thickness(3, 0, 0, 0),
+    CornerRadius = new Avalonia.CornerRadius(3),
+    Padding = new Avalonia.Thickness(11, 8),
+    Margin = new Avalonia.Thickness(0, 0, 0, 8),
+    Child = new TextBlock {
+      Text = text,
+      Foreground = new SolidColorBrush(Color.Parse("#EDEDED")),
+      TextWrapping = TextWrapping.Wrap,
+      FontSize = 13,
+    },
+  };
+
   private void Refresh() {
     var cs = AppState.comPort.MAV?.cs;
     if (cs == null) {
-      _state.Text = "No vehicle";
-      _state.Foreground = Brushes.Gray;
-      _summary.Text = "Not connected.";
+      SetBanner(_mutedColor, "–", "No Vehicle", "Not connected.");
       _checks.ItemsSource = null;
+      _empty.Text = "Connect a vehicle to see arming checks.";
+      _empty.IsVisible = true;
       return;
     }
 
     bool ok = cs.prearmstatus;
-    _state.Text = ok ? "Ready to Arm" : "Not Ready to Arm";
-    _state.Foreground = ok ? Brushes.LimeGreen : Brushes.OrangeRed;
 
-    // Pull the actual failing checks out of the STATUSTEXT stream (ArduPilot emits "PreArm: ..."
-    // / "Arm: ..." per failed check). Keep the latest line per distinct check, newest first.
-    var failures = new List<TextBlock>();
-    // Snapshot first: the reader thread mutates cs.messages (unlocked List) and enumerating it
-    // live would throw on this UI thread.
+    var failures = new List<Control>();
+
     (DateTime time, string message)[] msgs;
     try {
       msgs = cs.messages?.ToArray() ?? Array.Empty<(DateTime, string)>();
     } catch (InvalidOperationException) {
-      return; // contended — refresh again on the next tick
+      return;
     }
-    {
-      var seen = new HashSet<string>();
-      foreach (var m in msgs.Reverse()) {
-        var text = m.message?.Trim();
-        if (string.IsNullOrEmpty(text)) {
-          continue;
-        }
 
-        if (text.IndexOf("arm", StringComparison.OrdinalIgnoreCase) < 0 ||
-            text.IndexOf("disarm", StringComparison.OrdinalIgnoreCase) >= 0) {
-          continue; // keep PreArm:/Arm: lines, drop "DISARMED" etc.
-        }
+    var seen = new HashSet<string>();
+    foreach (var m in msgs.Reverse()) {
+      var text = m.message?.Trim();
+      if (string.IsNullOrEmpty(text)) {
+        continue;
+      }
 
-        if (seen.Add(text)) {
-          failures.Add(new TextBlock {
-            Text = "•  " + text,
-            Foreground = Brushes.OrangeRed,
-            TextWrapping = TextWrapping.Wrap,
-            FontSize = 13,
-            Margin = new Avalonia.Thickness(0, 2, 0, 2),
-          });
-        }
+      if (text.IndexOf("arm", StringComparison.OrdinalIgnoreCase) < 0 ||
+          text.IndexOf("disarm", StringComparison.OrdinalIgnoreCase) >= 0) {
+        continue;
+      }
+
+      if (seen.Add(text)) {
+        failures.Add(MakeCheckCard(text));
       }
     }
 
-    if (failures.Count == 0) {
-      _summary.Text = ok ? "All prearm checks passing." : "No prearm messages received yet.";
-      _checks.ItemsSource = ok
-          ? null
-          : new[] { new TextBlock { Text = "Waiting for check results…", Foreground = Brushes.Gray } };
+    if (ok) {
+      SetBanner(_okColor, "✓", "Ready to Arm", "All prearm checks passing.");
     } else {
-      _summary.Text = $"{failures.Count} failing check(s):";
+      SetBanner(_failColor, "⚠", "Not Ready to Arm",
+          failures.Count > 0
+              ? $"{failures.Count} failing check{(failures.Count == 1 ? "" : "s")}."
+              : "Waiting for check results.");
+    }
+
+    if (failures.Count == 0) {
+      _checks.ItemsSource = null;
+      _empty.Text = ok ? "No blocking checks. Vehicle is ready." : "No prearm messages received yet.";
+      _empty.IsVisible = true;
+    } else {
+      _empty.IsVisible = false;
       _checks.ItemsSource = failures;
     }
   }

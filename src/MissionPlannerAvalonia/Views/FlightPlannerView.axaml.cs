@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,8 +8,6 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
-using MissionPlanner;
-using MissionPlannerAvalonia.Controls;
 using MissionPlannerAvalonia.ViewModels;
 using SharpKml.Dom;
 using SharpKml.Engine;
@@ -21,8 +18,7 @@ public partial class FlightPlannerView : UserControl {
   private FlightPlannerViewModel? _wired;
   private bool _polygonDrawMode;
 
-  // Index of the first P-column in the grid (# , Command, P1, P2, P3, P4, …).
-  private const int PColIndex = 2;
+  private const int _pColIndex = 2;
 
   [Obsolete]
   public FlightPlannerView() {
@@ -37,7 +33,6 @@ public partial class FlightPlannerView : UserControl {
     WireViewModel();
   }
 
-  // Left-click on empty map: add a polygon vertex while drawing, else add a waypoint.
   private void OnMapClicked(double lat, double lng) {
     if (Vm == null) {
       return;
@@ -49,10 +44,9 @@ public partial class FlightPlannerView : UserControl {
     }
   }
 
-  // Per-command P1–P4 labels (mirrors FlightPlanner's per-MAV_CMD parameter captions).
-  private static readonly string[] DefaultParamLabels = { "P1", "P2", "P3", "P4" };
+  private static readonly string[] _defaultParamLabels = { "P1", "P2", "P3", "P4" };
   [Obsolete]
-  private static readonly Dictionary<MAVLink.MAV_CMD, string[]> ParamLabels = new() {
+  private static readonly Dictionary<MAVLink.MAV_CMD, string[]> _paramLabels = new() {
     [MAVLink.MAV_CMD.WAYPOINT] = new[] { "Delay", "—", "—", "Yaw" },
     [MAVLink.MAV_CMD.SPLINE_WAYPOINT] = new[] { "Delay", "—", "—", "—" },
     [MAVLink.MAV_CMD.LOITER_UNLIM] = new[] { "—", "—", "Radius", "Yaw" },
@@ -70,22 +64,24 @@ public partial class FlightPlannerView : UserControl {
     [MAVLink.MAV_CMD.CONDITION_DELAY] = new[] { "Time", "—", "—", "—" },
   };
 
-  // Relabel the four P columns from the selected row's command.
+  [Obsolete]
   private void OnWpSelectionChanged(object? sender, SelectionChangedEventArgs e) {
     if (sender is not DataGrid grid || grid.SelectedItem is not WpRow row) {
       return;
     }
-    var labels = ParamLabels.TryGetValue((MAVLink.MAV_CMD)row.Command, out var l)
-        ? l : DefaultParamLabels;
+    var cmd = (MAVLink.MAV_CMD)row.Command;
+    Services.MavCmdInfo.EnsureLoaded(Services.MavCmdInfo.CurrentSubtree());
+    var xml = Services.MavCmdInfo.Get(cmd.ToString());
+    var labels = _paramLabels.TryGetValue(cmd, out var l) ? l : _defaultParamLabels;
     for (int i = 0; i < 4; i++) {
-      int col = PColIndex + i;
+      int col = _pColIndex + i;
       if (col < grid.Columns.Count) {
-        grid.Columns[col].Header = labels[i];
+        string name = xml != null && !string.IsNullOrEmpty(xml[i]) ? xml[i] : labels[i];
+        grid.Columns[col].Header = string.IsNullOrEmpty(name) ? "—" : name;
       }
     }
   }
 
-  // Mirrors FlightPlanner contextMenuStrip1 (Mission mode). Acts at Map.LastClickLatLng.
   [Obsolete]
   private ContextMenu BuildMapMenu() {
     MenuItem Item(string header, Action<FlightPlannerViewModel, double, double> action) {
@@ -101,14 +97,37 @@ public partial class FlightPlannerView : UserControl {
     var menu = new ContextMenu();
     menu.Items.Add(Item("Insert Point", (vm, lat, lng) => vm.InsertWaypointAt(lat, lng)));
     menu.Items.Add(Item("Delete Point", (vm, lat, lng) => vm.DeleteNearest(lat, lng)));
-    // Mission-only command items — hidden when editing a Fence or Rally (mirrors upstream gating
-    // mission commands out of the Fence/Rally context menus).
+    menu.Items.Add(Item("Set Home Here", (vm, lat, lng) => vm.SetHome(lat, lng)));
+    menu.Items.Add(Item("Measure Distance", (vm, lat, lng) => _ = vm.MeasureClick(lat, lng)));
+    var zoomto = new MenuItem { Header = "Zoom To" };
+    var zh = new MenuItem { Header = "Home" };
+    zh.Click += (_, _) => Map.ZoomToHome();
+    var zm = new MenuItem { Header = "Mission" };
+    zm.Click += (_, _) => Map.ZoomToMission();
+    var zv = new MenuItem { Header = "Vehicle" };
+    zv.Click += (_, _) => Map.ZoomToVehicle();
+    zoomto.Items.Add(zh);
+    zoomto.Items.Add(zm);
+    zoomto.Items.Add(zv);
+    menu.Items.Add(zoomto);
+    var rotate = new MenuItem { Header = "Rotate" };
+    var rcw = new MenuItem { Header = "Clockwise 15°" };
+    rcw.Click += (_, _) => Map.RotateBy(15);
+    var rccw = new MenuItem { Header = "Counter-clockwise 15°" };
+    rccw.Click += (_, _) => Map.RotateBy(-15);
+    var rreset = new MenuItem { Header = "Reset (North Up)" };
+    rreset.Click += (_, _) => Map.ResetRotation();
+    rotate.Items.Add(rcw);
+    rotate.Items.Add(rccw);
+    rotate.Items.Add(rreset);
+    menu.Items.Add(rotate);
+
     var missionOnly = new List<Control>();
     void AddMissionOnly(Control c) {
       missionOnly.Add(c);
       menu.Items.Add(c);
     }
-    // Fence-only items (shown only in Fence mode).
+
     var fenceOnly = new List<Control>();
     void AddFenceOnly(Control c) {
       fenceOnly.Add(c);
@@ -128,6 +147,13 @@ public partial class FlightPlannerView : UserControl {
     loiter.Items.Add(Item("Circles", (vm, lat, lng) => _ = vm.AddLoiterCircles(lat, lng)));
     AddMissionOnly(loiter);
     AddMissionOnly(Item("Jump", (vm, _, _) => _ = vm.AddJump()));
+    AddMissionOnly(Item("Jump to Start", (vm, _, _) => vm.AddJumpStart()));
+    var autowp = new MenuItem { Header = "Auto WP" };
+    autowp.Items.Add(Item("Circle", (vm, lat, lng) => _ = vm.CreateWpCircle(lat, lng)));
+    autowp.Items.Add(Item("Spline Circle", (vm, lat, lng) => _ = vm.CreateSplineCircle(lat, lng)));
+    autowp.Items.Add(Item("Circle Survey", (vm, lat, lng) => _ = vm.CreateCircleSurvey(lat, lng)));
+    AddMissionOnly(autowp);
+    AddMissionOnly(Item("Elevation Graph", (_, _, _) => ShowElevationGraph()));
     menu.Items.Add(new Separator());
     menu.Items.Add(Item("Clear", (vm, _, _) => vm.ClearMissionCommand.Execute(null)));
     AddMissionOnly(Item("Reverse WPs", (vm, _, _) => vm.ReverseWaypointsCommand.Execute(null)));
@@ -175,11 +201,30 @@ public partial class FlightPlannerView : UserControl {
     return menu;
   }
 
-  private static readonly FilePickerFileType NoFlyType = new("NoFly KML/KMZ") {
+  private void OnZoomSliderChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e) {
+    Map?.SetZoomLevel(e.NewValue);
+  }
+
+  private void ShowElevationGraph() {
+    if (Vm?.BuildElevationProfile() is not { } p) {
+      if (Vm != null) {
+        Vm.Status = "Need at least 2 waypoints for elevation graph.";
+      }
+      return;
+    }
+    var win = new ElevationGraphWindow(p.Dist, p.Terrain, p.Planned,
+        MissionPlanner.CurrentState.AltUnit, MissionPlanner.CurrentState.DistanceUnit);
+    if (TopLevel.GetTopLevel(this) is Window owner) {
+      win.Show(owner);
+    } else {
+      win.Show();
+    }
+  }
+
+  private static readonly FilePickerFileType _noFlyType = new("NoFly KML/KMZ") {
     Patterns = new[] { "*.kml", "*.kmz" },
   };
 
-  // Load a NoFly KML/KMZ and draw its polygons over the map (mirrors MP's NoFly overlay).
   private async void OnLoadNoFly(object? sender, RoutedEventArgs e) {
     var top = TopLevel.GetTopLevel(this);
     if (top == null) {
@@ -189,7 +234,7 @@ public partial class FlightPlannerView : UserControl {
     var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
       Title = "Load NoFly Overlay",
       AllowMultiple = false,
-      FileTypeFilter = new[] { NoFlyType },
+      FileTypeFilter = new[] { _noFlyType },
     });
     var path = files.FirstOrDefault()?.TryGetLocalPath();
     if (path == null) {
@@ -205,11 +250,11 @@ public partial class FlightPlannerView : UserControl {
 
   private FlightPlannerViewModel? Vm => DataContext as FlightPlannerViewModel;
 
-  private static readonly FilePickerFileType WpType = new("Waypoints") {
+  private static readonly FilePickerFileType _wpType = new("Waypoints") {
     Patterns = new[] { "*.waypoints", "*.txt" },
   };
 
-  private static readonly FilePickerFileType KmlType = new("KML") {
+  private static readonly FilePickerFileType _kmlType = new("KML") {
     Patterns = new[] { "*.kml" },
   };
 
@@ -271,7 +316,9 @@ public partial class FlightPlannerView : UserControl {
       return;
     }
 
-    Map.SetWaypoints(Vm.Waypoints.Select(w => (w.Seq, w.Lat, w.Lng)).ToList());
+    Map.SetWaypoints(
+        Vm.Waypoints.Select(w => (w.Seq, w.Lat, w.Lng, w.Command, w.P1, w.P2, w.P3, w.P4)).ToList(),
+        Vm.WpRadius, Vm.LoiterRadius);
   }
 
   private void OnWaypointDragged(int seq, double lat, double lng) => Vm?.MoveWaypoint(seq, lat, lng);
@@ -292,7 +339,7 @@ public partial class FlightPlannerView : UserControl {
         new FilePickerOpenOptions {
           Title = "Load Mission",
           AllowMultiple = false,
-          FileTypeFilter = new[] { WpType },
+          FileTypeFilter = new[] { _wpType },
         }
     );
     var file = files.FirstOrDefault();
@@ -312,7 +359,7 @@ public partial class FlightPlannerView : UserControl {
           Title = "Save Mission",
           DefaultExtension = "waypoints",
           SuggestedFileName = "mission.waypoints",
-          FileTypeChoices = new[] { WpType },
+          FileTypeChoices = new[] { _wpType },
         }
     );
     if (file?.TryGetLocalPath() is { } path) {
@@ -320,14 +367,12 @@ public partial class FlightPlannerView : UserControl {
     }
   }
 
-  // "View KML" generates the current mission as KML and opens it (mirrors MP lnk_kml).
   private void OnViewKml(object? sender, RoutedEventArgs e) {
     if (Vm != null) {
       Vm.Status = Vm.GenerateMissionKmlAndOpen();
     }
   }
 
-  // "Load KML File" / "KML Overlay": load an external KML and draw it on the map.
   private async void OnLoadKmlOverlay(object? sender, RoutedEventArgs e) {
     var top = TopLevel.GetTopLevel(this);
     if (top is null) {
@@ -338,7 +383,7 @@ public partial class FlightPlannerView : UserControl {
         new FilePickerOpenOptions {
           Title = "Load KML Overlay",
           AllowMultiple = false,
-          FileTypeFilter = new[] { KmlType },
+          FileTypeFilter = new[] { _kmlType },
         }
     );
     if (files.FirstOrDefault()?.TryGetLocalPath() is not { } path) {
@@ -413,7 +458,6 @@ public partial class FlightPlannerView : UserControl {
       return;
     }
 
-    // Open the full Survey-Grid window (Grid/GridUI.cs); accepted grid is appended to the mission.
     GridUIWindow.OpenForPolygon(area.polygon, area.home,
         grid => Vm.Status = Vm.AppendSurveyGrid(grid));
   }

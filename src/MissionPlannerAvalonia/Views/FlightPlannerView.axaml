@@ -10,24 +10,35 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.FlightPlannerView"
   x:DataType="vm:FlightPlannerViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid ColumnDefinitions="*,168">
     <Grid Grid.Column="0" RowDefinitions="*,4,210">
       <ctl:FlightPlannerMap Grid.Row="0" x:Name="Map" />
-      <GridSplitter Grid.Row="1" Background="#262728" ResizeDirection="Rows" />
+      <GridSplitter Grid.Row="1" Background="{DynamicResource MpBg}" ResizeDirection="Rows" />
 
       <Grid Grid.Row="2" RowDefinitions="Auto,*">
         <WrapPanel Grid.Row="0" Margin="6,4" VerticalAlignment="Center">
-          <TextBlock Text="WP Radius" Classes="fieldlbl" Margin="0,0,4,0" />
-          <NumericUpDown Width="92" Value="{Binding WpRadius}" Margin="0,0,10,0" />
-          <TextBlock Text="Loiter Radius" Classes="fieldlbl" Margin="0,0,4,0" />
-          <NumericUpDown Width="92" Value="{Binding LoiterRadius}" Margin="0,0,10,0" />
-          <TextBlock Text="Default Alt" Classes="fieldlbl" Margin="0,0,4,0" />
-          <NumericUpDown Width="92" Value="{Binding DefaultAlt}" Margin="0,0,10,0" />
+          <ctl:FormField Label="WP Radius" LabelWidth="66" Margin="0,2,12,2">
+            <NumericUpDown Classes="sm" Value="{Binding WpRadius}" />
+          </ctl:FormField>
+          <ctl:FormField Label="Loiter Radius" LabelWidth="80" Margin="0,2,12,2">
+            <NumericUpDown Classes="sm" Value="{Binding LoiterRadius}" />
+          </ctl:FormField>
+          <ctl:FormField Label="Default Alt" LabelWidth="66" Margin="0,2,12,2">
+            <NumericUpDown Classes="sm" Value="{Binding DefaultAlt}" />
+          </ctl:FormField>
+          <ctl:FormField Label="Alt Warn" LabelWidth="56" Margin="0,2,12,2">
+            <NumericUpDown Classes="sm" Value="{Binding AltWarn}" />
+          </ctl:FormField>
           <Button Content="Add WP" Command="{Binding AddWaypointCommand}" Margin="0,0,8,0" />
           <CheckBox Content="Spline" IsChecked="{Binding SplineDefault}" Foreground="#E0E0E0"
                     Margin="0,0,10,0" VerticalAlignment="Center" />
+          <CheckBox Content="Verify Height" IsChecked="{Binding VerifyHeight}" Foreground="#E0E0E0"
+                    Margin="0,0,10,0" VerticalAlignment="Center" />
+          <TextBlock Text="Zoom" Classes="fieldlbl" Margin="0,0,4,0" />
+          <Slider x:Name="ZoomSlider" Width="120" Minimum="3" Maximum="20" Value="17"
+                  ValueChanged="OnZoomSliderChanged" VerticalAlignment="Center" Margin="0,0,10,0" />
 
           <TextBlock Text="Dist" Classes="fieldlbl" Margin="0,0,3,0" />
           <TextBlock Text="{Binding TotalDist}" Classes="fieldlbl" Margin="0,0,8,0" />
@@ -57,7 +68,8 @@
             <DataGridTemplateColumn Header="Command" Width="190">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate x:DataType="vm:WpRow">
-                  <TextBlock Text="{Binding CommandName}" VerticalAlignment="Center" Margin="4,0" />
+                  <TextBlock Text="{Binding CommandName}" VerticalAlignment="Center" Margin="4,0"
+                             TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding CommandName}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
               <DataGridTemplateColumn.CellEditingTemplate>
@@ -66,6 +78,8 @@
                     ItemsSource="{x:Static vm:WpRow.CommandList}"
                     SelectedItem="{Binding CommandName, Mode=TwoWay}"
                     HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Width="180"
                   />
                 </DataTemplate>
               </DataGridTemplateColumn.CellEditingTemplate>
@@ -80,7 +94,8 @@
             <DataGridTemplateColumn Header="Frame" Width="90">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate x:DataType="vm:WpRow">
-                  <TextBlock Text="{Binding FrameName}" VerticalAlignment="Center" Margin="4,0" />
+                  <TextBlock Text="{Binding FrameName}" VerticalAlignment="Center" Margin="4,0"
+                             TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FrameName}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
               <DataGridTemplateColumn.CellEditingTemplate>
@@ -89,6 +104,8 @@
                     ItemsSource="{x:Static vm:WpRow.FrameList}"
                     SelectedItem="{Binding FrameName, Mode=TwoWay}"
                     HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Width="82"
                   />
                 </DataTemplate>
               </DataGridTemplateColumn.CellEditingTemplate>
@@ -142,7 +159,7 @@
       </Grid>
     </Grid>
 
-    <Border Grid.Column="1" Background="#3A3B3C" Padding="6">
+    <Border Grid.Column="1" Background="{DynamicResource MpPanelBg}" Padding="6">
       <ScrollViewer>
         <StackPanel Spacing="6">
           <CheckBox Content="Grid" IsChecked="{Binding ShowGrid}" Foreground="#E0E0E0" />
@@ -174,13 +191,16 @@
             Command="{Binding WriteWaypointsCommand}"
           />
           <Separator />
-          <TextBlock Text="Home Location" Foreground="#94C11F" FontWeight="Bold" FontSize="12" />
-          <TextBlock Text="Lat" Foreground="#BBBBBB" FontSize="11" />
-          <TextBox Text="{Binding HomeLat}" />
-          <TextBlock Text="Long" Foreground="#BBBBBB" FontSize="11" />
-          <TextBox Text="{Binding HomeLng}" />
-          <TextBlock Text="ASL" Foreground="#BBBBBB" FontSize="11" />
-          <TextBox Text="{Binding HomeAlt}" />
+          <TextBlock Text="Home Location" Foreground="{DynamicResource MpAccentBrush}" FontWeight="Bold" FontSize="12" />
+          <ctl:FormField Orientation="Vertical" Label="Lat">
+            <TextBox HorizontalAlignment="Stretch" Text="{Binding HomeLat}" />
+          </ctl:FormField>
+          <ctl:FormField Orientation="Vertical" Label="Long">
+            <TextBox HorizontalAlignment="Stretch" Text="{Binding HomeLng}" />
+          </ctl:FormField>
+          <ctl:FormField Orientation="Vertical" Label="ASL">
+            <TextBox HorizontalAlignment="Stretch" Text="{Binding HomeAlt}" />
+          </ctl:FormField>
           <Button
             Content="Set from Vehicle"
             HorizontalAlignment="Stretch"
