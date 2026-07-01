@@ -144,7 +144,12 @@ jobs:
           python3 build/gen-manifest.py "$SITE" "$V" "$NOTES" "$SITE/manifest.json"
           # Sign the exact manifest bytes with the Ed25519 private key (raw 64-byte sig, base64).
           printf '%s' "$SIGNING_KEY" > update_key.pem
-          openssl pkeyutl -sign -rawin -inkey update_key.pem -in "$SITE/manifest.json" -out update.sig.bin
+          # macOS runners ship LibreSSL, which lacks `pkeyutl -rawin`; pick an OpenSSL 3 binary.
+          OSSL=openssl
+          for c in /opt/homebrew/opt/openssl@3/bin/openssl /usr/local/opt/openssl@3/bin/openssl openssl; do
+            if "$c" version 2>/dev/null | grep -q '^OpenSSL 3'; then OSSL="$c"; break; fi
+          done
+          "$OSSL" pkeyutl -sign -rawin -inkey update_key.pem -in "$SITE/manifest.json" -out update.sig.bin
           base64 update.sig.bin | tr -d '\n' > "$SITE/manifest.sig"
           rm -f update_key.pem update.sig.bin
 
