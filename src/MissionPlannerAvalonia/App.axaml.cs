@@ -1,8 +1,5 @@
-using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
-using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using MissionPlannerAvalonia.ViewModels;
 using MissionPlannerAvalonia.Views;
@@ -15,11 +12,13 @@ public partial class App : Application {
   }
 
   public override void OnFrameworkInitializationCompleted() {
+    Services.ThemeService.ApplySaved();
+
     if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
       desktop.MainWindow = new MainWindow { DataContext = new MainWindowViewModel() };
-      // Kill any running SITL when the app exits (mirrors MP killing simulator procs on shutdown).
+
       desktop.Exit += (_, _) => Services.SitlLauncher.StopAll();
-      // Background update check; silent when offline or already up to date.
+
       _ = Services.Updater.CheckOnStartupAsync();
     }
 

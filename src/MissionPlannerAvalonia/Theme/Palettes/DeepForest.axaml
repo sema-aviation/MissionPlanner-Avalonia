@@ -1,0 +1,37 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Color x:Key="MpAccentColor">#22C55E</Color>
+  <Color x:Key="MpAccent2Color">#16A34A</Color>
+  <Color x:Key="MpControlBgColor">#14201A</Color>
+  <Color x:Key="MpBgColor">#0D1411</Color>
+  <Color x:Key="MpPanelBgColor">#182620</Color>
+  <Color x:Key="MpInputBgColor">#101A15</Color>
+  <Color x:Key="MpBorderColor">#213029</Color>
+  <Color x:Key="MpBgDeepColor">#0A0F0C</Color>
+  <Color x:Key="MpButTopColor">#22C55E</Color>
+  <Color x:Key="MpButBotColor">#16A34A</Color>
+  <Color x:Key="MpButTextColor">#052E16</Color>
+  <Color x:Key="MpBanner1Color">#14532D</Color>
+  <Color x:Key="MpBanner2Color">#16A34A</Color>
+  <Color x:Key="MpTextColor">#DFEAE3</Color>
+
+  <SolidColorBrush x:Key="MpAccentBrush" Color="{StaticResource MpAccentColor}" />
+  <SolidColorBrush x:Key="MpAccent2Brush" Color="{StaticResource MpAccent2Color}" />
+  <SolidColorBrush x:Key="MpControlBg" Color="{StaticResource MpControlBgColor}" />
+  <SolidColorBrush x:Key="MpBg" Color="{StaticResource MpBgColor}" />
+  <SolidColorBrush x:Key="MpPanelBg" Color="{StaticResource MpPanelBgColor}" />
+  <SolidColorBrush x:Key="MpInputBg" Color="{StaticResource MpInputBgColor}" />
+  <SolidColorBrush x:Key="MpBorderBrush" Color="{StaticResource MpBorderColor}" />
+  <SolidColorBrush x:Key="MpBgDeepBrush" Color="{StaticResource MpBgDeepColor}" />
+  <SolidColorBrush x:Key="MpButTextBrush" Color="{StaticResource MpButTextColor}" />
+  <SolidColorBrush x:Key="MpButBotBrush" Color="{StaticResource MpButBotColor}" />
+  <SolidColorBrush x:Key="MpText" Color="{StaticResource MpTextColor}" />
+  <LinearGradientBrush x:Key="MpButtonBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+    <GradientStop Offset="0" Color="{StaticResource MpButTopColor}" />
+    <GradientStop Offset="1" Color="{StaticResource MpButBotColor}" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="MpBannerBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+    <GradientStop Offset="0" Color="{StaticResource MpBanner1Color}" />
+    <GradientStop Offset="1" Color="{StaticResource MpBanner2Color}" />
+  </LinearGradientBrush>
+</ResourceDictionary>

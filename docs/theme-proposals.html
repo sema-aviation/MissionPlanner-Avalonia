@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Planner Avalonia — theme color proposals</title>
+<style>
+  :root { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b0d0c; color: #d8e0dc; padding: 40px 32px 80px; }
+  h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; }
+
+  .card {
+    border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.06);
+    background: var(--bg); color: var(--text);
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  }
+  .banner {
+    padding: 14px 18px; font-weight: 640; font-size: 14px; letter-spacing: .02em;
+    color: var(--banner-text);
+    background: linear-gradient(90deg, var(--banner1), var(--banner2));
+  }
+  .body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .btn {
+    border: 1px solid var(--btn-border); border-radius: 8px; padding: 9px 16px;
+    font-size: 13px; font-weight: 620; cursor: pointer; color: var(--btn-text);
+    background: linear-gradient(180deg, var(--btn-top), var(--btn-bot));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 1px 2px rgba(0,0,0,.35);
+    transition: filter .12s ease, box-shadow .12s ease, transform .04s ease;
+  }
+  .btn:hover { filter: brightness(1.08); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 0 0 3px var(--glow), 0 2px 6px rgba(0,0,0,.4); }
+  .btn:active { transform: translateY(1px); filter: brightness(.96); }
+  .btn.secondary {
+    background: var(--panel); color: var(--text); border-color: var(--border);
+    box-shadow: none;
+  }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent); box-shadow: none; filter: none; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--accent); box-shadow: none; }
+
+  .input {
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 7px;
+    padding: 8px 10px; color: var(--text); font-size: 13px; flex: 1; min-width: 120px;
+  }
+  .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+
+  .tabs { display: flex; gap: 4px; }
+  .tab { padding: 7px 12px; font-size: 12px; border-radius: 7px 7px 0 0; color: var(--muted); }
+  .tab.active { color: var(--btn-text); background: var(--accent); font-weight: 620; }
+
+  .chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--glow); color: var(--accent); border: 1px solid var(--accent); }
+  .readout { font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 680; color: var(--accent); letter-spacing: -.01em; }
+  .readout small { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .bar { height: 6px; border-radius: 3px; background: var(--input-bg); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 68%; background: linear-gradient(90deg, var(--btn-bot), var(--accent)); }
+
+  .toggle { width: 40px; height: 22px; border-radius: 999px; background: var(--accent); position: relative; }
+  .toggle::after { content:""; position:absolute; top:3px; left:20px; width:16px; height:16px; border-radius:50%; background: var(--btn-text); }
+
+  .name { padding: 14px 18px 0; font-size: 15px; font-weight: 650; }
+  .hex { padding: 4px 18px 14px; font-size: 11px; color: #7f8883; font-family: ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+  <h1>Mission Planner Avalonia — theme color proposals</h1>
+
+  <div class="grid">
+
+    <div class="card" style="
+      --bg:#262728; --panel:#373839; --border:#1f1f1f; --input-bg:#2e2e2f;
+      --text:#ffffff; --muted:#9aa39d; --accent:#94C11F; --glow:rgba(148,193,31,.18);
+      --banner1:#405704; --banner2:#94C11F; --banner-text:#ffffff;
+      --btn-top:#94C11F; --btn-bot:#CDE296; --btn-text:#405704; --btn-border:#CDE296;">
+      <div class="name">0 · Current (Mission Planner classic)</div>
+      <div class="hex">bg #262728 · accent #94C11F · button #94C11F→#CDE296</div>
+      <div class="banner">FLIGHT DATA</div>
+      <div class="body">
+        <div class="tabs"><div class="tab active">Quick</div><div class="tab">Actions</div><div class="tab">Messages</div></div>
+        <div class="panel">
+          <div class="row"><span class="readout">14.8<small> V</small></span><span class="chip">ARMED</span><span class="toggle"></span></div>
+          <div class="bar"><i></i></div>
+          <div class="row"><button class="btn">Connect</button><button class="btn secondary">Write Params</button><button class="btn ghost">Refresh</button></div>
+          <div class="row"><input class="input" value="MANUAL" ><button class="btn">Set Mode</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="
+      --bg:#121614; --panel:#1a201d; --border:#2a322d; --input-bg:#161b18;
+      --text:#e6ede9; --muted:#8b968f; --accent:#34D399; --glow:rgba(52,211,153,.22);
+      --banner1:#065f46; --banner2:#10B981; --banner-text:#eafff6;
+      --btn-top:#34D399; --btn-bot:#10B981; --btn-text:#06251a; --btn-border:#0f7d5b;">
+      <div class="name">1 · Emerald Modern</div>
+      <div class="hex">bg #121614 · accent #34D399 · button #34D399→#10B981</div>
+      <div class="banner">FLIGHT DATA</div>
+      <div class="body">
+        <div class="tabs"><div class="tab active">Quick</div><div class="tab">Actions</div><div class="tab">Messages</div></div>
+        <div class="panel">
+          <div class="row"><span class="readout">14.8<small> V</small></span><span class="chip">ARMED</span><span class="toggle"></span></div>
+          <div class="bar"><i></i></div>
+          <div class="row"><button class="btn">Connect</button><button class="btn secondary">Write Params</button><button class="btn ghost">Refresh</button></div>
+          <div class="row"><input class="input" value="MANUAL" ><button class="btn">Set Mode</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="
+      --bg:#17191a; --panel:#202324; --border:#2d3132; --input-bg:#1b1e1f;
+      --text:#eceee9; --muted:#949b93; --accent:#A3E635; --glow:rgba(163,230,53,.20);
+      --banner1:#3f6212; --banner2:#84CC16; --banner-text:#f7ffe8;
+      --btn-top:#A3E635; --btn-bot:#84CC16; --btn-text:#1a2e05; --btn-border:#5f8b0f;">
+      <div class="name">2 · Lime Refined <span style="font-weight:400;color:#7f8883;font-size:12px">(honors MP heritage)</span></div>
+      <div class="hex">bg #17191A · accent #A3E635 · button #A3E635→#84CC16</div>
+      <div class="banner">FLIGHT DATA</div>
+      <div class="body">
+        <div class="tabs"><div class="tab active">Quick</div><div class="tab">Actions</div><div class="tab">Messages</div></div>
+        <div class="panel">
+          <div class="row"><span class="readout">14.8<small> V</small></span><span class="chip">ARMED</span><span class="toggle"></span></div>
+          <div class="bar"><i></i></div>
+          <div class="row"><button class="btn">Connect</button><button class="btn secondary">Write Params</button><button class="btn ghost">Refresh</button></div>
+          <div class="row"><input class="input" value="MANUAL" ><button class="btn">Set Mode</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="
+      --bg:#0d1411; --panel:#14201a; --border:#213029; --input-bg:#101a15;
+      --text:#dfeae3; --muted:#7e938a; --accent:#22C55E; --glow:rgba(34,197,94,.22);
+      --banner1:#14532d; --banner2:#16A34A; --banner-text:#e7ffee;
+      --btn-top:#22C55E; --btn-bot:#16A34A; --btn-text:#052e16; --btn-border:#137a3a;">
+      <div class="name">3 · Deep Forest <span style="font-weight:400;color:#7f8883;font-size:12px">(moody / instrument)</span></div>
+      <div class="hex">bg #0D1411 · accent #22C55E · button #22C55E→#16A34A</div>
+      <div class="banner">FLIGHT DATA</div>
+      <div class="body">
+        <div class="tabs"><div class="tab active">Quick</div><div class="tab">Actions</div><div class="tab">Messages</div></div>
+        <div class="panel">
+          <div class="row"><span class="readout">14.8<small> V</small></span><span class="chip">ARMED</span><span class="toggle"></span></div>
+          <div class="bar"><i></i></div>
+          <div class="row"><button class="btn">Connect</button><button class="btn secondary">Write Params</button><button class="btn ghost">Refresh</button></div>
+          <div class="row"><input class="input" value="MANUAL" ><button class="btn">Set Mode</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

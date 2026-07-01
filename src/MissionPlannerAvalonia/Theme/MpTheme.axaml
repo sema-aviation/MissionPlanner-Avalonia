@@ -1,38 +1,54 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:MissionPlannerAvalonia">
+        xmlns:local="using:MissionPlannerAvalonia"
+        xmlns:c="using:MissionPlannerAvalonia.Controls">
   <Styles.Resources>
     <local:StringOnlyConverter x:Key="StringTip" />
-    <Color x:Key="MpBgColor">#262728</Color>
-    <Color x:Key="MpControlBgColor">#434445</Color>
-    <Color x:Key="MpTextColor">#FFFFFF</Color>
-    <Color x:Key="MpButTop">#94C11F</Color>
-    <Color x:Key="MpButBot">#CDE296</Color>
-    <Color x:Key="MpButText">#405704</Color>
-    <Color x:Key="MpBanner1">#405704</Color>
-    <Color x:Key="MpBanner2">#94C11F</Color>
 
-    <SolidColorBrush x:Key="MpBg" Color="{StaticResource MpBgColor}" />
-    <SolidColorBrush x:Key="MpControlBg" Color="{StaticResource MpControlBgColor}" />
-    <SolidColorBrush x:Key="MpText" Color="{StaticResource MpTextColor}" />
-    <SolidColorBrush x:Key="MpButTextBrush" Color="{StaticResource MpButText}" />
-    <LinearGradientBrush x:Key="MpButtonBrush" StartPoint="0%,0%" EndPoint="0%,100%">
-      <GradientStop Offset="0" Color="{StaticResource MpButTop}" />
-      <GradientStop Offset="1" Color="{StaticResource MpButBot}" />
-    </LinearGradientBrush>
-
-    <!-- Kill Fluent's blue tab-selection pipe; green background marks selection instead. -->
     <SolidColorBrush x:Key="TabItemHeaderSelectedPipeFill" Color="Transparent" />
+
+    <x:Double x:Key="Space2">2</x:Double>
+    <x:Double x:Key="Space4">4</x:Double>
+    <x:Double x:Key="Space6">6</x:Double>
+    <x:Double x:Key="Space8">8</x:Double>
+    <x:Double x:Key="Space12">12</x:Double>
+    <x:Double x:Key="Space16">16</x:Double>
+    <x:Double x:Key="Space24">24</x:Double>
+
+    <x:Double x:Key="InputHeight">28</x:Double>
+    <x:Double x:Key="InputMinWidthSm">90</x:Double>
+    <x:Double x:Key="InputMinWidthMd">120</x:Double>
+    <x:Double x:Key="InputMinWidthLg">180</x:Double>
+    <CornerRadius x:Key="InputRadius">3</CornerRadius>
+
+    <Thickness x:Key="PagePad">16</Thickness>
+    <Thickness x:Key="FieldRowMargin">0,3</Thickness>
+    <Thickness x:Key="InputPad">6,3</Thickness>
+
+    <ControlTheme x:Key="{x:Type c:FormField}" TargetType="c:FormField">
+      <Setter Property="Margin" Value="{StaticResource FieldRowMargin}" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Classes="lbl" Text="{TemplateBinding Label}"
+                       Width="{TemplateBinding LabelWidth}" TextWrapping="NoWrap" />
+            <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" />
+          </StackPanel>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
   </Styles.Resources>
 
   <Style Selector="Button">
-    <Setter Property="Background" Value="{StaticResource MpButtonBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource MpButTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource MpButtonBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MpButTextBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="CornerRadius" Value="3" />
     <Setter Property="Padding" Value="8,4" />
+    <Setter Property="MinHeight" Value="28" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="BorderThickness" Value="0" />
-    <!-- clipped labels ellipsize; hover shows full text -->
+
     <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
     <Setter Property="ToolTip.Tip" Value="{Binding $self.Content, Converter={StaticResource StringTip}}" />
   </Style>
@@ -40,8 +56,8 @@
     <Setter Property="ToolTip.Tip" Value="{x:Null}" />
   </Style>
   <Style Selector="Button:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="#A6D62B" />
-    <Setter Property="Foreground" Value="{StaticResource MpButTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource MpAccent2Brush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MpButTextBrush}" />
   </Style>
 
   <Style Selector="Button.nav">
@@ -64,22 +80,22 @@
     <Setter Property="Foreground" Value="#E0E0E0" />
   </Style>
   <Style Selector="Button.nav.active TextBlock">
-    <Setter Property="Foreground" Value="#262728" />
+    <Setter Property="Foreground" Value="{DynamicResource MpBg}" />
   </Style>
   <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="#3A3B3C" />
+    <Setter Property="Background" Value="{DynamicResource MpPanelBg}" />
     <Setter Property="Foreground" Value="#FFFFFF" />
   </Style>
   <Style Selector="Button.nav.active">
-    <Setter Property="Background" Value="#94C11F" />
-    <Setter Property="Foreground" Value="#262728" />
+    <Setter Property="Background" Value="{DynamicResource MpAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MpBg}" />
   </Style>
   <Style Selector="Button.nav.active /template/ ContentPresenter">
-    <Setter Property="Background" Value="#94C11F" />
+    <Setter Property="Background" Value="{DynamicResource MpAccentBrush}" />
   </Style>
 
   <Style Selector="TabControl">
-    <Setter Property="Background" Value="{StaticResource MpControlBg}" />
+    <Setter Property="Background" Value="{DynamicResource MpControlBg}" />
     <Setter Property="Padding" Value="0" />
   </Style>
   <Style Selector="TabItem">
@@ -90,7 +106,7 @@
     <Setter Property="MinHeight" Value="24" />
     <Setter Property="Background" Value="#373839" />
     <Setter Property="BorderThickness" Value="0,0,1,2" />
-    <Setter Property="BorderBrush" Value="#262728" />
+    <Setter Property="BorderBrush" Value="{DynamicResource MpBg}" />
   </Style>
   <Style Selector="TabItem /template/ Border#PART_LayoutRoot">
     <Setter Property="CornerRadius" Value="3,3,0,0" />
@@ -100,24 +116,95 @@
     <Setter Property="Foreground" Value="#FFFFFF" />
   </Style>
   <Style Selector="TabItem:selected">
-    <Setter Property="Foreground" Value="#405704" />
-    <Setter Property="Background" Value="#94C11F" />
-    <Setter Property="BorderBrush" Value="#CDE296" />
+    <Setter Property="Foreground" Value="{DynamicResource MpButTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource MpAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource MpButBotBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
-    <Setter Property="Background" Value="#94C11F" />
+    <Setter Property="Background" Value="{DynamicResource MpAccentBrush}" />
   </Style>
-  <!-- Hide Fluent's blue accent selection underline; the green background marks selection instead. -->
+
   <Style Selector="TabItem /template/ Border#PART_SelectedPipe">
     <Setter Property="IsVisible" Value="False" />
   </Style>
   <Style Selector="TextBlock">
-    <Setter Property="Foreground" Value="{StaticResource MpText}" />
+    <Setter Property="Foreground" Value="{DynamicResource MpText}" />
   </Style>
+
   <Style Selector="ComboBox">
     <Setter Property="Background" Value="Black" />
     <Setter Property="Foreground" Value="White" />
+    <Setter Property="MinHeight" Value="{StaticResource InputHeight}" />
+    <Setter Property="Padding" Value="{StaticResource InputPad}" />
+    <Setter Property="CornerRadius" Value="{StaticResource InputRadius}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ComboBox.sm">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthSm}" />
+  </Style>
+  <Style Selector="ComboBox.md">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthMd}" />
+  </Style>
+  <Style Selector="ComboBox.lg">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthLg}" />
+  </Style>
+
+  <Style Selector="TextBox">
+    <Setter Property="MinHeight" Value="{StaticResource InputHeight}" />
+    <Setter Property="Padding" Value="{StaticResource InputPad}" />
+    <Setter Property="CornerRadius" Value="{StaticResource InputRadius}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBox.sm">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthSm}" />
+  </Style>
+  <Style Selector="TextBox.md">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthMd}" />
+  </Style>
+  <Style Selector="TextBox.lg">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthLg}" />
+  </Style>
+
+  <Style Selector="NumericUpDown">
+    <Setter Property="MinHeight" Value="{StaticResource InputHeight}" />
+    <Setter Property="Padding" Value="{StaticResource InputPad}" />
+    <Setter Property="CornerRadius" Value="{StaticResource InputRadius}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="NumericUpDown.sm">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthSm}" />
+  </Style>
+  <Style Selector="NumericUpDown.md">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthMd}" />
+  </Style>
+  <Style Selector="NumericUpDown.lg">
+    <Setter Property="MinWidth" Value="{StaticResource InputMinWidthLg}" />
+  </Style>
+
+  <Style Selector="TextBlock.lbl">
+    <Setter Property="Foreground" Value="#D8D8D8" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.grp">
+    <Setter Property="Foreground" Value="{DynamicResource MpAccentBrush}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Margin" Value="0,14,0,4" />
+  </Style>
+  <Style Selector="CheckBox">
+    <Setter Property="Foreground" Value="#D8D8D8" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+
+  <Style Selector="c|FormField[Orientation=Vertical]">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Spacing="3">
+          <TextBlock Classes="lbl" Text="{TemplateBinding Label}" FontSize="11" Foreground="#B4B4B4" />
+          <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Stretch" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
   </Style>
 
   <Style Selector="Button.side">
@@ -130,8 +217,8 @@
     <Setter Property="FontWeight" Value="Normal" />
   </Style>
   <Style Selector="Button.side:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="#94C11F" />
-    <Setter Property="Foreground" Value="#262728" />
+    <Setter Property="Background" Value="{DynamicResource MpAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MpBg}" />
   </Style>
 
   <Style Selector="Button.backstage">
@@ -153,8 +240,8 @@
     <Setter Property="Background" Value="#2E2E2F" />
   </Style>
   <Style Selector="Button.backstage.active /template/ ContentPresenter">
-    <Setter Property="Background" Value="#94C11F" />
-    <Setter Property="TextElement.Foreground" Value="#1A1A1B" />
+    <Setter Property="Background" Value="{DynamicResource MpAccentBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource MpBgDeepBrush}" />
   </Style>
 
   <Style Selector="TextBlock.pagetitle">
@@ -163,6 +250,13 @@
     <Setter Property="Foreground" Value="#E8E8E8" />
     <Setter Property="Margin" Value="0,0,0,10" />
   </Style>
+
+  <Style Selector="Border.titlerule">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="#5A5A5A" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Margin" Value="0,0,0,12" />
+  </Style>
   <Style Selector="TextBlock.fieldlbl">
     <Setter Property="Foreground" Value="#D8D8D8" />
     <Setter Property="VerticalAlignment" Value="Center" />
@@ -170,7 +264,7 @@
 
   <Style Selector="Border.qv">
     <Setter Property="Background" Value="Black" />
-    <Setter Property="BorderBrush" Value="#262728" />
+    <Setter Property="BorderBrush" Value="{DynamicResource MpBg}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Margin" Value="1" />
     <Setter Property="Padding" Value="6" />
