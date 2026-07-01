@@ -13,7 +13,6 @@ using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using Mapsui.UI.Avalonia;
-using MissionPlannerAvalonia.ViewModels;
 using NetTopologySuite.Geometries;
 
 namespace MissionPlannerAvalonia.Controls;
@@ -26,19 +25,12 @@ public class MapView : MapControl {
   private MPoint? _lastTrackPt;
   private readonly List<Coordinate> _trackPts = new();
 
-  // Lat/lng under the last pointer interaction — the FlightData map context menu reads this so
-  // its commands (Fly To Here, Set Home, TakeOff…) act at the clicked location (mirrors MP
-  // MouseDownStart). Updated on every pointer press/release.
   public (double Lat, double Lng) LastClickLatLng { get; private set; }
 
-  // Raised on a left click with the clicked lat/lng — for Ctrl+click Fly-To etc.
   public event Action<double, double>? MapLeftClicked;
 
-  // Continuously re-center on the vehicle (mirrors MP "Auto Pan").
   public bool AutoPan { get; set; }
 
-  // Web-mercator zoom level (Slippy-map z) bound to the on-map zoom widget. Changing it re-zooms
-  // the viewport keeping the current centre (mirrors MP MainMap.Zoom / trackBar1).
   public static readonly StyledProperty<int> ZoomLevelProperty =
       AvaloniaProperty.Register<MapView, int>(nameof(ZoomLevel), 16);
 
@@ -47,30 +39,26 @@ public class MapView : MapControl {
     set => SetValue(ZoomLevelProperty, value);
   }
 
-  // Raised on pointer move with the lat/lng under the cursor (live coord readout over the map).
   public event Action<double, double>? CursorMoved;
 
   static MapView() {
     ZoomLevelProperty.Changed.AddClassHandler<MapView>((m, e) => m.SetZoomLevel((int)e.NewValue!));
   }
 
-  // Mapsui resolution (metres/pixel at the equator) for a slippy-map zoom level.
   private static double ResolutionForLevel(int level) =>
       156543.03392804097 / Math.Pow(2, level);
 
-  // Public zoom API: re-zoom to a slippy-map level keeping the current centre. Guarded so an early
-  // call (before the viewport has a size) can't throw.
   public void SetZoomLevel(int level) {
     level = Math.Clamp(level, 1, 21);
     try {
       Map?.Navigator.ZoomTo(ResolutionForLevel(level));
     } catch {
-      // viewport not ready yet — the next vehicle update / user gesture will settle it
+
     }
   }
 
   public MapView() {
-    // dark map background so no white shows behind tiles during resize
+
     var map = new Map { BackColor = new Color(0x26, 0x27, 0x28) };
     var esri = new HttpTileSource(
         new GlobalSphericalMercator(),
@@ -83,7 +71,7 @@ public class MapView : MapControl {
     map.Layers.Add(_track);
     _vehicle.Style = MavMarker.Vehicle(0);
     map.Layers.Add(_vehicle);
-    // Keep the viewport inside the world extent so you can't zoom/pan past the tiles into gray.
+
     map.Navigator.Limiter = new Mapsui.Limiting.ViewportLimiterKeepWithinExtent();
     Map = map;
 
@@ -92,8 +80,6 @@ public class MapView : MapControl {
     _timer.Start();
   }
 
-  // When false, the live-vehicle poll is suppressed — used by LogBrowse, which shows a static
-  // recorded track from a log rather than a live link.
   public bool LiveVehicle { get; set; } = true;
 
   private void UpdateVehicle() {
@@ -111,18 +97,7 @@ public class MapView : MapControl {
     _vehicle.Clear();
     _vehicle.Add(new PointFeature(pt));
 
-    // Heading line from the vehicle — fixed on-screen length, pointing along yaw (clockwise from N).
-    double resMpp = Map.Navigator.Viewport.Resolution;
-    if (resMpp > 0) {
-      double len = 60 * resMpp;
-      double rad = cs.yaw * Math.PI / 180.0;
-      var end = new MPoint(pt.X + Math.Sin(rad) * len, pt.Y + Math.Cos(rad) * len);
-      var heading = new GeometryFeature {
-        Geometry = new LineString(new[] { new Coordinate(pt.X, pt.Y), new Coordinate(end.X, end.Y) }),
-      };
-      heading.Styles.Add(HeadingLine);
-      _vehicle.Add(heading);
-    }
+    DrawBearingOverlays(cs, pt);
     _vehicle.DataHasChanged();
 
     AppendTrack(pt);
@@ -136,40 +111,116 @@ public class MapView : MapControl {
     }
   }
 
-  private static readonly VectorStyle TrackStyle = new() {
-    Line = new Pen(new Color(255, 220, 30), 2), // amber GPS track, like MP
-  };
-  private static readonly VectorStyle HeadingLine = new() {
-    Line = new Pen(new Color(0, 200, 255), 3), // cyan heading vector
+  private static readonly VectorStyle _trackStyle = new() {
+    Line = new Pen(new Color(255, 220, 30), 2),
   };
 
-  // Grow the GPS track as a single polyline (one moved-enough point per sample) — no per-sample
-  // dots/circles cluttering the map.
+  private static readonly VectorStyle _headingStyle = new() {
+    Line = new Pen(new Color(255, 0, 0), 2),
+  };
+  private static readonly VectorStyle _cogStyle = new() {
+    Line = new Pen(new Color(0, 0, 0), 2),
+  };
+  private static readonly VectorStyle _navBearingStyle = new() {
+    Line = new Pen(new Color(0, 128, 0), 2),
+  };
+  private static readonly VectorStyle _targetStyle = new() {
+    Line = new Pen(new Color(255, 165, 0), 2),
+  };
+  private static readonly VectorStyle _radiusStyle = new() {
+    Line = new Pen(new Color(255, 105, 180), 2),
+  };
+
+  private void DrawBearingOverlays(MissionPlanner.CurrentState cs, MPoint pt) {
+    double resMpp = Map.Navigator.Viewport.Resolution;
+    if (resMpp <= 0) {
+      return;
+    }
+
+    var s = MissionPlanner.Utilities.Settings.Instance;
+    double lenPx = s.GetInt32("GMapMarkerBase_Length", 500);
+    double len = lenPx * resMpp;
+
+    if (s.GetBoolean("GMapMarkerBase_DisplayHeading", true)) {
+      AddBearingLine(pt, cs.yaw, len, _headingStyle);
+    }
+    if (s.GetBoolean("GMapMarkerBase_DisplayNavBearing", true)) {
+      AddBearingLine(pt, cs.nav_bearing, len, _navBearingStyle);
+    }
+    if (s.GetBoolean("GMapMarkerBase_DisplayCOG", true)) {
+      AddBearingLine(pt, cs.groundcourse, len, _cogStyle);
+    }
+    if (s.GetBoolean("GMapMarkerBase_DisplayTarget", true)) {
+      AddBearingLine(pt, cs.target_bearing, len, _targetStyle);
+    }
+    if (s.GetBoolean("GMapMarkerBase_DisplayRadius", true)) {
+      AddRadiusArc(pt, cs.groundcourse, cs.radius, resMpp);
+    }
+  }
+
+  private void AddBearingLine(MPoint pt, double bearingDeg, double len, VectorStyle style) {
+    double rad = bearingDeg * Math.PI / 180.0;
+    var end = new MPoint(pt.X + Math.Sin(rad) * len, pt.Y + Math.Cos(rad) * len);
+    var line = new GeometryFeature {
+      Geometry = new LineString(new[] { new Coordinate(pt.X, pt.Y), new Coordinate(end.X, end.Y) }),
+    };
+    line.Styles.Add(style);
+    _vehicle.Add(line);
+  }
+
+  private void AddRadiusArc(MPoint pt, double cogDeg, double radius, double resMpp) {
+    if (Math.Abs(radius) <= 1) {
+      return;
+    }
+
+    const double desiredLeadDist = 100.0;
+    double m2pixelwidth = 1.0 / resMpp;
+    double alpha = desiredLeadDist * m2pixelwidth / radius * (180.0 / Math.PI);
+    if (Math.Abs(alpha) <= 1) {
+      return;
+    }
+    alpha = Math.Clamp(alpha, -360.0, 360.0);
+
+    double radiusM = radius;
+    double cog = cogDeg * Math.PI / 180.0;
+    double cx = pt.X + Math.Cos(cog) * radiusM;
+    double cy = pt.Y + Math.Sin(cog) * radiusM;
+    double start = (cogDeg - 180.0) * Math.PI / 180.0;
+
+    var coords = new List<Coordinate>();
+    const int steps = 24;
+    for (int i = 0; i <= steps; i++) {
+      double theta = start + alpha * (Math.PI / 180.0) * i / steps;
+      coords.Add(new Coordinate(cx + Math.Cos(theta) * radiusM, cy + Math.Sin(theta) * radiusM));
+    }
+    var arc = new GeometryFeature { Geometry = new LineString(coords.ToArray()) };
+    arc.Styles.Add(_radiusStyle);
+    _vehicle.Add(arc);
+  }
+
   private void AppendTrack(MPoint pt) {
     if (_lastTrackPt is { } prev) {
       double dx = pt.X - prev.X, dy = pt.Y - prev.Y;
       if (Math.Sqrt(dx * dx + dy * dy) < 0.5) {
-        return; // hasn't moved enough to bother
+        return;
       }
     }
     _lastTrackPt = pt;
     _trackPts.Add(new Coordinate(pt.X, pt.Y));
     if (_trackPts.Count > 5000) {
-      _trackPts.RemoveAt(0); // cap memory on long flights
+      _trackPts.RemoveAt(0);
     }
     if (_trackPts.Count < 2) {
       return;
     }
 
     var line = new GeometryFeature { Geometry = new LineString(_trackPts.ToArray()) };
-    line.Styles.Add(TrackStyle);
+    line.Styles.Add(_trackStyle);
     _track.Clear();
     _track.Add(line);
     _track.DataHasChanged();
   }
 
-  // Draw a complete recorded GPS track from a log and frame it (LogBrowse). Centers on the first
-  // fix at a sensible zoom.
   public void ShowStaticTrack(IReadOnlyList<(double Lat, double Lng)> pts) {
     _track.Clear();
     _trackPts.Clear();
@@ -186,7 +237,7 @@ public class MapView : MapControl {
     }
     if (_trackPts.Count >= 2) {
       var line = new GeometryFeature { Geometry = new LineString(_trackPts.ToArray()) };
-      line.Styles.Add(TrackStyle);
+      line.Styles.Add(_trackStyle);
       _track.Add(line);
     }
     _track.DataHasChanged();
@@ -197,7 +248,6 @@ public class MapView : MapControl {
     }
   }
 
-  // Place/move a marker at a sample point (LogBrowse GoToSample — plot/grid → map sync).
   public void ShowSampleMarker(double lat, double lng) {
     if (lat == 0 && lng == 0) {
       return;
@@ -211,7 +261,6 @@ public class MapView : MapControl {
     Map.Navigator.CenterOn(pt);
   }
 
-  // Clear the recorded GPS track (mirrors MP "Clear Track").
   public void ClearTrack() {
     _track.Clear();
     _trackPts.Clear();
@@ -248,7 +297,6 @@ public class MapView : MapControl {
     CursorMoved.Invoke(lat, lng);
   }
 
-  // Re-center the map on a lat/lng (used by Auto-Pan follow and zoom-to actions).
   public void CenterOn(double lat, double lng) {
     var (x, y) = SphericalMercator.FromLonLat(lng, lat);
     Map.Navigator.CenterOn(new MPoint(x, y));

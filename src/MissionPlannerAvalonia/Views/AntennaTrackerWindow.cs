@@ -4,8 +4,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Hosts the standalone Antenna Tracker tool in its own window (mirrors MP opening the
-// TrackerUI form). Follows the LogBrowseWindow pattern: a Window wrapping a UserControl + VM.
 public class AntennaTrackerWindow : Window {
   private readonly AntennaTrackerView _view = new();
   private readonly AntennaTrackerUIViewModel _vm = new();
@@ -24,7 +22,6 @@ public class AntennaTrackerWindow : Window {
     Closed += (_, _) => _vm.Dispose();
   }
 
-  // Open the window owned by the main window if available.
   public static void OpenWindow() {
     var w = new AntennaTrackerWindow();
     var owner = Services.Dialogs.Owner;

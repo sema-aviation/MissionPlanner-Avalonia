@@ -52,9 +52,6 @@ public class LuaScriptHost {
     });
   }
 
-  // MoonSharp has no clean way to abort an executing script from another thread, so
-  // cancellation is cooperative: scripts must poll mp_should_abort() (or call mp_check_abort())
-  // in their loops; long uninterruptible Lua blocks will run to completion regardless.
   public void Abort() {
     _cts?.Cancel();
   }

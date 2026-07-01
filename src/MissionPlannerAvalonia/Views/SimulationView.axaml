@@ -10,20 +10,16 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.SimulationView"
   x:DataType="vm:SimulationViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <UserControl.Styles>
     <Style Selector="RadioButton.firmware">
       <Setter Property="Foreground" Value="#E0E0E0" />
       <Setter Property="Padding" Value="10,6" />
     </Style>
-    <Style Selector="TextBlock.lbl">
-      <Setter Property="Foreground" Value="#E0E0E0" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
   </UserControl.Styles>
   <Grid RowDefinitions="*,Auto">
-    <!-- SITL map (satellite + draggable "H" home marker) is built in code-behind. -->
+
     <Panel Grid.Row="0" x:Name="MapHost" />
     <StackPanel Grid.Row="1" Margin="12" Spacing="10">
       <TextBlock Text="Please select a firmware to run" Foreground="#E0E0E0" />
@@ -58,7 +54,6 @@
         </RadioButton>
       </StackPanel>
 
-      <!-- Version channel + frame override -->
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
         <TextBlock Classes="lbl" Text="Version" />
         <ComboBox
@@ -74,7 +69,6 @@
         />
       </StackPanel>
 
-      <!-- Heading / speed / wipe -->
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
         <TextBlock Classes="lbl" Text="Heading" />
         <NumericUpDown
@@ -95,7 +89,6 @@
         <CheckBox Content="Wipe EEPROM" Foreground="#E0E0E0" IsChecked="{Binding WipeEeprom}" />
       </StackPanel>
 
-      <!-- Extra command line -->
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
         <TextBlock Classes="lbl" Text="Extra cmdline" />
         <TextBox

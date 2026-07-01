@@ -9,7 +9,7 @@
   d:DesignHeight="240"
   x:Class="MissionPlannerAvalonia.Views.LinkStatsWindow"
   x:DataType="vm:LinkStatsViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
   Width="300"
   Height="250"
   CanResize="False"
@@ -17,7 +17,7 @@
   Title="Link Stats"
 >
   <Grid Margin="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*"
-        ColumnDefinitions="Auto,*">
+        ColumnDefinitions="Auto,*" ColumnSpacing="12">
     <TextBlock Grid.Row="0" Grid.Column="0" Classes="lbl" Text="Bytes received" />
     <TextBlock Grid.Row="0" Grid.Column="1" Classes="val" Text="{Binding RxRate}" />
 
@@ -41,10 +41,6 @@
   </Grid>
 
   <Window.Styles>
-    <Style Selector="TextBlock.lbl">
-      <Setter Property="Foreground" Value="#BBB" />
-      <Setter Property="Margin" Value="0,4,12,4" />
-    </Style>
     <Style Selector="TextBlock.val">
       <Setter Property="Foreground" Value="WhiteSmoke" />
       <Setter Property="FontFamily" Value="Courier New,monospace" />

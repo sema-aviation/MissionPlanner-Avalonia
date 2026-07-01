@@ -98,9 +98,7 @@ public class VideoControl : UserControl {
   private string? _currentMrl;
 
   private void InitializeCore() {
-    // Load-bearing guard: native libvlc binaries may be absent in this
-    // environment; Core.Initialize / new LibVLC throw if so. Degrade to an
-    // unavailable status instead of crashing the whole FlightData view.
+
     try {
       LibVLCSharp.Shared.Core.Initialize();
       _libVlc = new LibVLCSharp.Shared.LibVLC();

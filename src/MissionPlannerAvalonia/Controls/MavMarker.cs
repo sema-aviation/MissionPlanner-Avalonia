@@ -2,8 +2,6 @@ using Mapsui.Styles;
 
 namespace MissionPlannerAvalonia.Controls;
 
-// Heading-aware vehicle marker for the maps (modern stand-in for upstream Common.getMAVMarker:
-// a triangle pointing along the vehicle's yaw, red when this is the active vehicle, grey otherwise).
 public static class MavMarker {
   public static SymbolStyle Vehicle(double headingDeg, bool active = true) => new() {
     SymbolType = SymbolType.Triangle,

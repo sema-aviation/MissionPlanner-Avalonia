@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.AntennaTrackerView"
   x:DataType="vm:AntennaTrackerUIViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="16" Spacing="10">
@@ -44,15 +44,14 @@
         Text="Misusing this interface can cause servo damage, use with caution!!!"
       />
 
-      <!-- Live readout + mode -->
-      <Border Background="#2D2D2D" CornerRadius="4" Padding="12">
+      <Border Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="12">
         <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto">
           <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Vehicle Az" />
           <TextBlock Grid.Row="1" Grid.Column="0" FontSize="18" FontWeight="Bold"
-                     Foreground="#94C11F" Text="{Binding VehicleAzimuth}" />
+                     Foreground="{DynamicResource MpAccentBrush}" Text="{Binding VehicleAzimuth}" />
           <TextBlock Grid.Row="0" Grid.Column="1" Classes="fieldlbl" Text="Vehicle El" />
           <TextBlock Grid.Row="1" Grid.Column="1" FontSize="18" FontWeight="Bold"
-                     Foreground="#94C11F" Text="{Binding VehicleElevation}" />
+                     Foreground="{DynamicResource MpAccentBrush}" Text="{Binding VehicleElevation}" />
           <TextBlock Grid.Row="0" Grid.Column="2" Classes="fieldlbl" Text="Commanded Az" />
           <TextBlock Grid.Row="1" Grid.Column="2" FontSize="18" FontWeight="Bold"
                      Text="{Binding CommandedAzimuth}" />
@@ -62,8 +61,7 @@
         </Grid>
       </Border>
 
-      <!-- Manual slew -->
-      <Border Background="#2D2D2D" CornerRadius="4" Padding="12">
+      <Border Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="12">
         <StackPanel Spacing="8">
           <StackPanel Orientation="Horizontal" Spacing="12">
             <CheckBox Content="Manual Slew (override point-at-vehicle)"
@@ -92,8 +90,8 @@
       </Border>
 
       <Grid ColumnDefinitions="*,12,*">
-        <!-- Pan -->
-        <Border Grid.Column="0" Background="#2D2D2D" CornerRadius="4" Padding="12">
+
+        <Border Grid.Column="0" Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="12">
           <StackPanel Spacing="8">
             <TextBlock Classes="fieldlbl" FontSize="15" Text="Pan" />
 
@@ -131,8 +129,7 @@
           </StackPanel>
         </Border>
 
-        <!-- Tilt -->
-        <Border Grid.Column="2" Background="#2D2D2D" CornerRadius="4" Padding="12">
+        <Border Grid.Column="2" Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="12">
           <StackPanel Spacing="8">
             <TextBlock Classes="fieldlbl" FontSize="15" Text="Tilt" />
 
@@ -171,7 +168,7 @@
         </Border>
       </Grid>
 
-      <TextBlock Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" TextWrapping="Wrap" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

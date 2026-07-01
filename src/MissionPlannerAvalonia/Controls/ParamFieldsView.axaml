@@ -9,10 +9,10 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Controls.ParamFieldsView"
   x:DataType="cv:ParamPageBase"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <UserControl.Styles>
-    <!-- Out-of-range value highlight: red outline when value < Min or > Max. -->
+
     <Style Selector="Border.oor">
       <Setter Property="BorderThickness" Value="2" />
       <Setter Property="BorderBrush" Value="#E64A4A" />
@@ -55,7 +55,6 @@
               />
               <CheckBox Grid.Column="1" IsVisible="{Binding IsBool}" IsChecked="{Binding Checked}" />
 
-              <!-- Bitmask editor: button opens a checkbox-list popup of the bits. -->
               <Button
                 Grid.Column="1"
                 IsVisible="{Binding IsBitmask}"
@@ -93,7 +92,7 @@
               <TextBlock
                 Grid.Column="3"
                 Text="{Binding Status}"
-                Foreground="#94C11F"
+                Foreground="{DynamicResource MpAccentBrush}"
                 VerticalAlignment="Center"
               />
             </Grid>

@@ -9,15 +9,15 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.GridUIView"
   x:DataType="vm:GridUIViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid Margin="14" RowDefinitions="Auto,*,Auto,Auto">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="Survey (Grid)" />
 
     <Grid Grid.Row="1" ColumnDefinitions="*,12,300" Margin="0,8,0,0">
-      <!-- Tabs -->
+
       <TabControl Grid.Column="0">
-        <!-- Simple -->
+
         <TabItem Header="Simple">
           <ScrollViewer>
             <StackPanel Margin="8" Spacing="8">
@@ -45,7 +45,6 @@
           </ScrollViewer>
         </TabItem>
 
-        <!-- Grid Options -->
         <TabItem Header="Grid Options">
           <ScrollViewer>
             <StackPanel Margin="8" Spacing="8">
@@ -91,7 +90,7 @@
                 <CheckBox Content="Spiral" IsChecked="{Binding Spiral}" />
               </StackPanel>
 
-              <Border Background="#2D2D2D" CornerRadius="4" Padding="10" IsVisible="{Binding Spiral}">
+              <Border Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="10" IsVisible="{Binding Spiral}">
                 <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
                   <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldlbl" Text="Clockwise Laps" VerticalAlignment="Center" />
                   <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding ClockwiseLaps}" />
@@ -105,7 +104,6 @@
           </ScrollViewer>
         </TabItem>
 
-        <!-- Camera -->
         <TabItem Header="Camera">
           <ScrollViewer>
             <StackPanel Margin="8" Spacing="8">
@@ -139,8 +137,7 @@
         </TabItem>
       </TabControl>
 
-      <!-- Stats + display -->
-      <Border Grid.Column="2" Background="#2D2D2D" CornerRadius="4" Padding="12">
+      <Border Grid.Column="2" Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="12">
         <StackPanel Spacing="6">
           <TextBlock Classes="fieldlbl" FontSize="15" Text="Stats" />
           <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
@@ -175,7 +172,7 @@
       </Border>
     </Grid>
 
-    <TextBlock Grid.Row="2" Margin="0,8,0,0" Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" />
+    <TextBlock Grid.Row="2" Margin="0,8,0,0" Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" TextWrapping="Wrap" />
 
     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
       <Button Content="Cancel" Command="{Binding CloseCommand}" />

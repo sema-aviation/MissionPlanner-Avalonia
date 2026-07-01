@@ -9,7 +9,7 @@
   d:DesignHeight="560"
   x:Class="MissionPlannerAvalonia.Views.DroneCANParamsView"
   x:DataType="vm:DroneCANParamsViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,*,Auto">
     <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">

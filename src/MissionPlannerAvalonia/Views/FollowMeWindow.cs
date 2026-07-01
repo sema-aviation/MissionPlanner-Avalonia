@@ -4,8 +4,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Hosts the Follow Me tool in its own window. Standalone-tool Window pattern
-// (see LogBrowseWindow / SerialOutputNMEAWindow): static OpenWindow, owned via Services.Dialogs.Owner.
 public class FollowMeWindow : Window {
   private readonly FollowMeView _view = new();
   private readonly FollowMeViewModel _vm = new();

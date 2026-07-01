@@ -14,8 +14,8 @@ using MissionPlannerAvalonia.ViewModels;
 namespace MissionPlannerAvalonia.Views;
 
 public partial class SimulationView : UserControl {
-  private const double HitThresholdPx = 24;
-  private const double TapThresholdPx = 8;
+  private const double _hitThresholdPx = 24;
+  private const double _tapThresholdPx = 8;
 
   private readonly MapControl _map = new();
   private readonly WritableLayer _home = new() { Name = "SitlHome" };
@@ -45,8 +45,6 @@ public partial class SimulationView : UserControl {
     map.Layers.Add(_home);
     _map.Map = map;
 
-    // Marker drag is done through Mapsui's pointer events so we can mark them Handled and
-    // suppress the map pan while dragging the "H" (mirrors SITL.cs onmarker handling).
     _map.MapPointerPressed += OnMapPressed;
     _map.MapPointerMoved += OnMapMoved;
     _map.MapPointerReleased += OnMapReleased;
@@ -66,7 +64,6 @@ public partial class SimulationView : UserControl {
     }
   }
 
-  // Green "H" home marker (mirrors GMapMarkerWP "H" in SITL.cs).
   private void RedrawHome() {
     _home.Clear();
     if (Vm != null && (Vm.HomeLat != 0 || Vm.HomeLng != 0)) {
@@ -114,8 +111,7 @@ public partial class SimulationView : UserControl {
       return;
     }
 
-    // A tap (no appreciable pan) on empty map relocates the spawn home there.
-    if (e.ScreenPosition.Distance(_pressScreen) <= TapThresholdPx) {
+    if (e.ScreenPosition.Distance(_pressScreen) <= _tapThresholdPx) {
       var (lng, lat) = SphericalMercator.ToLonLat(e.WorldPosition.X, e.WorldPosition.Y);
       Vm?.SetHome(lat, lng);
       RedrawHome();
@@ -129,6 +125,6 @@ public partial class SimulationView : UserControl {
 
     var (x, y) = SphericalMercator.FromLonLat(Vm.HomeLng, Vm.HomeLat);
     var sp = _map.Map.Navigator.Viewport.WorldToScreen(x, y);
-    return sp.Distance(screen) <= HitThresholdPx;
+    return sp.Distance(screen) <= _hitThresholdPx;
   }
 }

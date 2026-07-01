@@ -7,9 +7,12 @@ public class SetupViewModel : BackstageViewModel {
   private static bool IsCopter() =>
       AppState.comPort.MAV.cs.firmware == MissionPlanner.ArduPilot.Firmwares.ArduCopter2;
 
+  private static bool IsHeli() =>
+      IsCopter() && AppState.comPort.MAV.param.ContainsKey("H_SWASH_TYPE");
+
   public SetupViewModel() : base(persistKey: "setup_lastpage") {
     Add("Install Firmware", () => new InstallFirmwareViewModel());
-    Add("Install Firmware Legacy", () => new ConfigFirmwareLegacyViewModel());
+    Add("Install Firmware Legacy", () => new ConfigFirmwareLegacyViewModel(), badge: "DEPRECATED");
     Add("Secure", () => new ConfigSecureApViewModel());
     Add("Secure (MAVLink Keys)", () => new ConfigSecureViewModel(), requiresConnection: true);
 
@@ -19,19 +22,26 @@ public class SetupViewModel : BackstageViewModel {
             new InfoPageViewModel("Mandatory Hardware", "Required setup before flight. Pick a sub-page."),
         requiresConnection: true
     );
-    // Frame Type is copter-only (plane/rover have no frame class).
+
+    Add("Heli Setup (4.0+)", () => new ConfigTradHeli4ViewModel(), sub: true, requiresConnection: true,
+        visibleWhen: IsHeli);
+
     Add("Frame Type", () => new ConfigFrameClassTypeViewModel(), sub: true, requiresConnection: true,
         visibleWhen: IsCopter);
     Add("Frame Type (Legacy)", () => new ConfigFrameTypeViewModel(), sub: true, requiresConnection: true,
         visibleWhen: IsCopter);
     Add("Accel Calibration", () => new ConfigAccelCalibrationViewModel(), sub: true, requiresConnection: true);
     Add("Compass", () => new ConfigCompassViewModel(), sub: true, requiresConnection: true);
+
+    Add("Compass (Legacy)", () => new ConfigCompassLegacyViewModel(), sub: true, requiresConnection: true);
     Add("Radio Calibration", () => new ConfigRadioInputViewModel(), sub: true, requiresConnection: true);
     Add("Servo Output", () => new ConfigRadioOutputViewModel(), sub: true, requiresConnection: true);
     Add("Serial Ports", () => new ConfigSerialViewModel(), sub: true, requiresConnection: true);
     Add("ESC Calibration", () => new ConfigESCCalibrationViewModel(), sub: true, requiresConnection: true);
     Add("Flight Modes", () => new ConfigFlightModesViewModel(), sub: true, requiresConnection: true);
     Add("FailSafe", () => new ConfigFailSafeViewModel(), sub: true, requiresConnection: true);
+
+    Add("Initial Parameters", () => new ConfigInitialParamsViewModel(), sub: true, requiresConnection: true);
     Add("HW ID", () => new ConfigHWIDViewModel(), sub: true, requiresConnection: true);
     Add("ADSB", () => new ConfigADSBViewModel(), sub: true, requiresConnection: true);
 
@@ -60,8 +70,7 @@ public class SetupViewModel : BackstageViewModel {
     Add("ESP8266 Setup", () => new ConfigHWESP8266ViewModel(), sub: true, requiresConnection: true);
     Add("Antenna Tracker", () => new ConfigAntennaTrackerParamViewModel(), sub: true, requiresConnection: true);
     Add("FFT Setup", () => new ConfigFFTViewModel(), sub: true, requiresConnection: true);
-    // Extra (not in upstream Setup tree, kept to preserve features): the Maestro serial tracker tool
-    // + live tracker UI, and SLCAN HW CAN + MAVFtp.
+
     Add("Antenna Tracker (Maestro)", () => new ConfigAntennaTrackerViewModel(), sub: true);
     Add("Antenna Tracker (Live)", () => new AntennaTrackerUIViewModel(), sub: true);
     Add("HW CAN", () => new ConfigHWCANViewModel(), sub: true, requiresConnection: true);

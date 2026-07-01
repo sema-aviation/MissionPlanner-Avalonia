@@ -20,7 +20,6 @@ public partial class RawParamsViewModel : ViewModelBase {
 
   public ObservableCollection<ParamRow> Params { get; } = new();
 
-  // Prefix category tree (root = "All").
   public ObservableCollection<string> Categories { get; } = new() { "All" };
 
   [ObservableProperty]
@@ -44,8 +43,7 @@ public partial class RawParamsViewModel : ViewModelBase {
   public bool IsConnected => _comPort.BaseStream?.IsOpen == true;
 
   public RawParamsViewModel() {
-    // Offline: show the last connected vehicle's params from disk so they're viewable
-    // without reconnecting (snapshot is written on connect by SaveSnapshot).
+
     if (!IsConnected && System.IO.File.Exists(CacheFilePath)) {
       LoadSnapshotFile(CacheFilePath);
     }
@@ -67,8 +65,7 @@ public partial class RawParamsViewModel : ViewModelBase {
     }
 
     try {
-      // getParamListMavftp (what Open uses) — NOT the no-arg getParamList(), which builds a WinForms
-      // progress dialog via a static event that's unregistered here and NREs ("object reference…").
+
       await Task.Run(() => _comPort.getParamListMavftp(_comPort.MAV.sysid, _comPort.MAV.compid));
       LoadFromMav();
       await Services.Dialogs.Alert("Refresh parameters", $"Loaded {_all.Count} parameters.");
@@ -86,7 +83,6 @@ public partial class RawParamsViewModel : ViewModelBase {
       return;
     }
 
-    // Evaluate edits up front so we can report parse errors before touching the vehicle.
     var pending = new List<(ParamRow row, double val)>();
     foreach (var r in dirty) {
       if (!TryEval(r.ValueText, out var v)) {
@@ -98,7 +94,7 @@ public partial class RawParamsViewModel : ViewModelBase {
     }
 
     if (!IsConnected) {
-      // Offline: stage into the in-memory param list so a later connect/write keeps them.
+
       foreach (var (row, val) in pending) {
         if (_comPort.MAV.param.ContainsKey(row.Name)) {
           _comPort.MAV.param[row.Name].Value = val;
@@ -176,7 +172,6 @@ public partial class RawParamsViewModel : ViewModelBase {
     Status = $"Loaded {_all.Count} demo parameters (edit a value → Write).";
   }
 
-  // Called from code-behind after a file picker (needs a TopLevel).
   public void LoadParamFile(string path) => MergeFromFile(path, compareOnly: false);
 
   public void CompareParamFile(string path) => MergeFromFile(path, compareOnly: true);
@@ -195,7 +190,6 @@ public partial class RawParamsViewModel : ViewModelBase {
     }
   }
 
-  // Cached snapshot of the last connected vehicle's params (viewable offline).
   public static string CacheFilePath {
     get {
       var dir = System.IO.Path.Combine(
@@ -205,7 +199,6 @@ public partial class RawParamsViewModel : ViewModelBase {
     }
   }
 
-  // Write the live param set to disk; called on connect so a later offline session can view them.
   public static void SaveSnapshot(MAVLinkInterface comPort) {
     try {
       if (comPort?.MAV?.param == null || comPort.MAV.param.Count == 0) {
@@ -217,11 +210,10 @@ public partial class RawParamsViewModel : ViewModelBase {
       }
       ParamFile.SaveParamFile(CacheFilePath, table);
     } catch {
-      // best-effort cache; never block connect on a write failure
+
     }
   }
 
-  // Build the grid directly from a .param file (offline view path; no live vehicle to merge into).
   private void LoadSnapshotFile(string path) {
     Dictionary<string, double> fileParams;
     try {
@@ -273,7 +265,6 @@ public partial class RawParamsViewModel : ViewModelBase {
             : $"{System.IO.Path.GetFileName(path)}: staged {differing} change(s) of {matched} matched param(s). Write to apply.");
   }
 
-  // Called from code-behind when the Fav checkbox column is edited.
   public void PersistFavs() {
     var favs = _all.Where(r => r.Fav).Select(r => r.Name).ToList();
     Settings.Instance.SetList("fav_params", favs);
@@ -282,8 +273,7 @@ public partial class RawParamsViewModel : ViewModelBase {
   private void LoadFromMav() {
     var fw = _comPort.MAV.cs.firmware.ToString();
     var favs = Settings.Instance.GetList("fav_params").ToHashSet();
-    // Snapshot the live param list first: the background reader thread Adds PARAM_VALUEs to it, and
-    // enumerating it lazily here would throw mid-iteration (collection modified) on refresh.
+
     var snapshot = _comPort.MAV.param.ToArray();
     var rows = snapshot.Select(p => BuildRow(p.Name, p.Value, p.default_value, fw, favs)).ToList();
     LoadFrom(rows);
@@ -301,7 +291,7 @@ public partial class RawParamsViewModel : ViewModelBase {
     try {
       ParameterMetaDataRepository.GetParameterRange(name, ref min, ref max, fw);
     } catch {
-      // missing/!loaded metadata must not blow up the whole param list (was the refresh NRE)
+
     }
 
     return new ParamRow(name, value, def, units, opts, desc, min, max) { Fav = favs.Contains(name) };

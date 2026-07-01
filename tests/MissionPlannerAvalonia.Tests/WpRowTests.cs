@@ -63,7 +63,6 @@ public class WpRowTests {
     var row = new WpRow { Lat = -35.363261, Lng = 149.165230 };
     string zone = row.Zone, easting = row.Easting, northing = row.Northing;
 
-    // Move the point away, then re-enter the saved UTM trio — should recover the original lat/lng.
     row.Lat = 0;
     row.Lng = 0;
     row.Zone = zone;

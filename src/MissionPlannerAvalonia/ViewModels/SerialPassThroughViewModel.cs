@@ -12,13 +12,6 @@ using MissionPlanner.Comms;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Mavlink Mirror — port of MissionPlanner.Controls.SerialOutputPass (Controls/SerialOutputPass.cs).
-// Opens a second link (serial / TCP host / UDP host) and forwards the MAVLink byte stream both ways
-// between it and the vehicle link. The forwarding itself is done inside MAVLinkInterface: setting
-// comPort.MirrorStream makes the read loop copy every received buffer out to the mirror, and (when
-// "allow write back to vehicle" is ticked) MirrorStreamWrite copies bytes read from the mirror back
-// into the vehicle link (MAVLinkInterface.ProcessMirrorStream). We only manage the stream lifecycle
-// and surface live status + byte counters via a CountingCommsSerial wrapper.
 public partial class SerialPassThroughViewModel : ViewModelBase, IDisposable {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private readonly DispatcherTimer _poll;
@@ -49,7 +42,6 @@ public partial class SerialPassThroughViewModel : ViewModelBase, IDisposable {
   [ObservableProperty]
   private int _selectedBaud;
 
-  // When true, bytes received from the mirror are written back into the vehicle link.
   [ObservableProperty]
   private bool _allowWriteBack;
 
@@ -71,7 +63,7 @@ public partial class SerialPassThroughViewModel : ViewModelBase, IDisposable {
   partial void OnAllowWriteBackChanged(bool value) {
     _comPort.MirrorStreamWrite = value;
     if (_stream != null) {
-      // keep the active mirror entry in sync
+
       foreach (var m in _comPort.Mirrors.Where(m => ReferenceEquals(m.MirrorStream, _stream))) {
         m.MirrorStreamWrite = value;
       }
@@ -154,7 +146,7 @@ public partial class SerialPassThroughViewModel : ViewModelBase, IDisposable {
       Dispatcher.UIThread.Post(() => Status = "Mirroring on TCP 14550 (client connected).");
       listener.BeginAcceptTcpClient(OnAcceptTcpClient, (listener, tcp));
     } catch {
-      // listener stopped
+
     }
   }
 
@@ -195,8 +187,6 @@ public partial class SerialPassThroughViewModel : ViewModelBase, IDisposable {
     Stop();
   }
 
-  // ICommsSerial decorator that counts bytes flowing both ways through the mirror link so the UI can
-  // show live Tx/Rx counters. All other members delegate straight to the wrapped stream.
   private sealed class CountingCommsSerial : ICommsSerial {
     private readonly ICommsSerial _inner;
 

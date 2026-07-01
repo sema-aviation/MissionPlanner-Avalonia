@@ -11,7 +11,7 @@
   d:DesignHeight="700"
   x:Class="MissionPlannerAvalonia.Views.MainWindow"
   x:DataType="vm:MainWindowViewModel"
-  Background="#262728"
+  Background="{DynamicResource MpBg}"
   Width="1280"
   Height="800"
   MinWidth="1120"
@@ -28,7 +28,7 @@
   </Window.Resources>
 
   <DockPanel>
-    <Border DockPanel.Dock="Top" Background="#262728" Height="64">
+    <Border DockPanel.Dock="Top" Background="{DynamicResource MpBg}" Height="64">
       <Border.ContextMenu>
         <ContextMenu>
           <MenuItem Header="Full Screen" Click="OnFullScreen" />
@@ -165,10 +165,6 @@
       </Grid>
     </Border>
 
-    <!-- Connection progress/status now lives in the connect dialog (ProgressReporter), not a strip. -->
-
-    <!-- Each screen's view is built once on first show and kept alive; switching tabs only
-         toggles visibility, so the Data/Plan maps never reload (mirrors MP's persistent tabs). -->
     <Grid>
       <ContentControl Content="{Binding FlightData}"
         IsVisible="{Binding ActiveTab, Converter={StaticResource Eq}, ConverterParameter=DATA}" />

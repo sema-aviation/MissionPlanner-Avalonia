@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.InfoPageView"
   x:DataType="vm:InfoPageViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <StackPanel Margin="20" Spacing="8">
     <TextBlock Classes="pagetitle" Text="{Binding Title}" />

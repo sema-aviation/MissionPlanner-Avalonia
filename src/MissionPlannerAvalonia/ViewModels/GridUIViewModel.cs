@@ -12,26 +12,17 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Standalone survey grid generator (mirrors MissionPlanner.Grid.GridUI + GridData).
-// Drives the existing Utilities.Grid.CreateGrid/CreateCorridor/CreateRotary backend over a polygon
-// and exposes the generated waypoint list so the FlightPlanner can consume it.
-//
-// Wiring surface for FlightPlanner (do not edit FlightPlanner* here):
-//   - Construct with the current polygon (List<PointLatLngAlt>) and a home PointLatLngAlt.
-//   - Read the live result from the Result property after Accept, or subscribe to GridAccepted.
-//   - GridUIWindow.OpenForPolygon(polygon, home, onAccept) is the convenience entry point.
 public partial class GridUIViewModel : ViewModelBase {
-  private const double Rad2Deg = 180 / Math.PI;
+  private const double _rad2Deg = 180 / Math.PI;
 
   private readonly List<PointLatLngAlt> _polygon;
   private readonly PointLatLngAlt _home;
 
   private readonly Dictionary<string, CameraInfo> _cameras = new();
-  private bool _loading = true;
+  private readonly bool _loading = true;
   private bool _suppressRecalc;
 
-  // Output property names that must NOT trigger a recalc (avoids feedback loops).
-  private static readonly HashSet<string> OutputProps = new() {
+  private static readonly HashSet<string> _outputProps = new() {
     nameof(Status), nameof(AreaText), nameof(DistanceText), nameof(SpacingText),
     nameof(GrndResText), nameof(DistBetweenLinesText), nameof(FootprintText), nameof(TurnRadText),
     nameof(PhotoCount), nameof(StripCount), nameof(WaypointCount), nameof(FlightTimeText),
@@ -39,13 +30,10 @@ public partial class GridUIViewModel : ViewModelBase {
     nameof(Result),
   };
 
-  // The generated waypoints. Populated by every recalc; handed back on Accept.
   public List<PointLatLngAlt> Result { get; private set; } = new();
 
-  // Raised when the user clicks Accept. Carries the generated grid waypoints.
   public event Action<List<PointLatLngAlt>>? GridAccepted;
 
-  // Raised to ask the host window to close.
   public event Action? CloseRequested;
 
   public ObservableCollection<string> Cameras { get; } = new();
@@ -53,7 +41,6 @@ public partial class GridUIViewModel : ViewModelBase {
   public ObservableCollection<string> StartPositions { get; } =
       new(Enum.GetNames(typeof(Grid.StartPosition)));
 
-  // ---- Simple tab ----
   [ObservableProperty]
   private double _altitude = 100;
 
@@ -69,12 +56,11 @@ public partial class GridUIViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _camDirection = true;
 
-  // ---- Grid options tab ----
   [ObservableProperty]
-  private double _distance = 50; // distance between lines
+  private double _distance = 50;
 
   [ObservableProperty]
-  private double _spacing = 30; // distance between photos along a line
+  private double _spacing = 30;
 
   [ObservableProperty]
   private double _overshoot1;
@@ -112,7 +98,6 @@ public partial class GridUIViewModel : ViewModelBase {
   [ObservableProperty]
   private double _minLaneSeparation;
 
-  // Spiral options
   [ObservableProperty]
   private int _clockwiseLaps = 1;
 
@@ -122,7 +107,6 @@ public partial class GridUIViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _matchSpiralPerimeter;
 
-  // ---- Camera tab ----
   [ObservableProperty]
   private double _focalLength = 5;
 
@@ -147,7 +131,6 @@ public partial class GridUIViewModel : ViewModelBase {
   [ObservableProperty]
   private string _cmPixel = "";
 
-  // ---- Display toggles ----
   [ObservableProperty]
   private bool _showMarkers = true;
 
@@ -155,7 +138,7 @@ public partial class GridUIViewModel : ViewModelBase {
   private bool _showFootprints;
 
   [ObservableProperty]
-  private bool _showInternals; // numbers / camera trigger points
+  private bool _showInternals;
 
   [ObservableProperty]
   private bool _showGrid = true;
@@ -163,7 +146,6 @@ public partial class GridUIViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _showBoundary = true;
 
-  // ---- Stats ----
   [ObservableProperty]
   private string _areaText = "";
 
@@ -216,7 +198,6 @@ public partial class GridUIViewModel : ViewModelBase {
     LoadCameras();
     LoadSettings();
 
-    // sensible starting angle = longest side, mirrors GridUI ctor
     if (Angle == 0) {
       Angle = (GetAngleOfLongestSide(_polygon) + 360) % 360;
     }
@@ -231,7 +212,7 @@ public partial class GridUIViewModel : ViewModelBase {
       return;
     }
 
-    if (!OutputProps.Contains(e.PropertyName)) {
+    if (!_outputProps.Contains(e.PropertyName)) {
       if (e.PropertyName == nameof(SelectedCamera)) {
         ApplyCamera();
       }
@@ -249,7 +230,6 @@ public partial class GridUIViewModel : ViewModelBase {
   [RelayCommand]
   private void Close() => CloseRequested?.Invoke();
 
-  // Pull camera specs into the camera fields and recompute (mirrors CMB_camera_SelectedIndexChanged).
   private void ApplyCamera() {
     if (!_cameras.TryGetValue(SelectedCamera, out var cam)) {
       return;
@@ -264,7 +244,6 @@ public partial class GridUIViewModel : ViewModelBase {
     _suppressRecalc = false;
   }
 
-  // Mirrors GridUI.doCalc: derive spacing/distance + FOV from camera + altitude + overlap/sidelap.
   private void DoCalc() {
     try {
       double flyalt = Altitude;
@@ -380,9 +359,8 @@ public partial class GridUIViewModel : ViewModelBase {
 
     double area = CalcPolygonArea(_polygon);
 
-    // turn radius = tas^2 / (tan(45) * g)
     double v = FlyingSpeed;
-    double turnrad = v * v / (9.808 * Math.Tan(45 / Rad2Deg));
+    double turnrad = v * v / (9.808 * Math.Tan(45 / _rad2Deg));
 
     AreaText = area.ToString("#", CultureInfo.InvariantCulture) + " m^2";
     DistanceText = routetotal.ToString("0.##", CultureInfo.InvariantCulture) + " km";
@@ -397,7 +375,7 @@ public partial class GridUIViewModel : ViewModelBase {
     StripCount = strips / 2;
     WaypointCount = waypoints;
 
-    double seconds = routetotal * 1000.0 / (flyspeedms * 0.8); // reduce speed 20%
+    double seconds = routetotal * 1000.0 / (flyspeedms * 0.8);
     FlightTimeText = SecondsToNice(seconds);
     PhotoEveryText = SecondsToNice(Spacing / flyspeedms);
 
@@ -414,7 +392,6 @@ public partial class GridUIViewModel : ViewModelBase {
     Status = $"Generated {grid.Count} point(s): {waypoints} waypoints, {images} photos.";
   }
 
-  // Equirectangular shoelace area in m^2 (avoids the ProjNet UTM dependency in GridUI).
   private static double CalcPolygonArea(List<PointLatLngAlt> polygon) {
     if (polygon.Count < 3) {
       return 0;
@@ -478,7 +455,6 @@ public partial class GridUIViewModel : ViewModelBase {
     return secs.ToString("0.00") + " Seconds";
   }
 
-  // ---- camera database (camerasBuiltin.xml + user cameras.xml) ----
   private void LoadCameras() {
     ReadCameraXml(Settings.GetRunningDirectory() + "camerasBuiltin.xml");
     ReadCameraXml(Settings.GetUserDataDirectory() + "cameras.xml");
@@ -542,11 +518,10 @@ public partial class GridUIViewModel : ViewModelBase {
         }
       }
     } catch {
-      // bad file - silent fail, matches upstream behaviour
+
     }
   }
 
-  // ---- settings persistence (mirrors GridUI loadsettings/savesettings key names) ----
   public void SaveSettings() {
     Set("grid_alt", Altitude);
     Set("grid_angle", Angle);
@@ -594,7 +569,7 @@ public partial class GridUIViewModel : ViewModelBase {
     ClockwiseLaps = (int)GetD("grid_clockwise_laps", ClockwiseLaps);
     Laps = (int)GetD("grid_laps", Laps);
     MatchSpiralPerimeter = GetB("grid_match_spiral_perimeter", MatchSpiralPerimeter);
-    // camera last so it applies specs
+
     SelectedCamera = GetS("grid_camera", SelectedCamera);
   }
 
@@ -621,8 +596,6 @@ public partial class GridUIViewModel : ViewModelBase {
       Settings.Instance.ContainsKey(key) && Settings.Instance[key] != null ? Settings.Instance[key]
                                                                            : fallback;
 
-  // Local camera record (the upstream MissionPlanner.Grid.camerainfo struct is in the WinForms
-  // project, which is not referenced here).
   private sealed class CameraInfo {
     public string Name = "";
     public float FocalLen;

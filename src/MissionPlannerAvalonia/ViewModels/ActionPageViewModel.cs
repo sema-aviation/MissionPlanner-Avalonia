@@ -19,7 +19,7 @@ public partial class ActionItem : ObservableObject {
 }
 
 public partial class ActionPageViewModel : ViewModelBase {
-  protected readonly MAVLinkInterface comPort = AppState.comPort;
+  protected readonly MAVLinkInterface _comPort = AppState.comPort;
 
   public string Title { get; protected set; } = "";
   public string Instructions { get; protected set; } = "";
@@ -28,7 +28,7 @@ public partial class ActionPageViewModel : ViewModelBase {
   [ObservableProperty]
   private string _log = "";
 
-  public bool IsConnected => comPort.BaseStream?.IsOpen == true;
+  public bool IsConnected => _comPort.BaseStream?.IsOpen == true;
 
   protected ActionItem Action(string label, Action run) => AddAction(label, new RelayCommand(run));
 

@@ -6,12 +6,9 @@ using Xunit;
 
 namespace MissionPlannerAvalonia.Tests;
 
-// Security path: the SECURE_COMMAND Ed25519 signature must verify against the matching public key
-// over exactly sequence(LE) | operation(LE) | data | session_key. If the signed bytes or layout
-// drift, the autopilot silently rejects every Set/Remove key — so guard the math here.
 public class SecureCommandSignTests {
   private static Ed25519PrivateKeyParameters Key() {
-    // Deterministic 32-byte seed (no RNG → stable test).
+
     var seed = new byte[32];
     for (int i = 0; i < seed.Length; i++) {
       seed[i] = (byte)(i + 1);

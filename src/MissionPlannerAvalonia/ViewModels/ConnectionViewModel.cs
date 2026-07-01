@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,11 +37,9 @@ public partial class ConnectionViewModel : ViewModelBase {
   [ObservableProperty]
   private string _status = "";
 
-  // 0–100 telemetry/param-download progress; -1 hides the bar (mirrors MP status1.Percent).
   [ObservableProperty]
   private int _progress = -1;
 
-  // Block writes to the vehicle (mirrors CTX readonlyToolStripMenuItem -> comPort.ReadOnly).
   [ObservableProperty]
   private bool _readOnly;
 
@@ -53,16 +52,11 @@ public partial class ConnectionViewModel : ViewModelBase {
 
   private Services.ProgressReporter? _connectDialog;
 
-  // Background packet reader. MP runs this as MainV2.SerialReader; MAVLinkInterface does not
-  // self-read, so without it the stream is never drained after Open() -> cs stays frozen
-  // (HUD/telemetry all zero) and unread heartbeats desync the link (param refresh times out).
   private CancellationTokenSource? _readerCts;
 
   private void StartReader() {
     StopReader();
-    // Stream rates default to 0 on a fresh CurrentState; UpdateCurrentSettings re-requests streams
-    // at these rates, so 0 tells the autopilot to STOP streaming (telemetry froze after the initial
-    // burst). MP loads these from Settings — seed sane Hz here and request the streams up front.
+
     foreach (var mav in _comPort.MAVlist) {
       mav.cs.rateattitude = 4;
       mav.cs.rateposition = 2;
@@ -89,7 +83,7 @@ public partial class ConnectionViewModel : ViewModelBase {
         _comPort.requestDatastream(MAVLink.MAV_DATA_STREAM.RC_CHANNELS, mav.cs.raterc, mav.sysid, mav.compid);
       }
     } catch {
-      // ignore: streams get re-requested by UpdateCurrentSettings if this initial request is lost
+
     }
   }
 
@@ -103,16 +97,14 @@ public partial class ConnectionViewModel : ViewModelBase {
     var lastHeartbeat = DateTime.MinValue;
     int consecutiveErrors = 0;
     while (!ct.IsCancellationRequested) {
-      // Stream closed without a user disconnect => link lost (remote drop). Surface it instead
-      // of freezing the HUD behind a stale "DISCONNECT" button.
+
       if (_comPort.BaseStream?.IsOpen != true) {
         HandleLinkLost(cts);
         break;
       }
 
       try {
-        // Don't read while a foreground op owns the port (param/wp/command/calibration); otherwise
-        // the reader steals the PARAM_VALUE/ACK that op is waiting for. Mirrors MP's giveComport gate.
+
         if (_comPort.giveComport == false) {
           var start = DateTime.UtcNow;
           while (_comPort.giveComport == false && _comPort.BaseStream?.IsOpen == true &&
@@ -125,7 +117,6 @@ public partial class ConnectionViewModel : ViewModelBase {
             mav.cs.UpdateCurrentSettings(null, false, _comPort, mav);
           }
 
-          // 1 Hz GCS heartbeat keeps the autopilot streaming to us (it stops to an inactive GCS).
           if ((DateTime.UtcNow - lastHeartbeat).TotalSeconds >= 1) {
             lastHeartbeat = DateTime.UtcNow;
             SendHeartbeat();
@@ -137,8 +128,7 @@ public partial class ConnectionViewModel : ViewModelBase {
       } catch (OperationCanceledException) {
         break;
       } catch {
-        // A read fault on a still-"open" port usually means the device vanished (USB unplug). A
-        // SerialPort keeps IsOpen==true until Close(), so without bailing we'd spin at 20Hz forever.
+
         if (++consecutiveErrors >= 5) {
           HandleLinkLost(cts);
           break;
@@ -152,8 +142,6 @@ public partial class ConnectionViewModel : ViewModelBase {
     }
   }
 
-  // GCS heartbeat per MAV, addressed to that MAV so generatePacket frames it with the link's
-  // mavlink version + signing (a single gcssysid heartbeat is always mavlink1/unsigned).
   private void SendHeartbeat() {
     foreach (var mav in _comPort.MAVlist) {
       try {
@@ -165,22 +153,21 @@ public partial class ConnectionViewModel : ViewModelBase {
             },
             mav.sysid, mav.compid);
       } catch {
-        // ignore: a dropped heartbeat is recovered on the next tick
+
       }
     }
   }
 
-  // Unexpected link loss (not a user disconnect). Close the port and reset the UI on the UI thread.
   private void HandleLinkLost(CancellationTokenSource self) {
     try {
       _comPort.Close();
     } catch {
-      // already down
+
     }
 
     Avalonia.Threading.Dispatcher.UIThread.Post(() => {
       if (_readerCts != self) {
-        return; // a user disconnect or a newer connection already took over
+        return;
       }
 
       _readerCts = null;
@@ -215,19 +202,47 @@ public partial class ConnectionViewModel : ViewModelBase {
     SelectedPort = Ports.Contains(cur ?? "") ? cur : Ports.FirstOrDefault(p => p != "AUTO");
   }
 
-  // macOS virtual ports that are never an autopilot — pure dropdown noise.
-  private static readonly string[] InternalPorts = { "Bluetooth-Incoming-Port", "debug-console" };
+  private static readonly string[] _internalPorts = { "Bluetooth-Incoming-Port", "debug-console" };
 
-  // macOS exposes each serial device as both /dev/cu.X and /dev/tty.X — the dropdown showed
-  // every port twice. Keep cu.* (the dial-out node MP uses), drop the matching tty.*, and hide
-  // the built-in virtual ports.
   private static IEnumerable<string> DedupePorts(string[] names) {
     var all = names.Distinct()
-        .Where(n => !InternalPorts.Any(p => n.Contains(p, StringComparison.OrdinalIgnoreCase)))
+        .Where(n => !_internalPorts.Any(p => n.Contains(p, StringComparison.OrdinalIgnoreCase)))
         .ToList();
     var cuDevices = new HashSet<string>(
         all.Where(n => n.Contains("/cu.")).Select(n => n.Replace("/cu.", "/tty.")));
     return all.Where(n => !cuDevices.Contains(n)).OrderBy(n => n);
+  }
+
+  private void OpenLogs() {
+    try {
+      Directory.CreateDirectory(Settings.Instance.LogDir);
+      var dt = DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss");
+      string tlog = Settings.Instance.LogDir + Path.DirectorySeparatorChar + dt + ".tlog";
+      string rlog = Settings.Instance.LogDir + Path.DirectorySeparatorChar + dt + ".rlog";
+      int a = 1;
+      while (File.Exists(tlog)) {
+        dt = DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + "-" + a++;
+        tlog = Settings.Instance.LogDir + Path.DirectorySeparatorChar + dt + ".tlog";
+        rlog = Settings.Instance.LogDir + Path.DirectorySeparatorChar + dt + ".rlog";
+      }
+      _comPort.logfile =
+          new BufferedStream(File.Open(tlog, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None));
+      _comPort.rawlogfile =
+          new BufferedStream(File.Open(rlog, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None));
+    } catch {
+
+    }
+  }
+
+  private void CloseLogs() {
+    try {
+      _comPort.logfile?.Close();
+      _comPort.rawlogfile?.Close();
+    } catch {
+
+    }
+    _comPort.logfile = null;
+    _comPort.rawlogfile = null;
   }
 
   [RelayCommand]
@@ -235,6 +250,7 @@ public partial class ConnectionViewModel : ViewModelBase {
     if (_comPort.BaseStream?.IsOpen == true) {
       StopReader();
       await Task.Run(() => _comPort.Close());
+      CloseLogs();
       IsConnected = false;
       ConnectText = "CONNECT";
       Status = "Disconnected.";
@@ -257,35 +273,55 @@ public partial class ConnectionViewModel : ViewModelBase {
 
       _comPort.BaseStream = stream;
 
+      OpenLogs();
+
       var dlg = new Services.ProgressReporter("Connecting Mavlink");
       _connectDialog = dlg;
+
+      AppState.ActiveConnectReporter = dlg;
       dlg.Set(0, $"Connecting {sel}…");
-      // Cancel closes the stream, which unblocks the blocking Open() call so the user can abort.
+
       dlg.Token.Register(() => {
-        try {
-          _comPort.Close();
-        } catch {
-          // ignore: just trying to abort a stuck connect
-        }
+        _ = Task.Run(() => {
+          try {
+            _comPort.Close();
+          } catch {
+
+          }
+        });
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+          dlg.Close();
+          CloseLogs();
+          IsConnected = false;
+          ConnectText = "CONNECT";
+          Status = "";
+          AppState.RaiseConnectionChanged();
+        });
       });
       dlg.Show2();
 
       Exception? openError = null;
       try {
-        await Task.Run(() => _comPort.Open(getparams: true, skipconnectedcheck: true, showui: false));
+
+        await Task.Run(() => _comPort.Open(getparams: false, skipconnectedcheck: true, showui: true));
+        if (_comPort.BaseStream.IsOpen && !dlg.CancelRequested &&
+            _comPort.MAV.compid != (byte)MAVLink.MAV_COMPONENT.MAV_COMP_ID_PERIPHERAL) {
+          await Task.Run(() => _comPort.getParamList());
+        }
       } catch (Exception ex) {
         openError = ex;
       }
       _connectDialog = null;
+      AppState.ActiveConnectReporter = null;
 
-      // User pressed Cancel: abort quietly, no error popup.
       if (dlg.CancelRequested) {
         dlg.Close();
         try {
           _comPort.Close();
         } catch {
-          // already closing
+
         }
+        CloseLogs();
         IsConnected = false;
         ConnectText = "CONNECT";
         Status = "";
@@ -295,6 +331,7 @@ public partial class ConnectionViewModel : ViewModelBase {
 
       if (openError != null) {
         dlg.Close();
+        CloseLogs();
         IsConnected = false;
         Status = "";
         await Services.Dialogs.Alert("Connection error", openError.Message);
@@ -306,27 +343,28 @@ public partial class ConnectionViewModel : ViewModelBase {
       if (IsConnected) {
         Status = $"Connected. {_comPort.MAV.param.Count} params.";
         StartReader();
-        // Cache params so the Full Parameter List is viewable offline next time.
+
         RawParamsViewModel.SaveSnapshot(_comPort);
-        // Show success in the connect dialog briefly, then close it (info bar is gone).
+
         dlg.Set(100, Status);
         await Task.Delay(1200);
         dlg.Close();
       } else {
         dlg.Close();
+        CloseLogs();
         Status = "";
         await Services.Dialogs.Alert("Connection failed", $"Could not connect on {sel}.");
       }
       AppState.RaiseConnectionChanged();
     } catch (Exception ex) {
+      AppState.ActiveConnectReporter = null;
+      CloseLogs();
       Status = "";
       IsConnected = false;
       await Services.Dialogs.Alert("Connection error", ex.Message);
     }
   }
 
-  // Returns the transport for the selected entry, prompting for host/port where
-  // needed and prefilling AppState.CommsSettings so the transport reads them back.
   private async Task<ICommsSerial?> BuildStreamAsync(string sel) {
     switch (sel) {
       case "AUTO":

@@ -9,7 +9,7 @@
   d:DesignHeight="240"
   x:Class="MissionPlannerAvalonia.Views.MavlinkLogWindow"
   x:DataType="vm:MavlinkLogConvertViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
   Width="460"
   Height="250"
   CanResize="False"

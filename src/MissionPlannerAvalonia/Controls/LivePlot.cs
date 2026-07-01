@@ -11,18 +11,15 @@ public class LivePlot : ScottPlot.Avalonia.AvaPlot {
   private readonly Dictionary<string, List<double>> _appendXs = new();
   private readonly Dictionary<string, List<double>> _appendYs = new();
 
-  // Raised on a pointer press with the clicked plot X (the curve's time axis, seconds). Lets the
-  // view correlate a click to a GPS track sample (LogBrowse plot ↔ map sync). Best-effort: the X is
-  // derived from the most recent render, so it is only meaningful once a curve has been drawn.
   public event Action<double>? PointClicked;
 
   protected override void OnPointerPressed(PointerPressedEventArgs e) {
-    base.OnPointerPressed(e);  // keep ScottPlot's own pan/zoom interaction
+    base.OnPointerPressed(e);
     if (PointClicked is not { } handler) {
       return;
     }
     var pos = e.GetPosition(this);
-    // Avalonia gives device-independent pixels; ScottPlot renders at DisplayScale, so scale up.
+
     var pixel = new ScottPlot.Pixel(pos.X * DisplayScale, pos.Y * DisplayScale);
     handler(Plot.GetCoordinates(pixel).X);
   }
@@ -33,7 +30,7 @@ public class LivePlot : ScottPlot.Avalonia.AvaPlot {
       RemoveSeries(label);
       var scatter = Plot.Add.Scatter(xs.ToArray(), ys.ToArray(), color);
       scatter.LegendText = label;
-      // Right-axis curves share the X scale but get a separate Y (mirrors ZedGraph Y2).
+
       if (rightAxis) {
         scatter.Axes.YAxis = Plot.Axes.Right;
       }
@@ -42,7 +39,6 @@ public class LivePlot : ScottPlot.Avalonia.AvaPlot {
     });
   }
 
-  // Drop a single curve by label (mirrors LogBrowse "Remove Item").
   public void RemoveByLabel(string label) {
     RunOnUi(() => {
       RemoveSeries(label);
@@ -50,7 +46,6 @@ public class LivePlot : ScottPlot.Avalonia.AvaPlot {
     });
   }
 
-  // Vertical marker line for mode/error/event overlays at an X position.
   public void AddVerticalLine(double x, ScottPlot.Color color, string? label = null) {
     RunOnUi(() => {
       var vl = Plot.Add.VerticalLine(x, 1, color);

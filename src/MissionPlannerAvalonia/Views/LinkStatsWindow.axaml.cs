@@ -4,8 +4,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Small live link-statistics popup (mirrors MP "Link Stats"). Owns its VM and tears down all
-// observable subscriptions on close.
 public partial class LinkStatsWindow : Window {
   private readonly LinkStatsViewModel _vm = new();
 

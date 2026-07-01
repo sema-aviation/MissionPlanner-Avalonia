@@ -7,19 +7,21 @@ namespace MissionPlannerAvalonia;
 public static class AppState {
   public static MAVLinkInterface comPort { get; } = new MAVLinkInterface();
 
-  // Raised after the link opens or closes so connection-gated nav (Setup/Config)
-  // can refresh which pages are visible.
   public static event System.Action? ConnectionChanged;
 
   public static void RaiseConnectionChanged() => ConnectionChanged?.Invoke();
 
   public static bool IsConnected => comPort.BaseStream?.IsOpen == true;
 
-  // Connection params (host/port/url) consumed by the Comms transports through
-  // CommsBase.Settings. The UI prefills these before opening a network stream.
   public static Dictionary<string, string> CommsSettings { get; } = new();
 
+  public static Services.ProgressReporter? ActiveConnectReporter { get; set; }
+
   static AppState() {
+
+    MAVLinkInterface.CreateIProgressReporterDialogue +=
+        _ => new Services.ForwardingProgressReporter(ActiveConnectReporter);
+
     CommsBase.Settings += (name, value, set) => {
       if (set) {
         CommsSettings[name] = value;
@@ -27,9 +29,67 @@ public static class AppState {
       }
       return CommsSettings.TryGetValue(name, out var v) ? v : "";
     };
-    // Transports prompt via this when a value is missing; we feed them from the UI
-    // instead, so never block — NotSet makes them keep the settings/default value.
+
     CommsBase.InputBoxShow += (string title, string prompt, ref string text) =>
         inputboxreturn.NotSet;
+
+    MissionPlanner.Utilities.srtm.datadirectory =
+        System.IO.Path.Combine(System.AppContext.BaseDirectory, "srtm");
+
+    ApplyUnits();
+  }
+
+  public static void ApplyUnits() {
+    try {
+      var s = MissionPlanner.Utilities.Settings.Instance;
+
+      if (s["distunits"] != null && System.Enum.TryParse<distances>(s["distunits"], out var d)
+          && d == distances.Feet) {
+        CurrentState.multiplierdist = 3.2808399f;
+        CurrentState.DistanceUnit = "ft";
+      } else {
+        CurrentState.multiplierdist = 1;
+        CurrentState.DistanceUnit = "m";
+      }
+
+      if (s["altunits"] != null && System.Enum.TryParse<altitudes>(s["altunits"], out var a)
+          && a == altitudes.Feet) {
+        CurrentState.multiplieralt = 3.2808399f;
+        CurrentState.AltUnit = "ft";
+      } else {
+        CurrentState.multiplieralt = 1;
+        CurrentState.AltUnit = "m";
+      }
+
+      if (s["speedunits"] != null && System.Enum.TryParse<speeds>(s["speedunits"], out var sp)) {
+        switch (sp) {
+          case speeds.fps:
+            CurrentState.multiplierspeed = 3.2808399f;
+            CurrentState.SpeedUnit = "fps";
+            break;
+          case speeds.kph:
+            CurrentState.multiplierspeed = 3.6f;
+            CurrentState.SpeedUnit = "kph";
+            break;
+          case speeds.mph:
+            CurrentState.multiplierspeed = 2.23693629f;
+            CurrentState.SpeedUnit = "mph";
+            break;
+          case speeds.knots:
+            CurrentState.multiplierspeed = 1.94384449f;
+            CurrentState.SpeedUnit = "kts";
+            break;
+          default:
+            CurrentState.multiplierspeed = 1;
+            CurrentState.SpeedUnit = "m/s";
+            break;
+        }
+      } else {
+        CurrentState.multiplierspeed = 1;
+        CurrentState.SpeedUnit = "m/s";
+      }
+    } catch {
+
+    }
   }
 }

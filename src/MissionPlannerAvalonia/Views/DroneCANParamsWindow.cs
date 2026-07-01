@@ -1,15 +1,9 @@
-using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Media;
 using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Standalone per-node DroneCAN parameter editor window (port of MP's "UAVCAN Params - N"
-// form). LogBrowseWindow pattern. Two entry points:
-//   OpenForNode(nodeId) — connect (bus 1) + auto-load that node's params.
-//   OpenWindow()        — open empty; user picks bus/node and connects manually.
-// The VM owns a DroneCanBridge it stops on Dispose, invoked from Closed (no leaks).
 public class DroneCANParamsWindow : Window {
   private readonly DroneCANParamsView _view = new();
   private readonly DroneCANParamsViewModel _vm = new();
@@ -30,7 +24,7 @@ public class DroneCANParamsWindow : Window {
 
   public static void OpenForNode(byte nodeId) {
     var w = Show(nodeId);
-    // Fire-and-forget connect + load for the requested node.
+
     _ = w._vm.InitForNodeAsync(nodeId);
   }
 

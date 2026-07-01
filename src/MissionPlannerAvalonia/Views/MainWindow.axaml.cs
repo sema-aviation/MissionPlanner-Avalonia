@@ -8,15 +8,13 @@ namespace MissionPlannerAvalonia.Views;
 public partial class MainWindow : Window {
   public MainWindow() {
     InitializeComponent();
-    // Title carries the running version on every platform (e.g. "Mission Planner 2026.6.2").
+
     Title = Services.AppVersion.Title;
     KeyDown += OnKeyDown;
   }
 
   private MainWindowViewModel? Vm => DataContext as MainWindowViewModel;
 
-  // Global hotkeys (mirrors MainV2.ProcessCmdKey). Tool-window shortcuts (Ctrl+F/P/G/X/L/W/Z/T/J)
-  // are noted in AVALONIA-FEATURES.md — their target windows are not ported yet.
   private void OnKeyDown(object? sender, KeyEventArgs e) {
     var vm = Vm;
     if (vm == null) {
@@ -48,7 +46,6 @@ public partial class MainWindow : Window {
     e.Handled = true;
   }
 
-  // CTX_mainmenu "Full Screen": borderless maximized vs normal (mirrors fullScreenToolStripMenuItem).
   private void OnFullScreen(object? sender, RoutedEventArgs e) {
     if (WindowState == WindowState.FullScreen) {
       WindowState = WindowState.Normal;
@@ -59,23 +56,18 @@ public partial class MainWindow : Window {
     }
   }
 
-  // CTX_mainmenu "Readonly": toggle comPort.ReadOnly via the connection VM.
   private void OnToggleReadonly(object? sender, RoutedEventArgs e) {
     if (Vm != null) {
       Vm.Connection.ReadOnly = !Vm.Connection.ReadOnly;
     }
   }
 
-  // CTX_mainmenu "Link Stats": live throughput/packet-loss/link-quality popup.
   private void OnLinkStats(object? sender, RoutedEventArgs e) => LinkStatsWindow.OpenWindow();
 
-  // CTX_mainmenu "Connection Options": comms settings dialog (baud memory, GCS heartbeat, sysid).
   private void OnConnectionOptions(object? sender, RoutedEventArgs e) =>
       ConnectionOptionsWindow.OpenWindow();
 
-  // CTX_mainmenu "Download Logs": list + download on-board dataflash logs over MAVLink.
   private void OnDownloadLogs(object? sender, RoutedEventArgs e) => LogDownloadWindow.OpenWindow();
 
-  // CTX_mainmenu "Tlog Convert": .tlog -> KML/GPX/Matlab conversion hub.
   private void OnMavlinkLogConvert(object? sender, RoutedEventArgs e) => MavlinkLogWindow.OpenWindow();
 }

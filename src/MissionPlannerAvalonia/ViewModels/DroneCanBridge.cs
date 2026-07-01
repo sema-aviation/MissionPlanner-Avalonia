@@ -3,21 +3,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DroneCAN;
 using MissionPlanner;
 using MissionPlanner.Comms;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Headless CAN-over-MAVLink bridge. There is no shared/active DroneCAN instance in the
-// Avalonia app (ConfigDroneCanViewModel keeps its own private one), so the standalone
-// DroneCAN tool windows each spin up their own bridge over the active MAVLink link.
-//
-// This is the StartMavlinkCAN/Disconnect bootstrap from ConfigDroneCanViewModel factored
-// out verbatim (CAN_FORWARD keep-alive loop + SLCAN injection + CAN_FRAME/CANFD_FRAME
-// subscription + dynamic-node allocator + file server), minus the page's own UI/Nodes.
-// Consumers attach their handlers to Can.MessageReceived / Can.NodeAdded and call Stop()
-// (or Dispose) on close so the packet subscription and threads are torn down — no leaks.
 public sealed class DroneCanBridge : IDisposable {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
   private DroneCAN.DroneCAN? _can;
@@ -28,8 +18,6 @@ public sealed class DroneCanBridge : IDisposable {
   public DroneCAN.DroneCAN? Can => _can;
   public bool IsOpen => _can != null;
 
-  // Start the bridge on the given MAVLink CAN bus (1 or 2). Returns false if the link
-  // isn't open. Caller subscribes to Can.* events after this returns true.
   public bool Start(byte bus) {
     if (_comPort.BaseStream?.IsOpen != true) {
       return false;

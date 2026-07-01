@@ -6,8 +6,6 @@ using Avalonia.Media;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Built in code (no XAML) so it has no named-field / compiled-binding fragility.
-// label2 == null hides the second field (single-value prompts like WS url / UDP port).
 public class ConnectDialog : Window {
   private ConnectDialog(string title, string label1, string value1, string? label2, string value2) {
     Title = "Connection";

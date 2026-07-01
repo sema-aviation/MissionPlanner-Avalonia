@@ -4,8 +4,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Lists and downloads on-board dataflash logs over the active MAVLink link
-// (mirrors MP's LogDownloadMavlink form).
 public partial class LogDownloadWindow : Window {
   public LogDownloadWindow() {
     AvaloniaXamlLoader.Load(this);

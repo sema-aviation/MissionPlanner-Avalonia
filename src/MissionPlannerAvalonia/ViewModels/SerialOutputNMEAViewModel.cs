@@ -13,14 +13,6 @@ using MissionPlanner.Comms;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// NMEA output — port of MissionPlanner.Controls.SerialOutputNMEA (Controls/SerialOutputNMEA.cs).
-// Emits NMEA-0183 sentences (GGA/GLL/HDG/VTG/RMC) built from the live vehicle state
-// (comPort.MAV.cs lat/lng/altasl/groundspeed/groundcourse/yaw) to a chosen serial/TCP/UDP port at a
-// fixed update rate, so an external device (e.g. a camera or an AHRS-fed display) can consume the
-// aircraft position as if from a GPS. Sentence formats mirror upstream exactly.
-//
-// NOTE: upstream fills the GGA geoid-separation field from GeoidHeights.undulation(); that geoid
-// table isn't wired into the Avalonia port, so the separation field is emitted as 0.0 (documented gap).
 public partial class SerialOutputNMEAViewModel : ViewModelBase, IDisposable {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 
@@ -134,7 +126,7 @@ public partial class SerialOutputNMEAViewModel : ViewModelBase, IDisposable {
       tcp.client = client;
       listener.BeginAcceptTcpClient(OnAcceptTcpClient, (listener, tcp));
     } catch {
-      // listener stopped
+
     }
   }
 
@@ -148,13 +140,10 @@ public partial class SerialOutputNMEAViewModel : ViewModelBase, IDisposable {
 
         var cs = _comPort.MAV.cs;
 
-        // upstream "0.6 minutes" packing: deg.mmmmm where the fractional degrees are mapped into
-        // the minutes field (lat/lng are sent as ddmm.mmmmm).
         double lat = (int)cs.lat + (cs.lat - (int)cs.lat) * .6f;
         double lng = (int)cs.lng + (cs.lng - (int)cs.lng) * .6f;
         var now = DateTime.Now.ToUniversalTime();
 
-        // GGA
         string line = string.Format(CultureInfo.InvariantCulture,
             "$GP{0},{1:HHmmss.fff},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},", "GGA",
             now, Math.Abs(lat * 100).ToString("0000.00000", CultureInfo.InvariantCulture),
@@ -165,7 +154,6 @@ public partial class SerialOutputNMEAViewModel : ViewModelBase, IDisposable {
             cs.altasl / CurrentState.multiplieralt, "M", "0.0", "M", "");
         Send(line);
 
-        // GLL
         line = string.Format(CultureInfo.InvariantCulture,
             "$GP{0},{1},{2},{3},{4},{5:HHmmss.fff},{6},{7}", "GLL",
             Math.Abs(lat * 100).ToString("0000.00", CultureInfo.InvariantCulture),
@@ -174,12 +162,10 @@ public partial class SerialOutputNMEAViewModel : ViewModelBase, IDisposable {
             cs.lng < 0 ? "W" : "E", now, "A", "A");
         Send(line);
 
-        // HDG
         line = string.Format(CultureInfo.InvariantCulture,
             "$GP{0},{1:0.0},{2},{3},{4},{5}", "HDG", cs.yaw, 0, "E", 0, "E");
         Send(line);
 
-        // VTG
         line = string.Format(CultureInfo.InvariantCulture,
             "$GP{0},{1},{2},{3},{4}", "VTG",
             cs.groundcourse.ToString("000"), cs.yaw.ToString("000"),
@@ -187,7 +173,6 @@ public partial class SerialOutputNMEAViewModel : ViewModelBase, IDisposable {
             (cs.groundspeed * 3.6).ToString("00.0", CultureInfo.InvariantCulture));
         Send(line);
 
-        // RMC
         line = string.Format(CultureInfo.InvariantCulture,
             "$GP{0},{1:HHmmss.fff},{2},{3},{4},{5},{6},{7},{8},{9:ddMMyy},{10},{11},{12}", "RMC",
             now, "A", Math.Abs(lat * 100).ToString("0.00000", CultureInfo.InvariantCulture),
@@ -214,7 +199,6 @@ public partial class SerialOutputNMEAViewModel : ViewModelBase, IDisposable {
     Dispatcher.UIThread.Post(() => LastSentence = full.TrimEnd());
   }
 
-  // XOR checksum of all chars between '$' and '*'. Mirrors upstream GetChecksum.
   public static string GetChecksum(string sentence) {
     int checksum = 0;
     foreach (char c in sentence) {

@@ -5,8 +5,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Connection Options dialog (mirrors MP's CTX "Connection Options"). Edits a few real comms
-// settings persisted via Settings.Instance.
 public partial class ConnectionOptionsWindow : Window {
   public ConnectionOptionsWindow() {
     AvaloniaXamlLoader.Load(this);

@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.HelpView"
   x:DataType="vm:HelpViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <ScrollViewer>
     <StackPanel Margin="40" Spacing="8" MaxWidth="900" HorizontalAlignment="Left">
@@ -18,7 +18,7 @@
           Welcome to the Mission Planner
         </Run>, mission planning for Unmanned Aerial Vehicles (UAV).
       </TextBlock>
-      <TextBlock Text="{Binding AppVersionDisplay}" Foreground="#94C11F" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding AppVersionDisplay}" Foreground="{DynamicResource MpAccentBrush}" FontWeight="SemiBold" />
       <TextBlock Margin="0,10,0,0" FontWeight="Bold" Text="Help:" />
       <TextBlock Text="ArduPlane: http://ardupilot.org/plane" Foreground="#7FB3E0" />
       <TextBlock Text="ArduCopter: http://ardupilot.org/copter" Foreground="#7FB3E0" />

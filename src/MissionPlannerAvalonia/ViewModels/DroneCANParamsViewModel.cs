@@ -14,16 +14,10 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Standalone per-node DroneCAN parameter editor — port of upstream Controls/DroneCANParams.cs.
-// Distinct from the inline editor in the config page: this is its own window that connects a
-// DroneCanBridge over the active MAVLink link, picks a node, and does get/edit/write/save.
-// Columns mirror upstream: Command(name) | Value | Min | Max | Default | Fav, plus the search
-// box, modified-only filter, re-request, write+save-to-flash, erase, and .param load/save.
 public partial class DroneCANParamsViewModel : ViewModelBase, IDisposable {
   private readonly DroneCanBridge _bridge = new();
   private byte? _node;
 
-  // Full row set; Params is the filtered view bound to the grid.
   private readonly List<DroneCanParamRow> _all = new();
 
   public ObservableCollection<DroneCanParamRow> Params { get; } = new();
@@ -78,7 +72,6 @@ public partial class DroneCANParamsViewModel : ViewModelBase, IDisposable {
     Status = $"Connected on MAVLink CAN{bus}. Set node ID and Get Parameters.";
   }
 
-  // Entry point used by DroneCANParamsWindow.OpenForNode — connect (bus 1) and load.
   public async Task InitForNodeAsync(byte node) {
     NodeId = node;
     byte bus = (byte)(SelectedBusIndex == 1 ? 2 : 1);
@@ -133,7 +126,6 @@ public partial class DroneCANParamsViewModel : ViewModelBase, IDisposable {
       });
     }
 
-    // Favourites first, then alphabetical (mirrors upstream OnParamsOnSortCompare).
     _all.Sort((a, b) => a.IsFav != b.IsFav
         ? b.IsFav.CompareTo(a.IsFav)
         : string.CompareOrdinal(a.Name, b.Name));
@@ -237,7 +229,6 @@ public partial class DroneCANParamsViewModel : ViewModelBase, IDisposable {
     IsBusy = false;
   }
 
-  // Toggle a row's favourite flag and persist to Settings (mirrors Params_CellContentClick).
   public void ToggleFav(DroneCanParamRow row) {
     if (row.IsFav) {
       Settings.Instance.AppendList("fav_params", row.Name);

@@ -7,15 +7,12 @@ using Avalonia.Media;
 
 namespace MissionPlannerAvalonia.Controls;
 
-// A coloured range band on the gauge dial (mirrors AGauge m_RangeColor/Start/End).
 public class GaugeRange {
   public double Start { get; set; }
   public double End { get; set; }
   public IBrush Color { get; set; } = Brushes.LightGreen;
 }
 
-// Analog circular gauge — port of Mission Planner's AGauge: up to 5 needles, coloured
-// range arcs, configurable min/max/caps. The original single-needle Value API still works.
 public class Gauge : Control {
   public static readonly StyledProperty<double> ValueProperty =
       AvaloniaProperty.Register<Gauge, double>(nameof(Value));
@@ -40,9 +37,7 @@ public class Gauge : Control {
   public static readonly StyledProperty<string> CapColorProperty =
       AvaloniaProperty.Register<Gauge, string>(nameof(CapColor), "#94C11F");
 
-  // Needle colours: needle 1 is the upstream green; the rest are distinct so multiple
-  // needles read clearly (mirrors AGauge m_NeedleColor per-needle array).
-  private static readonly IBrush[] NeedleBrushes = {
+  private static readonly IBrush[] _needleBrushes = {
     new SolidColorBrush(Color.FromRgb(0x94, 0xC1, 0x1F)),
     Brushes.OrangeRed,
     Brushes.DeepSkyBlue,
@@ -71,8 +66,8 @@ public class Gauge : Control {
   }
   public string CapColor { get => GetValue(CapColorProperty); set => SetValue(CapColorProperty, value); }
 
-  private const double StartDeg = 135;
-  private const double SweepDeg = 270;
+  private const double _startDeg = 135;
+  private const double _sweepDeg = 270;
 
   private double Frac(double value) {
     var range = Max - Min;
@@ -93,7 +88,6 @@ public class Gauge : Control {
     var rim = new Pen(new SolidColorBrush(Color.FromRgb(0x60, 0x60, 0x60)), 2);
     ctx.DrawEllipse(face, rim, c, r, r);
 
-    // ---- coloured range arcs (bands just inside the rim) ----
     if (Ranges != null) {
       foreach (var band in Ranges) {
         double f0 = Frac(band.Start);
@@ -105,12 +99,12 @@ public class Gauge : Control {
         double rr = r * 0.86;
         var geo = new StreamGeometry();
         using (var g = geo.Open()) {
-          double a0 = (StartDeg + SweepDeg * f0) * Math.PI / 180.0;
+          double a0 = (_startDeg + _sweepDeg * f0) * Math.PI / 180.0;
           g.BeginFigure(new Point(c.X + Math.Cos(a0) * rr, c.Y + Math.Sin(a0) * rr), false);
           int steps = Math.Max(2, (int)((f1 - f0) * 60));
           for (int i = 1; i <= steps; i++) {
             double f = f0 + (f1 - f0) * i / steps;
-            double a = (StartDeg + SweepDeg * f) * Math.PI / 180.0;
+            double a = (_startDeg + _sweepDeg * f) * Math.PI / 180.0;
             g.LineTo(new Point(c.X + Math.Cos(a) * rr, c.Y + Math.Sin(a) * rr));
           }
           g.EndFigure(false);
@@ -119,27 +113,25 @@ public class Gauge : Control {
       }
     }
 
-    // ---- tick marks ----
     var tickPen = new Pen(Brushes.Gray, 1);
     var majPen = new Pen(Brushes.White, 2);
     for (int i = 0; i <= 10; i++) {
-      var a = (StartDeg + SweepDeg * i / 10.0) * Math.PI / 180.0;
+      var a = (_startDeg + _sweepDeg * i / 10.0) * Math.PI / 180.0;
       var outer = new Point(c.X + Math.Cos(a) * r, c.Y + Math.Sin(a) * r);
       var inner = new Point(c.X + Math.Cos(a) * (r - (i % 5 == 0 ? 12 : 7)),
                             c.Y + Math.Sin(a) * (r - (i % 5 == 0 ? 12 : 7)));
       ctx.DrawLine(i % 5 == 0 ? majPen : tickPen, inner, outer);
     }
 
-    // ---- needles (1..5; NaN = disabled) ----
     double[] vals = { Value, Value2, Value3, Value4, Value5 };
     for (int n = 0; n < vals.Length; n++) {
       if (double.IsNaN(vals[n])) {
         continue;
       }
-      var na = (StartDeg + SweepDeg * Frac(vals[n])) * Math.PI / 180.0;
+      var na = (_startDeg + _sweepDeg * Frac(vals[n])) * Math.PI / 180.0;
       IBrush nb = n == 0 && !string.IsNullOrEmpty(CapColor)
           ? new SolidColorBrush(Color.Parse(CapColor))
-          : NeedleBrushes[n];
+          : _needleBrushes[n];
       var needle = new Pen(nb, 3);
       ctx.DrawLine(needle, c,
           new Point(c.X + Math.Cos(na) * (r - 14), c.Y + Math.Sin(na) * (r - 14)));

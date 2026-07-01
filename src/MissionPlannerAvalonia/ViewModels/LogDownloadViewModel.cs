@@ -12,7 +12,6 @@ using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// One on-board dataflash log as advertised over MAVLink (mirrors a LOG_ENTRY row).
 public partial class LogDownloadRow : ObservableObject {
   public ushort Id { get; init; }
   public uint SizeBytes { get; init; }
@@ -26,13 +25,9 @@ public partial class LogDownloadRow : ObservableObject {
                                                          : TimeUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
 }
 
-// Lists and downloads on-board dataflash logs over MAVLink (mirrors MP's LogDownloadMavlink form).
-// Listing uses comPort.GetLogEntry(); download uses comPort.GetLog(id) which streams LOG_DATA into
-// a temp file. We copy that temp file to the user's chosen path. Progress is surfaced from the
-// link's Progress event (it reports a byte offset, which we scale to the selected log's size).
 public partial class LogDownloadViewModel : ViewModelBase {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
-  private static readonly DateTime Epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+  private static readonly DateTime _epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
   public ObservableCollection<LogDownloadRow> Logs { get; } = new();
 
@@ -71,7 +66,7 @@ public partial class LogDownloadViewModel : ViewModelBase {
         Logs.Add(new LogDownloadRow {
           Id = e.id,
           SizeBytes = e.size,
-          TimeUtc = e.time_utc == 0 ? DateTime.MinValue : Epoch.AddSeconds(e.time_utc),
+          TimeUtc = e.time_utc == 0 ? DateTime.MinValue : _epoch.AddSeconds(e.time_utc),
         });
       }
       Status = $"{Logs.Count} log(s) on board.";
@@ -107,7 +102,6 @@ public partial class LogDownloadViewModel : ViewModelBase {
     Progress = 0;
     Status = $"Downloading log {sel.Id}…";
 
-    // The link reports the running byte offset through Progress; scale it to a 0–100 bar.
     void OnProgress(int offset, string _) {
       double pct = sel.SizeBytes > 0 ? Math.Min(100.0, 100.0 * offset / sel.SizeBytes) : 0;
       Dispatcher.UIThread.Post(() => Progress = pct);
@@ -126,7 +120,7 @@ public partial class LogDownloadViewModel : ViewModelBase {
         try {
           File.Delete(tempPath);
         } catch {
-          // temp cleanup is best-effort
+
         }
       });
       Progress = 100;

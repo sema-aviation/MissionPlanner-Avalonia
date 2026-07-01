@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Xml;
 using Core.Geometry;
 using KMLib;
@@ -72,7 +71,7 @@ public class DataFlashLog {
   }
 
   public static void ExportMatlab(string binPath, Action<string>? progress = null) {
-    // tlogs use the telemetry-log Matlab writer; dataflash .bin/.log use the DF writer.
+
     if (binPath.EndsWith(".tlog", StringComparison.OrdinalIgnoreCase)) {
       MatLab.tlog(binPath);
     } else {

@@ -33,14 +33,13 @@ public partial class LogBrowseView : UserControl {
     GpxBtn.Click += OnGpx;
     MatlabBtn.Click += OnMatlab;
     BinLogBtn.Click += OnBinToLog;
-    TrackMap.LiveVehicle = false; // LogBrowse shows a static recorded track, not a live link
+    TrackMap.LiveVehicle = false;
     DataContextChanged += OnDataContextChanged;
     OnDataContextChanged(this, EventArgs.Empty);
   }
 
   private LogBrowseViewModel? _wiredVm;
 
-  // Draw the recorded GPS track on the map panel whenever a new log loads.
   private void OnDataContextChanged(object? sender, EventArgs e) {
     if (ReferenceEquals(_wiredVm, Vm)) {
       return;
@@ -62,18 +61,14 @@ public partial class LogBrowseView : UserControl {
 
   private LogBrowseViewModel? Vm => DataContext as LogBrowseViewModel;
 
-  // Columns currently shown in the data grid (kept so a row selection can find Lat/Lng by name).
   private IReadOnlyList<string> _gridColumns = Array.Empty<string>();
 
-  // GoToSample (plot → map): a click on the plot moves the map marker to the nearest GPS sample.
   private void OnPlotPointClicked(double x) {
     if (Vm?.NearestTrackSample(x) is { } p) {
       TrackMap.ShowSampleMarker(p.lat, p.lng);
     }
   }
 
-  // GoToSample (grid → map): selecting a data-table row moves the marker to that sample, when the
-  // selected message type carries Lat/Lng columns. No-op for types without a position.
   private void OnRowSelected(object? sender, SelectionChangedEventArgs e) {
     if (RowsGrid.SelectedItem is not IReadOnlyList<string> row) {
       return;
@@ -99,7 +94,6 @@ public partial class LogBrowseView : UserControl {
     return -1;
   }
 
-  // Per-field scaler/offset read from the toolbar; applied as y = y*scale + offset before plotting.
   private (double scale, double offset) ReadTransform() =>
       ((double)(ScaleBox.Value ?? 1m), (double)(OffsetBox.Value ?? 0m));
 
@@ -115,13 +109,11 @@ public partial class LogBrowseView : UserControl {
     return outp;
   }
 
-  // Annotate the series label with the applied transform when it is non-default.
   private static string TransformSuffix(double scale, double offset) =>
       (scale == 1 && offset == 0)
           ? string.Empty
           : $" [×{scale:0.###}{(offset >= 0 ? "+" : "")}{offset:0.###}]";
 
-  // Double-click a field node in the tree → graph it on the left axis.
   private void OnTreeDoubleTapped(object? sender, RoutedEventArgs e) {
     if (MsgTree.SelectedItem is LogFieldNode f) {
       PlotCurve(f.Type, f.Field, false);
@@ -132,7 +124,7 @@ public partial class LogBrowseView : UserControl {
     if (Vm is not { } vm) {
       return;
     }
-    // A typed derived-math expression (e.g. "BAT.Volt*BAT.Curr") is evaluated; otherwise TYPE.FIELD.
+
     var expr = vm.FieldExpression?.Trim();
     if (!string.IsNullOrEmpty(expr) && LogBrowseViewModel.IsExpression(expr)) {
       vm.Busy = true;
@@ -201,7 +193,7 @@ public partial class LogBrowseView : UserControl {
     Plot.ClearAll();
     int plotted = 0, skipped = 0;
     foreach (var curve in preset.Curves) {
-      // Literal TYPE.FIELD curves read directly; expressions (containing ()+-*/) are evaluated.
+
       var data = await Task.Run(() => {
         if (LogBrowseViewModel.IsExpression(curve.Expression)) {
           return vm.ReadExpressionCurve(curve.Expression);

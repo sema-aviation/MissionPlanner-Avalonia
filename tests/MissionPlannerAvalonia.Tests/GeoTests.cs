@@ -3,7 +3,7 @@ using MissionPlannerAvalonia.Services;
 namespace MissionPlannerAvalonia.Tests;
 
 public class GeoTests {
-  // Canberra-ish point used across MP/SITL defaults.
+
   private const double Lat = -35.363261;
   private const double Lng = 149.165230;
 

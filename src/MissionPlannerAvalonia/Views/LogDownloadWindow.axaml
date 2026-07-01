@@ -9,7 +9,7 @@
   d:DesignHeight="420"
   x:Class="MissionPlannerAvalonia.Views.LogDownloadWindow"
   x:DataType="vm:LogDownloadViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
   Width="540"
   Height="440"
   WindowStartupLocation="CenterOwner"

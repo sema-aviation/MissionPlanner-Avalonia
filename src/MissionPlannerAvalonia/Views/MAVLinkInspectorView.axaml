@@ -9,7 +9,7 @@
   d:DesignHeight="520"
   x:Class="MissionPlannerAvalonia.Views.MAVLinkInspectorView"
   x:DataType="vm:MAVLinkInspectorViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid Margin="8" RowDefinitions="Auto,*,Auto">
     <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">

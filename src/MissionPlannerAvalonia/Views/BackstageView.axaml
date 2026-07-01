@@ -9,12 +9,12 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.BackstageView"
   x:DataType="vm:BackstageViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid ColumnDefinitions="Auto,*">
     <ScrollViewer
       Grid.Column="0"
-      Background="#1A1A1B"
+      Background="{DynamicResource MpBgDeepBrush}"
       Width="210"
       VerticalScrollBarVisibility="Auto"
       HorizontalScrollBarVisibility="Disabled"
@@ -27,12 +27,31 @@
               Classes.sub="{Binding IsSub}"
               Classes.active="{Binding IsSelected}"
               IsVisible="{Binding Visible}"
-              Content="{Binding Header}"
               Command="{Binding $parent[ItemsControl].((vm:BackstageViewModel)DataContext).SelectCommand}"
               CommandParameter="{Binding}"
               HorizontalAlignment="Stretch"
               HorizontalContentAlignment="Left"
-            />
+            >
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock
+                  Grid.Column="0"
+                  Text="{Binding Header}"
+                  VerticalAlignment="Center"
+                  TextTrimming="CharacterEllipsis"
+                />
+                <Border
+                  Grid.Column="1"
+                  IsVisible="{Binding HasBadge}"
+                  Background="#8A5A00"
+                  CornerRadius="3"
+                  Padding="4,1"
+                  Margin="6,0,0,0"
+                  VerticalAlignment="Center"
+                >
+                  <TextBlock Text="{Binding Badge}" FontSize="9" Foreground="#FFD9A0" />
+                </Border>
+              </Grid>
+            </Button>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
@@ -40,7 +59,7 @@
 
     <Grid Grid.Column="1">
       <ContentControl Content="{Binding CurrentContent}" />
-      <!-- "Parameters still loading" overlay (mirrors ConfigParamLoading) -->
+
       <ContentControl Content="{Binding ParamLoading}" IsVisible="{Binding ShowParamLoading}" />
     </Grid>
   </Grid>

@@ -13,20 +13,14 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Standalone Antenna Tracker tool (mirrors MissionPlanner.Antenna.TrackerUI + TrackerGeneric).
-// Distinct from the Config > Antenna Tracker page: this is a free-floating window that connects
-// to a pan/tilt tracker over serial with three selectable backends (Maestro / ArduTracker /
-// DegreeTracker), shows live azimuth/elevation, and supports auto point-at-vehicle, manual slew,
-// home/center, and the Find Trim Pan SiK sweep.
 public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
-  private const string KeyPrefix = "Tracker_";
+  private const string _keyPrefix = "Tracker_";
 
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 
   private ITrackerOutput? _tracker;
   private CancellationTokenSource? _loopCts;
 
-  // interfaces enum mirrors TrackerGeneric.interfaces
   public ObservableCollection<string> Interfaces { get; } =
       new() { "Maestro", "ArduTracker", "DegreeTracker" };
 
@@ -53,11 +47,9 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
   [ObservableProperty]
   private string _status = "";
 
-  // Maestro speed/accel fields only apply to the Maestro backend.
   [ObservableProperty]
   private bool _speedAccelEnabled = true;
 
-  // Pan group
   [ObservableProperty]
   private string _panRange = "360";
 
@@ -85,7 +77,6 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
   [ObservableProperty]
   private bool _panReverse;
 
-  // Tilt group
   [ObservableProperty]
   private string _tiltRange = "90";
 
@@ -113,7 +104,6 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
   [ObservableProperty]
   private bool _tiltReverse;
 
-  // Manual slew vs. auto point-at-vehicle.
   [ObservableProperty]
   private bool _manualMode;
 
@@ -123,7 +113,6 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
   [ObservableProperty]
   private double _manualElevation;
 
-  // Live readout (degrees).
   [ObservableProperty]
   private string _vehicleAzimuth = "--";
 
@@ -168,7 +157,6 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
 
   partial void OnSelectedInterfaceChanged(string value) => UpdateSpeedAccelEnabled();
 
-  // Mirrors CMB_interface_SelectedIndexChanged: speed/accel are Maestro-only.
   private void UpdateSpeedAccelEnabled() => SpeedAccelEnabled = SelectedInterface == "Maestro";
 
   partial void OnPanRangeChanged(string value) => UpdatePanTrimRange();
@@ -176,7 +164,7 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
   partial void OnTiltRangeChanged(string value) => UpdateTiltTrimRange();
 
   private void UpdatePanTrimRange() {
-    // Upstream forces the pan trim slider to a full 360 sweep.
+
     PanTrimMin = -180;
     PanTrimMax = 180;
   }
@@ -294,7 +282,6 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
 
     driver.Setup();
 
-    // reflect any center the driver clamped to
     PanCenter = driver.PanPWMCenter.ToString(CultureInfo.InvariantCulture);
     TiltCenter = driver.TiltPWMCenter.ToString(CultureInfo.InvariantCulture);
 
@@ -313,7 +300,6 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
     StartLoop();
   }
 
-  // Point the dish straight at the center / home position.
   [RelayCommand]
   private void HomeCenter() {
     ManualAzimuth = 0;
@@ -392,7 +378,7 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
             az = ManualAzimuth;
             el = ManualElevation;
           } else {
-            // 10 hz - position updates default to 3 hz on the stream rate
+
             az = _comPort.MAV.cs.AZToMAV;
             el = _comPort.MAV.cs.ELToMAV;
           }
@@ -436,10 +422,10 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
     TiltSpeed = Get("TXT_tiltspeed", TiltSpeed);
     TiltAccel = Get("TXT_tiltaccel", TiltAccel);
 
-    PanTrim = Settings.Instance.GetInt32(KeyPrefix + "TRK_pantrim", 0);
-    TiltTrim = Settings.Instance.GetInt32(KeyPrefix + "TRK_tilttrim", 0);
-    PanReverse = Settings.Instance.GetBoolean(KeyPrefix + "CHK_revpan", false);
-    TiltReverse = Settings.Instance.GetBoolean(KeyPrefix + "CHK_revtilt", false);
+    PanTrim = Settings.Instance.GetInt32(_keyPrefix + "TRK_pantrim", 0);
+    TiltTrim = Settings.Instance.GetInt32(_keyPrefix + "TRK_tilttrim", 0);
+    PanReverse = Settings.Instance.GetBoolean(_keyPrefix + "CHK_revpan", false);
+    TiltReverse = Settings.Instance.GetBoolean(_keyPrefix + "CHK_revtilt", false);
   }
 
   private void SaveSettings() {
@@ -466,14 +452,14 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
   }
 
   private static string Get(string name, string fallback) {
-    var key = KeyPrefix + name;
+    var key = _keyPrefix + name;
     return Settings.Instance.ContainsKey(key) && Settings.Instance[key] != null
         ? Settings.Instance[key]
         : fallback;
   }
 
   private static void Set(string name, string value) =>
-      Settings.Instance[KeyPrefix + name] = value;
+      Settings.Instance[_keyPrefix + name] = value;
 
   private static int ParseInt(string value, int fallback) =>
       int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v
@@ -486,10 +472,6 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
     _tracker = null;
   }
 
-  // ----- Tracker backends (reimplemented from MissionPlanner.Antenna.* because the Antenna
-  // ExtLib is not referenced and the project files may not be edited). -----
-
-  // Common output surface (mirrors MissionPlanner.Antenna.ITrackerOutput).
   private interface ITrackerOutput {
     SerialPort ComPort { get; set; }
     double TrimPan { get; set; }
@@ -585,15 +567,13 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // Pololu Maestro compact-protocol backend (ported from MissionPlanner.Antenna.Maestro).
   private sealed class MaestroDriver : TrackerBase {
-    private const byte SetTarget = 0x84;
-    private const byte SetSpeed = 0x87;
-    private const byte SetAccel = 0x89;
-    private const byte PanAddress = 0;
-    private const byte TiltAddress = 1;
+    private const byte _setTarget = 0x84;
+    private const byte _setSpeed = 0x87;
+    private const byte _setAccel = 0x89;
+    private const byte _panAddress = 0;
+    private const byte _tiltAddress = 1;
 
-    // Maestro reverse uses 1 == true (matches upstream where -1 flips the output).
     public override bool PanReverse {
       get => _panReverse == -1;
       set => _panReverse = value ? -1 : 1;
@@ -620,10 +600,10 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
     }
 
     public override bool Setup() {
-      SendCompactCommand(SetSpeed, PanAddress, PanSpeed);
-      SendCompactCommand(SetSpeed, TiltAddress, TiltSpeed);
-      SendCompactCommand(SetAccel, PanAddress, PanAccel);
-      SendCompactCommand(SetAccel, TiltAddress, TiltAccel);
+      SendCompactCommand(_setSpeed, _panAddress, PanSpeed);
+      SendCompactCommand(_setSpeed, _tiltAddress, TiltSpeed);
+      SendCompactCommand(_setAccel, _panAddress, PanAccel);
+      SendCompactCommand(_setAccel, _tiltAddress, TiltAccel);
       return true;
     }
 
@@ -634,7 +614,7 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
       short target =
           Constrain(pulseWidth, PanPWMCenter - PanPWMRange / 2.0, PanPWMCenter + PanPWMRange / 2.0);
       target *= 4;
-      SendCompactCommand(SetTarget, PanAddress, target);
+      SendCompactCommand(_setTarget, _panAddress, target);
       return true;
     }
 
@@ -645,7 +625,7 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
       short target = Constrain(pulseWidth, TiltPWMCenter - TiltPWMRange / 2.0,
           TiltPWMCenter + TiltPWMRange / 2.0);
       target *= 4;
-      SendCompactCommand(SetTarget, TiltAddress, target);
+      SendCompactCommand(_setTarget, _tiltAddress, target);
       return true;
     }
 
@@ -669,12 +649,10 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // ASCII "!!!PAN:nnnn,TLT:nnnn" PWM backend (ported from MissionPlanner.Antenna.ArduTracker).
   private sealed class ArduTrackerDriver : TrackerBase {
     private int _currentpan = 1500;
     private int _currenttilt = 1500;
 
-    // Note: upstream ArduTracker/Degree use 1 == reverse (opposite of Maestro).
     public override bool PanReverse {
       get => _panReverse == 1;
       set => _panReverse = value ? -1 : 1;
@@ -722,7 +700,6 @@ public partial class AntennaTrackerUIViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // ASCII degree*10 backend (ported from MissionPlanner.Antenna.DegreeTracker).
   private sealed class DegreeTrackerDriver : TrackerBase {
     private int _currentpan = 1500;
     private int _currenttilt = 1500;

@@ -7,9 +7,6 @@ using Avalonia.Media;
 
 namespace MissionPlannerAvalonia.Controls;
 
-// A single Quick-tab cell — port of MissionPlanner Controls/QuickView.cs: a small label on
-// top and a big auto-sized number filling the rest. Double-click raises DoubleClicked so the
-// host can pop the cs-field picker (mirrors quickView_DoubleClick).
 public class QuickView : Control {
   public static readonly StyledProperty<double> NumberProperty =
       AvaloniaProperty.Register<QuickView, double>(nameof(Number));
@@ -49,7 +46,6 @@ public class QuickView : Control {
     ctx.DrawText(descFt, new Point(w / 2 - descFt.Width / 2, 4));
     double y = descFt.Height + 6;
 
-    // auto-size the number to fill the remaining cell, like upstream's ratio fit.
     string numb = Number.ToString(NumberFormat, CultureInfo.InvariantCulture);
     double numSize = Math.Max(10, (h - y) * 0.9);
     var probe = new FormattedText(numb, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,

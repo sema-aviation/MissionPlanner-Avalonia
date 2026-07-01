@@ -5,10 +5,6 @@ using System.Xml.Linq;
 
 namespace MissionPlannerAvalonia.Services;
 
-// Parser for the upstream graphs/*.xml preset files (mavgraphs / mavgraphs2 / mavgraphsMP /
-// ekfGraphs / ekf3Graphs). Each <graph> has a name and a whitespace-separated <expression> of
-// curves; a "TYPE.FIELD:2" suffix puts that curve on the right (2nd) Y axis. Feeds the LogBrowse
-// preset dropdown (CMB_preselect).
 public readonly record struct GraphCurve(string Expression, int Axis);
 
 public readonly record struct GraphPreset(string Name, IReadOnlyList<GraphCurve> Curves);
@@ -34,7 +30,7 @@ public static class GraphPresets {
       int axis = 1;
       var ex = token;
       int colon = ex.LastIndexOf(':');
-      // Only treat a trailing ":<digit>" as an axis selector (not part of an expression).
+
       if (colon > 0 && colon == ex.Length - 2 && char.IsDigit(ex[colon + 1])) {
         axis = ex[colon + 1] - '0';
         ex = ex[..colon];
@@ -44,7 +40,6 @@ public static class GraphPresets {
     return curves;
   }
 
-  // Load every graphs/*.xml under a directory, sorted by name (mirrors mavgraph.readmavgraphsxml).
   public static List<GraphPreset> LoadDirectory(string dir) {
     var all = new List<GraphPreset>();
     if (!Directory.Exists(dir)) {
@@ -54,7 +49,7 @@ public static class GraphPresets {
       try {
         all.AddRange(Parse(File.ReadAllText(file)));
       } catch {
-        // skip malformed preset files
+
       }
     }
     return all.OrderBy(p => p.Name).ToList();

@@ -6,7 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace MissionPlannerAvalonia.ViewModels;
 
 public partial class HelpViewModel : ViewModelBase {
-  // Running version + git hash, e.g. "Version 2026.6.2 (f7427a5)".
+
   public string AppVersionDisplay => "Version " + Services.AppVersion.Full;
 
   [ObservableProperty]

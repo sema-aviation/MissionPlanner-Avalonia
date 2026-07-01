@@ -7,14 +7,10 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Hosts the survey grid generator in its own window (mirrors MP opening the Grid.GridUI form from
-// the FlightPlanner polygon context menu). Follows the LogBrowseWindow pattern.
 public class GridUIWindow : Window {
   private readonly GridUIView _view = new();
-  private readonly GridUIViewModel _vm;
 
   public GridUIWindow(GridUIViewModel vm) {
-    _vm = vm;
     Title = "Survey (Grid)";
     Width = 800;
     Height = 660;
@@ -31,9 +27,6 @@ public class GridUIWindow : Window {
     };
   }
 
-  // Convenience entry for the FlightPlanner: pass the drawn polygon (List<PointLatLngAlt>) and the
-  // home/planned-home location; onAccept fires with the generated grid waypoints when the user
-  // clicks Accept. The window is shown owned by the main window if available.
   public static GridUIViewModel OpenForPolygon(List<PointLatLngAlt> polygon, PointLatLngAlt home,
       Action<List<PointLatLngAlt>> onAccept) {
     var vm = new GridUIViewModel(polygon, home);

@@ -14,7 +14,6 @@ public class UpdaterTests {
   private const string Base = "https://test.local/updates";
   private const string Rid = "test-rid";
 
-  // In-memory HTTP: URL -> bytes, 404 otherwise.
   private sealed class FakeHandler : HttpMessageHandler {
     public readonly Dictionary<string, byte[]> Routes = new();
 
@@ -75,7 +74,7 @@ public class UpdaterTests {
 
     string install = TempDir();
     string staging = TempDir();
-    File.WriteAllBytes(Path.Combine(install, "app.dll"), [0, 0, 0]);  // stale
+    File.WriteAllBytes(Path.Combine(install, "app.dll"), [0, 0, 0]);
 
     var engine = new UpdateEngine(new HttpClient(handler), install, Base, pub, Rid);
     var m = await engine.FetchManifestAsync();
@@ -99,7 +98,7 @@ public class UpdaterTests {
     byte[] sig = Sign(priv, json);
 
     byte[] tampered = (byte[])json.Clone();
-    tampered[^2] ^= 0xFF;  // flip a byte after signing
+    tampered[^2] ^= 0xFF;
 
     var handler = new FakeHandler();
     handler.Routes[$"{Base}/{Rid}/manifest.json"] = tampered;
@@ -120,7 +119,7 @@ public class UpdaterTests {
     handler.Routes[$"{Base}/{Rid}/manifest.json"] = json;
     handler.Routes[$"{Base}/{Rid}/manifest.sig"] =
         System.Text.Encoding.ASCII.GetBytes(Convert.ToBase64String(Sign(priv, json)));
-    handler.Routes[$"{Base}/{Rid}/app.dll"] = [6, 6, 6];  // wrong bytes -> hash won't match
+    handler.Routes[$"{Base}/{Rid}/app.dll"] = [6, 6, 6];
 
     string install = TempDir();
     File.WriteAllBytes(Path.Combine(install, "app.dll"), [0, 0]);
@@ -140,7 +139,7 @@ public class UpdaterTests {
     byte[] origA = [10, 11];
     File.WriteAllBytes(Path.Combine(install, "a.dll"), origA);
     File.WriteAllBytes(Path.Combine(install, "b.dll"), [20, 21]);
-    File.WriteAllBytes(Path.Combine(staging, "a.dll"), [99]);  // b.dll intentionally absent
+    File.WriteAllBytes(Path.Combine(staging, "a.dll"), [99]);
 
     var engine = new UpdateEngine(new HttpClient(new FakeHandler()), install, Base, pub, Rid);
     var changed = new List<UpdateEngine.ManifestFile> {
@@ -149,7 +148,7 @@ public class UpdaterTests {
     };
 
     Assert.ThrowsAny<Exception>(() => engine.Apply(changed, staging));
-    Assert.Equal(origA, File.ReadAllBytes(Path.Combine(install, "a.dll")));  // rolled back
+    Assert.Equal(origA, File.ReadAllBytes(Path.Combine(install, "a.dll")));
   }
 
   [Theory]

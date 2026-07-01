@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -11,18 +10,11 @@ using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Live MAVLink message inspector — 1:1 port of upstream Controls/MAVLinkInspector.cs.
-// Groups the live packet stream as sysid -> compid -> message-type -> fields, each
-// message-type header showing its Hz rate / msgid / Bps, refreshed on a UI-thread timer.
-// Packets are accumulated off-thread via PacketInspector (exactly like upstream) and the
-// tree is rebuilt at ~3 Hz to throttle redraw. Pause/resume + a message-type filter +
-// optional GCS (sent) traffic mirror the upstream toolbar.
 public partial class MAVLinkInspectorViewModel : ViewModelBase, IDisposable {
   private readonly MAVLinkInterface _mav = AppState.comPort;
   private readonly PacketInspector<MAVLink.MAVLinkMessage> _mavi = new();
   private readonly DispatcherTimer _timer;
 
-  // sysid nodes; each carries a child map for O(1) lookup (mirrors TreeView.Nodes.Find).
   public ObservableCollection<InspectorNode> Tree { get; } = new();
   private readonly Dictionary<string, InspectorNode> _rootMap = new();
 
@@ -41,14 +33,13 @@ public partial class MAVLinkInspectorViewModel : ViewModelBase, IDisposable {
   public MAVLinkInspectorViewModel() {
     _mav.OnPacketReceived += MavOnPacketReceived;
 
-    // Upstream uses a 333 ms WinForms Timer; match it (≈3 Hz redraw).
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(333) };
     _timer.Tick += (_, _) => Rebuild();
     _timer.Start();
   }
 
   partial void OnShowGcsTrafficChanged(bool value) {
-    // Mirror chk_gcstraffic: feed sent packets into the same inspector.
+
     _mav.OnPacketSent -= MavOnPacketReceived;
     if (value) {
       _mav.OnPacketSent += MavOnPacketReceived;
@@ -62,7 +53,6 @@ public partial class MAVLinkInspectorViewModel : ViewModelBase, IDisposable {
       return;
     }
 
-    // Same accumulation call as upstream MavOnOnPacketReceived (off the UI thread).
     _mavi.Add(msg.sysid, msg.compid, msg.msgid, msg, msg.Length);
   }
 
@@ -80,7 +70,6 @@ public partial class MAVLinkInspectorViewModel : ViewModelBase, IDisposable {
 
   partial void OnIsPausedChanged(bool value) => OnPropertyChanged(nameof(PauseLabel));
 
-  // Rebuild/refresh the tree from the accumulated packets (UI thread, throttled by the timer).
   private void Rebuild() {
     var filter = Filter?.Trim() ?? "";
 
@@ -95,7 +84,6 @@ public partial class MAVLinkInspectorViewModel : ViewModelBase, IDisposable {
             Header = "Comp " + m.compid + " " + (MAVLink.MAV_COMPONENT)m.compid,
           });
 
-      // Message-type filter: skip types whose name doesn't match.
       if (filter.Length > 0 &&
           m.msgtypename.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0) {
         continue;
@@ -161,7 +149,6 @@ public partial class MAVLinkInspectorViewModel : ViewModelBase, IDisposable {
     return node;
   }
 
-  // Keep children ordered (mirrors upstream treeView1.Sort()).
   private static void InsertSorted(ObservableCollection<InspectorNode> children, InspectorNode node) {
     int i = 0;
     while (i < children.Count &&
@@ -179,8 +166,6 @@ public partial class MAVLinkInspectorViewModel : ViewModelBase, IDisposable {
   }
 }
 
-// One row in the inspector tree (sysid / compid / message-type / field). Header is the
-// monospaced display text; Map gives fast child lookup by key.
 public partial class InspectorNode : ObservableObject {
   public string Key { get; set; } = "";
 

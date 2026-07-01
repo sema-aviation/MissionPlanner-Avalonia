@@ -4,8 +4,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Hosts the Mavlink Mirror (SerialOutputPass) tool in its own window. Standalone-tool Window pattern
-// (see LogBrowseWindow / AntennaTrackerWindow): static OpenWindow, owned via Services.Dialogs.Owner.
 public class SerialPassThroughWindow : Window {
   private readonly SerialPassThroughView _view = new();
   private readonly SerialPassThroughViewModel _vm = new();

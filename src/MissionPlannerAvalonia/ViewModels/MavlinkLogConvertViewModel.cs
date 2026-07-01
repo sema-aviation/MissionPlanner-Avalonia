@@ -6,15 +6,10 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MissionPlanner;
 using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Conversion hub for telemetry logs (mirrors MP's MavlinkLog form): pick a .tlog and convert it
-// to KML / GPX / Matlab. KML & GPX reuse the same KMLib/GPX writers as the dataflash exporter
-// (DataFlashLog.WriteKmlTrack/WriteGpxTrack) — we just parse the tlog's GLOBAL_POSITION_INT stream
-// into a track first. Matlab uses DataFlashLog.ExportMatlab, whose tlog branch calls MatLab.tlog.
 public partial class MavlinkLogConvertViewModel : ViewModelBase {
   private string? _tlogPath;
 
@@ -97,9 +92,6 @@ public partial class MavlinkLogConvertViewModel : ViewModelBase {
     }
   }
 
-  // Parse a tlog (8-byte big-endian timestamp prefix + mavlink packet) and pull the GPS track
-  // out of GLOBAL_POSITION_INT messages. MavlinkParse(hasTimestamp:true) handles the prefix and
-  // stamps each message's rxtime.
   private static List<(double lat, double lng, double alt, DateTime time)> ReadTlogTrack(string path) {
     var track = new List<(double lat, double lng, double alt, DateTime time)>();
     var parser = new MAVLink.MavlinkParse(true);

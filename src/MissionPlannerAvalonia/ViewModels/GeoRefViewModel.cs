@@ -11,20 +11,14 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
-using MissionPlanner.Log;
 using MissionPlanner.Utilities;
-// MetadataExtractor also defines a `Directory` type; pin the unqualified name to System.IO.
+
 using Directory = System.IO.Directory;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Port of MissionPlanner GeoRef/georefimage.cs + ExtLibs/Utilities/GeoRefImageBase.cs.
-// Geotags a folder of photos against a dataflash (.bin/.log) flight log by matching each
-// photo's EXIF DateTimeOriginal to the vehicle's CAM (camera feedback) or GPS positions.
-// Outputs a "geotagged" folder with location.txt (upstream's primary text report) and a KML
-// of camera positions. In-place EXIF re-embedding is BLOCKED (see GeoTagAsync notes).
 public partial class GeoRefViewModel : ViewModelBase {
-  // One matched photo row for the results grid.
+
   public sealed class GeoTagResult {
     public string Photo { get; init; } = "";
     public double Lat { get; init; }
@@ -33,7 +27,6 @@ public partial class GeoRefViewModel : ViewModelBase {
     public string MatchedTime { get; init; } = "";
   }
 
-  // A single vehicle position sample read from the log.
   private sealed class VehicleLoc {
     public DateTime Time;
     public double Lat;
@@ -48,12 +41,11 @@ public partial class GeoRefViewModel : ViewModelBase {
 
   [ObservableProperty] private string _logPath = "";
   [ObservableProperty] private string _photoDir = "";
-  // Seconds offset applied as photoTime - offset before the GPS lookup (TIME_OFFSET mode only).
+
   [ObservableProperty] private double _timeOffsetSeconds;
-  // true => sync each photo to a CAM (camera feedback) message (upstream default); false =>
-  // TIME_OFFSET: match photo EXIF time (minus offset) to GPS positions.
+
   [ObservableProperty] private bool _useCamMessages = true;
-  // Use the second GPS unit (GPS2) instead of GPS for the TIME_OFFSET lookup.
+
   [ObservableProperty] private bool _useGps2;
   [ObservableProperty] private bool _busy;
   [ObservableProperty] private string _status = "Pick a log and a photo folder, then Geo Tag.";
@@ -63,7 +55,6 @@ public partial class GeoRefViewModel : ViewModelBase {
 
   private string GpsMsg => UseGps2 ? "GPS2" : "GPS";
 
-  // Append a line to the output log — safe to call from the pipeline's worker thread.
   private void Append(string text) {
     var line = text.EndsWith("\n") ? text : text + "\n";
     if (Dispatcher.UIThread.CheckAccess()) {
@@ -73,7 +64,6 @@ public partial class GeoRefViewModel : ViewModelBase {
     }
   }
 
-  // Run the geotag pipeline on a worker thread; returns when the report files are written.
   public async Task GeoTagAsync() {
     if (!File.Exists(LogPath)) {
       Status = "Log file not found.";
@@ -97,7 +87,6 @@ public partial class GeoRefViewModel : ViewModelBase {
           return;
         }
 
-        // upstream primary outputs (location.txt + KML of camera positions)
         WriteReports(pics);
 
         foreach (var p in pics) {
@@ -110,9 +99,6 @@ public partial class GeoRefViewModel : ViewModelBase {
           });
         }
 
-        // BLOCKED: re-embedding GPS back into each JPEG's EXIF in place. MetadataExtractor is a
-        // READ-ONLY metadata library, so the upstream WriteCoordinatesToImage step (ExifLibrary)
-        // is not ported. location.txt + location.kml carry the matched positions instead.
         Append("NOTE: in-place JPEG EXIF GPS write is not available (MetadataExtractor is " +
                "read-only). Wrote location.txt + location.kml instead.");
       });
@@ -129,8 +115,6 @@ public partial class GeoRefViewModel : ViewModelBase {
       Busy = false;
     }
   }
-
-  // --- pipeline (mirrors GeoRefImageBase.doworkCAM / doworkGPSOFFSET) ---------------------------
 
   private sealed class PictureInfo {
     public string Path = "";
@@ -150,15 +134,13 @@ public partial class GeoRefViewModel : ViewModelBase {
     foreach (var pat in new[] { "*.jpg", "*.jpeg", "*.tif", "*.tiff" }) {
       files.AddRange(Directory.GetFiles(PhotoDir, pat));
     }
-    // de-dup (case-insensitive filesystems can match *.jpg and *.JPG twice)
+
     return files.Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(f => GetPhotoTime(f)).ThenBy(f => f, StringComparer.Ordinal).ToList();
   }
 
   private readonly Dictionary<string, DateTime> _photoTimeCache = new();
 
-  // Read a photo's capture time from EXIF DateTimeOriginal (0x9003), falling back to
-  // DateTimeDigitized (0x9004), via MetadataExtractor. Returns MinValue if unavailable.
   private DateTime GetPhotoTime(string fn) {
     if (_photoTimeCache.TryGetValue(fn, out var cached)) {
       return cached;
@@ -174,13 +156,12 @@ public partial class GeoRefViewModel : ViewModelBase {
         }
       }
     } catch {
-      // unreadable / non-image — leave as MinValue
+
     }
     _photoTimeCache[fn] = dt;
     return dt;
   }
 
-  // CAM-message sync: pair the i-th photo (sorted by EXIF time) with the i-th CAM message.
   private List<PictureInfo> DoWorkCam() {
     Append("Reading log for CAM messages…");
     var cam = ReadCamMsgInLog(LogPath);
@@ -214,7 +195,6 @@ public partial class GeoRefViewModel : ViewModelBase {
     return outp;
   }
 
-  // TIME_OFFSET sync: for each photo, look up the GPS position nearest (photoTime - offset).
   private List<PictureInfo> DoWorkGpsOffset() {
     Append($"Reading log for {GpsMsg} messages…");
     var gps = ReadGpsMsgInLog(LogPath, GpsMsg);
@@ -253,7 +233,6 @@ public partial class GeoRefViewModel : ViewModelBase {
     return outp;
   }
 
-  // Nearest position within +/- windowMs of t (mirrors GeoRefImageBase.LookForLocation).
   private static VehicleLoc? LookForLocation(DateTime t, Dictionary<long, VehicleLoc> locs,
       int windowMs) {
     long time = ToMillis(t);
@@ -268,9 +247,6 @@ public partial class GeoRefViewModel : ViewModelBase {
     return null;
   }
 
-  // --- log readers (dataflash .bin/.log via DFLogBuffer) ----------------------------------------
-
-  // Read GPS (or GPS2) positions, folding in the last-seen ATT roll/pitch/yaw, keyed by UTC ms.
   private static Dictionary<long, VehicleLoc> ReadGpsMsgInLog(string fn, string gpsToUse) {
     var list = new Dictionary<long, VehicleLoc>();
     float roll = 0, pitch = 0, yaw = 0;
@@ -284,7 +260,6 @@ public partial class GeoRefViewModel : ViewModelBase {
         continue;
       }
 
-      // GPS / GPS2 — only reject on a present-but-no-lock Status (upstream guards statusindex != -1)
       var statusRaw = item["Status"];
       if (statusRaw != null && TryD(statusRaw, out var status) && status < 3) {
         continue;
@@ -318,7 +293,6 @@ public partial class GeoRefViewModel : ViewModelBase {
     return list;
   }
 
-  // Read CAM (camera feedback) messages, timestamped from their GPSWeek/GPSTime, keyed by UTC ms.
   private static Dictionary<long, VehicleLoc> ReadCamMsgInLog(string fn) {
     var list = new Dictionary<long, VehicleLoc>();
 
@@ -355,13 +329,10 @@ public partial class GeoRefViewModel : ViewModelBase {
     return list;
   }
 
-  // --- report writers (location.txt + location.kml under <photoDir>/geotagged) ------------------
-
   private void WriteReports(List<PictureInfo> pics) {
     string outDir = Path.Combine(PhotoDir, "geotagged");
     Directory.CreateDirectory(outDir);
 
-    // location.txt: "#name latitude/Y longitude/X height/Z yaw pitch roll SAlt" (mirrors upstream)
     string txtPath = Path.Combine(outDir, "location.txt");
     using (var sw = new StreamWriter(txtPath)) {
       sw.WriteLine("#name latitude/Y longitude/X height/Z yaw pitch roll SAlt");
@@ -379,7 +350,6 @@ public partial class GeoRefViewModel : ViewModelBase {
     Append("Wrote " + Path.Combine(outDir, "location.kml"));
   }
 
-  // Camera positions as Point placemarks plus a connecting path LineString.
   private static void WriteKml(string path, List<PictureInfo> pics) {
     var settings = new XmlWriterSettings { Indent = true };
     using var w = XmlWriter.Create(path, settings);
@@ -405,7 +375,6 @@ public partial class GeoRefViewModel : ViewModelBase {
       coords.Append($"{Inv(p.Lon)},{Inv(p.Lat)},{Inv(p.AltAMSL)} ");
     }
 
-    // path connecting the camera positions
     w.WriteStartElement("Placemark");
     w.WriteElementString("name", "path");
     w.WriteStartElement("LineString");
@@ -414,12 +383,10 @@ public partial class GeoRefViewModel : ViewModelBase {
     w.WriteEndElement();
     w.WriteEndElement();
 
-    w.WriteEndElement(); // Document
-    w.WriteEndElement(); // kml
+    w.WriteEndElement();
+    w.WriteEndElement();
     w.WriteEndDocument();
   }
-
-  // --- helpers ----------------------------------------------------------------------------------
 
   private static string Inv(double v) => v.ToString(CultureInfo.InvariantCulture);
 
@@ -434,7 +401,6 @@ public partial class GeoRefViewModel : ViewModelBase {
     return Convert.ToInt64((date.ToUniversalTime() - epoch).TotalMilliseconds);
   }
 
-  // GPS week + ms-of-week → UTC (mirrors GeoRefImageBase.GetTimeFromGps, 17 leap seconds).
   private static DateTime GetTimeFromGps(int week, int milliseconds) {
     const int leapSeconds = 17;
     var datum = new DateTime(1980, 1, 6, 0, 0, 0, DateTimeKind.Utc);

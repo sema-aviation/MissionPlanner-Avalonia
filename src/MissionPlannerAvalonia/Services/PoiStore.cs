@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -6,13 +5,10 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.Services;
 
-// Points of Interest store (mirrors MP Utilities/POI.cs). Persists POIs to a tab-separated text
-// file under the app data dir. Upstream stored "lat\tlng\tname"; we add an altitude column
-// ("lat\tlng\talt\tname") while still loading the legacy 3-column form.
 public sealed record PoiPoint(double Lat, double Lng, double Alt, string Name);
 
 public static class PoiStore {
-  // Same location/name as upstream (Settings.GetUserDataDirectory() + "poi.txt").
+
   public static string FilePath {
     get {
       try {
@@ -23,12 +19,12 @@ public static class PoiStore {
     }
   }
 
-  private static readonly List<PoiPoint> Points = new();
+  private static readonly List<PoiPoint> _points = new();
 
-  public static IReadOnlyList<PoiPoint> All => Points;
+  public static IReadOnlyList<PoiPoint> All => _points;
 
   public static void Add(PoiPoint p) {
-    Points.Add(p);
+    _points.Add(p);
     Save();
   }
 
@@ -36,7 +32,7 @@ public static class PoiStore {
       Add(new PoiPoint(lat, lng, alt, name));
 
   public static bool Remove(PoiPoint p) {
-    bool removed = Points.Remove(p);
+    bool removed = _points.Remove(p);
     if (removed) {
       Save();
     }
@@ -44,15 +40,14 @@ public static class PoiStore {
   }
 
   public static void Clear() {
-    Points.Clear();
+    _points.Clear();
     Save();
   }
 
-  // Load from the default file (no-op if it does not exist).
   public static void Load() => Load(FilePath);
 
   public static void Load(string path) {
-    Points.Clear();
+    _points.Clear();
     if (!File.Exists(path)) {
       return;
     }
@@ -67,16 +62,15 @@ public static class PoiStore {
       if (!TryD(f[0], out var lat) || !TryD(f[1], out var lng)) {
         continue;
       }
-      // 4-col: lat,lng,alt,name ; legacy 3-col: lat,lng,name
+
       if (f.Length >= 4 && TryD(f[2], out var alt)) {
-        Points.Add(new PoiPoint(lat, lng, alt, f[3]));
+        _points.Add(new PoiPoint(lat, lng, alt, f[3]));
       } else {
-        Points.Add(new PoiPoint(lat, lng, 0, f[2]));
+        _points.Add(new PoiPoint(lat, lng, 0, f[2]));
       }
     }
   }
 
-  // Save to the default file.
   public static void Save() => Save(FilePath);
 
   public static void Save(string path) {
@@ -85,7 +79,7 @@ public static class PoiStore {
       Directory.CreateDirectory(dir);
     }
     using var sw = new StreamWriter(path, false);
-    foreach (var p in Points) {
+    foreach (var p in _points) {
       sw.WriteLine(string.Join("\t", new[] {
         p.Lat.ToString(CultureInfo.InvariantCulture),
         p.Lng.ToString(CultureInfo.InvariantCulture),

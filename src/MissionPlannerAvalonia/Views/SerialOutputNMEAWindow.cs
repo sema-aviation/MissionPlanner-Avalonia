@@ -4,8 +4,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Hosts the NMEA Output (SerialOutputNMEA) tool in its own window. Standalone-tool Window pattern
-// (see LogBrowseWindow / AntennaTrackerWindow): static OpenWindow, owned via Services.Dialogs.Owner.
 public class SerialOutputNMEAWindow : Window {
   private readonly SerialOutputNMEAView _view = new();
   private readonly SerialOutputNMEAViewModel _vm = new();

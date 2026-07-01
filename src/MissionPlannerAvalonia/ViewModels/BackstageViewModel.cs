@@ -16,7 +16,8 @@ public partial class BackstagePage : ObservableObject {
       bool sub = false,
       bool requiresConnection = false,
       Func<bool>? visibleWhen = null,
-      bool isHeader = false
+      bool isHeader = false,
+      string? badge = null
   ) {
     Header = header;
     _factory = factory;
@@ -25,6 +26,7 @@ public partial class BackstagePage : ObservableObject {
     RequiresConnection = requiresConnection;
     VisibleWhen = visibleWhen;
     IsHeader = isHeader;
+    Badge = badge;
   }
 
   public string Header { get; }
@@ -32,16 +34,15 @@ public partial class BackstagePage : ObservableObject {
   public bool IsSub { get; }
   public bool RequiresConnection { get; }
 
-  // Category header (">> ..."): clicking it collapses/expands its sub-pages instead of
-  // navigating to a page. Subs point back to their header via Group.
+  public string? Badge { get; }
+  public bool HasBadge => !string.IsNullOrEmpty(Badge);
+
   public bool IsHeader { get; }
   public BackstagePage? Group { get; set; }
 
   [ObservableProperty]
   private bool _isExpanded = true;
 
-  // Optional firmware/vehicle conditioning, mirroring MP's display* flags (e.g. heli-only,
-  // plane-only pages). Evaluated alongside connection gating in RefreshVisibility.
   public Func<bool>? VisibleWhen { get; }
 
   [ObservableProperty]
@@ -62,11 +63,8 @@ public partial class BackstageViewModel : ViewModelBase {
   [ObservableProperty]
   private ViewModelBase? _currentContent;
 
-  // Settings key under which the last-selected page header is remembered (per backstage).
   private readonly string? _persistKey;
 
-  // Transient "parameters still loading" page (mirrors ConfigParamLoading) — overlaid on the content
-  // area while connected but params haven't all arrived, since the config/setup pages need them.
   public GCSViews.ConfigurationView.ConfigParamLoadingViewModel ParamLoading { get; } = new();
 
   [ObservableProperty]
@@ -93,13 +91,11 @@ public partial class BackstageViewModel : ViewModelBase {
     }
   }
 
-  // Hide connection-gated pages until a vehicle is connected, mirroring MP's
-  // disconnected nav. Re-select the first visible page if the current one hides.
   protected void RefreshVisibility() {
     bool connected = AppState.IsConnected;
     foreach (var p in Pages) {
       bool vis = (!p.RequiresConnection || connected) && (p.VisibleWhen?.Invoke() ?? true);
-      // sub-pages hide when their category header is collapsed
+
       p.Visible = vis && (p.Group?.IsExpanded ?? true);
     }
     if (SelectedPage is { Visible: false }) {
@@ -125,7 +121,7 @@ public partial class BackstageViewModel : ViewModelBase {
     if (page == null) {
       return;
     }
-    // header click toggles its sub-pages; it is not a navigable page itself
+
     if (page.IsHeader) {
       page.IsExpanded = !page.IsExpanded;
       RefreshVisibility();
@@ -134,7 +130,6 @@ public partial class BackstageViewModel : ViewModelBase {
     SelectedPage = page;
   }
 
-  // Most recently added category header — subsequent sub-pages attach to it.
   private BackstagePage? _currentGroup;
 
   protected BackstagePage Add(
@@ -143,10 +138,11 @@ public partial class BackstageViewModel : ViewModelBase {
       bool advanced = false,
       bool sub = false,
       bool requiresConnection = false,
-      Func<bool>? visibleWhen = null
+      Func<bool>? visibleWhen = null,
+      string? badge = null
   ) {
     bool isHeader = header.StartsWith(">>", StringComparison.Ordinal);
-    var p = new BackstagePage(header, factory, advanced, sub, requiresConnection, visibleWhen, isHeader);
+    var p = new BackstagePage(header, factory, advanced, sub, requiresConnection, visibleWhen, isHeader, badge);
     if (isHeader) {
       _currentGroup = p;
     } else if (sub) {
@@ -161,7 +157,7 @@ public partial class BackstageViewModel : ViewModelBase {
     if (SelectedPage != null) {
       return;
     }
-    // Restore the last-visited page when remembered and still visible (MP last-page memory).
+
     if (_persistKey != null
         && MissionPlanner.Utilities.Settings.Instance[_persistKey] is { Length: > 0 } last) {
       foreach (var p in Pages) {

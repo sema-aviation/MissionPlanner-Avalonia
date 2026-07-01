@@ -9,14 +9,15 @@
   d:DesignHeight="220"
   x:Class="MissionPlannerAvalonia.Views.ConnectionOptionsWindow"
   x:DataType="vm:ConnectionOptionsViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
   Width="340"
   Height="230"
   CanResize="False"
   WindowStartupLocation="CenterOwner"
   Title="Connection Options"
 >
-  <Grid Margin="16" RowDefinitions="Auto,Auto,Auto,*,Auto" ColumnDefinitions="Auto,*">
+  <Grid Margin="16" RowDefinitions="Auto,Auto,Auto,*,Auto" ColumnDefinitions="Auto,*"
+        RowSpacing="8" ColumnSpacing="12">
     <TextBlock Grid.Row="0" Grid.Column="0" Classes="lbl" Text="Default baud rate" />
     <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
               ItemsSource="{Binding Bauds}" SelectedItem="{Binding SelectedBaud}" />
@@ -36,12 +37,4 @@
       <Button Content="Close" Click="OnClose" MinWidth="80" />
     </StackPanel>
   </Grid>
-
-  <Window.Styles>
-    <Style Selector="TextBlock.lbl">
-      <Setter Property="Foreground" Value="#BBB" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="Margin" Value="0,4,12,4" />
-    </Style>
-  </Window.Styles>
 </Window>

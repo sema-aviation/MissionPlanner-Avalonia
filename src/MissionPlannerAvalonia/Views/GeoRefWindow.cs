@@ -5,8 +5,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Hosts the GeoRef (geotag photos against a flight log) tool in its own window — mirrors MP
-// opening the Georefimage form. Standalone-tool Window pattern (see LogBrowseWindow).
 public class GeoRefWindow : Window {
   private readonly GeoRefView _view = new();
 
@@ -22,7 +20,6 @@ public class GeoRefWindow : Window {
     DataContext = vm;
   }
 
-  // Open the window (owned if possible). Optionally prefills the log path.
   public static Task OpenWith(string? logPath = null) {
     var w = new GeoRefWindow();
     if (!string.IsNullOrEmpty(logPath) && w.DataContext is GeoRefViewModel vm) {

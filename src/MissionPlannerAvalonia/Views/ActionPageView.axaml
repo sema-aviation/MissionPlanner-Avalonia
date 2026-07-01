@@ -9,7 +9,7 @@
   d:DesignHeight="640"
   x:Class="MissionPlannerAvalonia.Views.ActionPageView"
   x:DataType="vm:ActionPageViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="16">
     <TextBlock Grid.Row="0" Classes="pagetitle" Text="{Binding Title}" />
@@ -34,11 +34,11 @@
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
-    <Border Grid.Row="3" Background="Black" BorderBrush="#262728" BorderThickness="1">
+    <Border Grid.Row="3" Background="Black" BorderBrush="{DynamicResource MpBg}" BorderThickness="1">
       <ScrollViewer>
         <TextBlock
           Text="{Binding Log}"
-          Foreground="#94C11F"
+          Foreground="{DynamicResource MpAccentBrush}"
           FontFamily="Consolas,Menlo,monospace"
           FontSize="12"
           Padding="8"

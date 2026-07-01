@@ -12,18 +12,14 @@ namespace MissionPlannerAvalonia.Services;
 
 public enum SitlVehicle { Plane, Copter, Rover, Heli }
 
-// Mirrors upstream SITL.cs cmb_version: Dev (master), Beta, Stable (per-vehicle), Skip (no download).
 public enum SitlChannel { Dev, Beta, Stable, Skip }
 
-// All the knobs SITL.cs's StartSITL assembles into the process command line.
 public sealed class SitlStartOptions {
   public SitlVehicle Vehicle { get; init; }
   public SitlChannel Channel { get; init; } = SitlChannel.Dev;
 
-  // Frame/model override (cmb_model). Empty => the vehicle's default frame.
   public string Model { get; init; } = "";
 
-  // "lat,lng,alt,heading" (BuildHomeLocation). Empty => DefaultHome.
   public string Home { get; init; } = "";
   public int Speed { get; init; } = 1;
   public string ExtraCmdline { get; init; } = "";
@@ -31,16 +27,15 @@ public sealed class SitlStartOptions {
 }
 
 public class SitlLauncher {
-  private const string SitlBaseUrl =
+  private const string _sitlBaseUrl =
       "https://firmware.ardupilot.org/Tools/MissionPlanner/sitl/";
-  private const string ManifestUrl = "https://firmware.ardupilot.org/manifest.json.gz";
-  private const string DefaultHome = "-35.363261,149.165230,584,353";
-  private const string Host = "127.0.0.1";
-  private const int TcpPort = 5760;
-  private const int RcOverridePort = 5501;
+  private const string _manifestUrl = "https://firmware.ardupilot.org/manifest.json.gz";
+  private const string _defaultHome = "-35.363261,149.165230,584,353";
+  private const string _host = "127.0.0.1";
+  private const int _tcpPort = 5760;
+  private const int _rcOverridePort = 5501;
 
-  // Cygwin runtime shipped alongside the Windows SITL builds.
-  private static readonly string[] CygwinDlls = {
+  private static readonly string[] _cygwinDlls = {
     "cygatomic-1.dll", "cyggcc_s-1.dll", "cyggcc_s-seh-1.dll", "cyggomp-1.dll",
     "cygiconv-2.dll", "cygintl-8.dll", "cygquadmath-0.dll", "cygssp-0.dll",
     "cygstdc++-6.dll", "cygwin1.dll"
@@ -51,10 +46,8 @@ public class SitlLauncher {
 
   private Process? _process;
 
-  // UDP socket SITL listens on for RC override input (mirrors SITL.SITLSEND on :5501).
   private UdpClient? _rcSend;
 
-  // All live launchers, so the app can kill any SITL on exit (mirrors MP killing simulator procs).
   private static readonly System.Collections.Generic.List<SitlLauncher> _live = new();
 
   public static void StopAll() {
@@ -67,18 +60,20 @@ public class SitlLauncher {
     }
   }
 
+  public static bool PlatformSupported =>
+      RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
+      RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+
   public event Action<string>? Log;
 
   public bool IsRunning => _process is { HasExited: false };
 
-  public string TcpEndpoint => $"tcp:{Host}:{TcpPort}";
+  public string TcpEndpoint => $"tcp:{_host}:{_tcpPort}";
 
   private static string CacheDir => Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
       "MissionPlannerAvalonia", "sitl");
 
-  // Vehicle -> (download exe stem, default frame/model passed to -M). Mirrors the four
-  // pictureBox*_Click handlers in SITL.cs (quad button uses the "+" frame).
   public static (string ExeName, string DefaultModel) Map(SitlVehicle vehicle) => vehicle switch {
     SitlVehicle.Plane => ("ArduPlane", "plane"),
     SitlVehicle.Copter => ("ArduCopter", "+"),
@@ -94,7 +89,7 @@ public class SitlLauncher {
     }
 
     var (exeName, defaultModel) = Map(opts.Vehicle);
-    // cmb_model override: if blank, fall back to the vehicle default (SITL.cs:639).
+
     var model = string.IsNullOrWhiteSpace(opts.Model) ? defaultModel : opts.Model.Trim();
 
     string? binary;
@@ -113,18 +108,14 @@ public class SitlLauncher {
     var workdir = Path.Combine(CacheDir, SafeDir(model));
     Directory.CreateDirectory(workdir);
 
-    var home = string.IsNullOrWhiteSpace(opts.Home) ? DefaultHome : opts.Home.Trim();
+    var home = string.IsNullOrWhiteSpace(opts.Home) ? _defaultHome : opts.Home.Trim();
     var speed = opts.Speed <= 0 ? 1 : opts.Speed;
 
-    // extraargs mirrors SITL.cs: free-text cmdline then the --wipe toggle.
     var extra = opts.ExtraCmdline?.Trim() ?? "";
     if (opts.WipeEeprom) {
       extra = (extra + " --wipe").Trim();
     }
 
-    // Upstream StartSITL uses "-M{model} -O{home} -s{speed} --serial0 tcp:0 {extra}".
-    // We keep the port's working long-form --model/--home/-I0 baseline and add upstream's
-    // -O (origin = same home) / -s (speed) / --wipe. -O duplicates --home harmlessly.
     var args =
         $"--model {model} --home {home} -O{home} -s{speed} -I0 --serial0 tcp:0";
     if (!string.IsNullOrEmpty(extra)) {
@@ -176,20 +167,17 @@ public class SitlLauncher {
     return false;
   }
 
-  // Open the UDP RC-override socket (SITL.cs: SITLSEND = new UdpClient("127.0.0.1", 5501)).
   private void OpenRcOverride() {
     try {
       _rcSend?.Dispose();
       _rcSend = new UdpClient();
-      _rcSend.Connect(Host, RcOverridePort);
+      _rcSend.Connect(_host, _rcOverridePort);
     } catch (Exception ex) {
       Emit($"RC override socket unavailable: {ex.Message}");
       _rcSend = null;
     }
   }
 
-  // Push the 8 RC override channels to SITL over UDP (mirrors SITL.rcinput()).
-  // Called from a joystick/RC poll loop by the shell; no-op until the socket is open.
   public void SendRcInput() {
     var send = _rcSend;
     var cs = MissionPlannerAvalonia.AppState.comPort.MAV?.cs;
@@ -211,7 +199,7 @@ public class SitlLauncher {
       Put(7, cs.rcoverridech8);
       send.Send(buf, buf.Length);
     } catch {
-      // best-effort, exactly like upstream's swallowed catch
+
     }
   }
 
@@ -222,7 +210,7 @@ public class SitlLauncher {
     try {
       _rcSend?.Dispose();
     } catch {
-      // ignore
+
     }
     _rcSend = null;
 
@@ -256,7 +244,6 @@ public class SitlLauncher {
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
       var path = Path.Combine(CacheDir, exeName + ".exe");
 
-      // Skip Download: reuse whatever is cached, never hit the network (SITL.cs null release_type).
       if (channel == SitlChannel.Skip) {
         if (File.Exists(path)) {
           Emit($"Skip download — using cached {Path.GetFileName(path)}.");
@@ -269,7 +256,7 @@ public class SitlLauncher {
       var baseUrl = WindowsBaseUrl(channel, exeName);
       Emit($"Downloading {exeName} ({channel}, Windows) from {baseUrl} ...");
       await DownloadAsync(baseUrl + exeName + ".elf", path).ConfigureAwait(false);
-      foreach (var dll in CygwinDlls) {
+      foreach (var dll in _cygwinDlls) {
         var dllPath = Path.Combine(CacheDir, dll);
         if (!File.Exists(dllPath)) {
           try {
@@ -301,8 +288,7 @@ public class SitlLauncher {
         Emit($"Using cached {Path.GetFileName(path)}.");
         return path;
       }
-      // Manifest only exposes "latest" per platform; Dev/Beta/Stable all resolve through it
-      // (channel filtering on Linux is best-effort — see report note).
+
       Emit($"Resolving {exeName} for {platform} from manifest ({channel}) ...");
       var url = await ResolveLinuxUrlAsync(platform, exeName).ConfigureAwait(false);
       if (url == null) {
@@ -320,28 +306,27 @@ public class SitlLauncher {
     return null;
   }
 
-  // Per-channel Windows download root (SITL.cs sitlmasterurl/sitlbetaurl/*stableurl).
   private static string WindowsBaseUrl(SitlChannel channel, string exeName) {
     switch (channel) {
       case SitlChannel.Beta:
-        return SitlBaseUrl + "Beta/";
+        return _sitlBaseUrl + "Beta/";
       case SitlChannel.Stable:
         var n = exeName.ToLowerInvariant();
         if (n.Contains("plane")) {
-          return SitlBaseUrl + "PlaneStable/";
+          return _sitlBaseUrl + "PlaneStable/";
         }
         if (n.Contains("rover")) {
-          return SitlBaseUrl + "RoverStable/";
+          return _sitlBaseUrl + "RoverStable/";
         }
-        // copter + heli share CopterStable, mirroring SITL.cs.
-        return SitlBaseUrl + "CopterStable/";
+
+        return _sitlBaseUrl + "CopterStable/";
       default:
-        return SitlBaseUrl; // Dev / master
+        return _sitlBaseUrl;
     }
   }
 
   private async Task<string?> ResolveLinuxUrlAsync(string platform, string exeName) {
-    using var stream = await _http.GetStreamAsync(ManifestUrl).ConfigureAwait(false);
+    using var stream = await _http.GetStreamAsync(_manifestUrl).ConfigureAwait(false);
     using var gz = new GZipStream(stream, CompressionMode.Decompress);
     using var doc = await JsonDocument.ParseAsync(gz).ConfigureAwait(false);
 
@@ -399,7 +384,7 @@ public class SitlLauncher {
 
   private void MakeExecutable(string path) {
     if (OperatingSystem.IsWindows()) {
-      return;  // .exe needs no chmod; SetUnixFileMode is unsupported on Windows (CA1416).
+      return;
     }
     try {
       File.SetUnixFileMode(path,
@@ -420,13 +405,13 @@ public class SitlLauncher {
       }
       try {
         using var client = new TcpClient();
-        var connect = client.ConnectAsync(Host, TcpPort);
+        var connect = client.ConnectAsync(_host, _tcpPort);
         if (await Task.WhenAny(connect, Task.Delay(500)).ConfigureAwait(false) == connect &&
             client.Connected) {
           return true;
         }
       } catch {
-        // not listening yet
+
       }
       await Task.Delay(500).ConfigureAwait(false);
     }

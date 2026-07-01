@@ -4,10 +4,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Standalone tool window hosting the live MAVLink inspector (mirrors MP opening the
-// Mavlink Inspector form). Same pattern as LogBrowseWindow: Window owns View + VM, with a
-// static OpenWindow() entry point. The VM detaches its OnPacketReceived/OnPacketSent
-// handlers and stops its timer on Dispose, which we call from Closed.
 public class MAVLinkInspectorWindow : Window {
   private readonly MAVLinkInspectorView _view = new();
   private readonly MAVLinkInspectorViewModel _vm = new();

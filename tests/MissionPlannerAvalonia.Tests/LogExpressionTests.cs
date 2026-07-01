@@ -3,7 +3,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Tests;
 
-// Derived-math LogBrowse curves: substitute TYPE.FIELD refs then arithmetic-evaluate.
 public class LogExpressionTests {
   [Fact]
   public void IsExpression_detects_operators() {
@@ -23,7 +22,7 @@ public class LogExpressionTests {
   public void EvalExpression_handles_negative_values_and_precedence() {
     var refs = new[] { "ATT.Roll", "ATT.Pitch" };
     var values = new Dictionary<string, double> { ["ATT.Roll"] = 2.0, ["ATT.Pitch"] = -3.5 };
-    // 2.0 - (-3.5) = 5.5
+
     Assert.Equal(5.5, LogBrowseViewModel.EvalExpression("ATT.Roll-ATT.Pitch", refs, values)!.Value, 6);
   }
 

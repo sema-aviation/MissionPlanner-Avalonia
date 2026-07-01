@@ -1,14 +1,13 @@
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
 public partial class RawParamsView : UserControl {
-  private static readonly FilePickerFileType ParamFilter =
+  private static readonly FilePickerFileType _paramFilter =
       new("Parameter File") { Patterns = new[] { "*.param", "*.parm" } };
 
   public RawParamsView() {
@@ -44,7 +43,7 @@ public partial class RawParamsView : UserControl {
         new FilePickerSaveOptions {
           Title = "Save parameters",
           DefaultExtension = "param",
-          FileTypeChoices = new[] { ParamFilter },
+          FileTypeChoices = new[] { _paramFilter },
         }
     );
     var path = file?.TryGetLocalPath();
@@ -62,7 +61,7 @@ public partial class RawParamsView : UserControl {
         new FilePickerOpenOptions {
           Title = title,
           AllowMultiple = false,
-          FileTypeFilter = new[] { ParamFilter, new FilePickerFileType("All files") { Patterns = new[] { "*" } } },
+          FileTypeFilter = new[] { _paramFilter, new FilePickerFileType("All files") { Patterns = new[] { "*" } } },
         }
     );
     return files.FirstOrDefault()?.TryGetLocalPath();

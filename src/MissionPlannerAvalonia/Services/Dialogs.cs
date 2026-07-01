@@ -10,29 +10,21 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.Services;
 
-// Port of the app-wide dialog providers (upstream Controls/InputBox, CustomMessageBox,
-// Common.OpenUrl, Common.MessageShowAgain). Callable from view-models without plumbing a
-// TopLevel: the owner is resolved from the desktop lifetime's MainWindow.
 public static class Dialogs {
-  private const string Bg = "#262728";
+  private const string _bg = "#262728";
 
   public static Window? Owner =>
       (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
-  // Single-line text prompt. Returns null on cancel.
-  // (Command handlers run on the UI thread, so no marshaling is needed.)
   public static Task<string?> InputBox(string title, string prompt, string value = "") =>
       ShowInput(title, prompt, value);
 
-  // Yes/No confirmation. Returns true for Yes.
   public static Task<bool> Confirm(string title, string text) =>
       ShowButtons(title, text, ("Yes", true), ("No", false));
 
-  // OK acknowledgement.
   public static Task Alert(string title, string text) =>
       ShowButtons(title, text, ("OK", true));
 
-  // Multi-button chooser. Returns the clicked label, or null if the window is closed without a pick.
   public static Task<string?> Choice(string title, string text, params string[] labels) {
     var panel = Shell(title);
     panel.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap });
@@ -52,13 +44,10 @@ public static class Dialogs {
     return ShowOwned<string?>(w);
   }
 
-  // Altitude + frame prompt (mirrors MP AltInputBox). Returns (alt, frame) or null on cancel.
   public static Task<(double Alt, string Frame)?> AltInputBox(
       string title = "Altitude", double defaultAlt = 50, string defaultFrame = "Relative") =>
       ShowAltInput(title, defaultAlt, defaultFrame);
 
-  // Confirmation suppressed once the user ticks "Don't show again" (persisted per tag).
-  // Returns the user's choice; suppressed prompts auto-return true.
   public static async Task<bool> MessageShowAgain(string title, string text, string tag) {
     var key = "SHOWAGAIN_" + tag;
     if (Settings.Instance.GetBoolean(key)) {
@@ -72,7 +61,6 @@ public static class Dialogs {
     return ok;
   }
 
-  // Cross-platform URL launcher (mirrors Common.OpenUrl).
   public static void OpenUrl(string url) {
     try {
       Process.Start(url);
@@ -101,7 +89,7 @@ public static class Dialogs {
     SizeToContent = SizeToContent.Height,
     CanResize = false,
     WindowStartupLocation = WindowStartupLocation.CenterOwner,
-    Background = new SolidColorBrush(Color.Parse(Bg)),
+    Background = new SolidColorBrush(Color.Parse(_bg)),
     Content = body,
   };
 

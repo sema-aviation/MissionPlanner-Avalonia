@@ -6,16 +6,10 @@ using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Live link-statistics popup (mirrors MP's CTRL+L "Link Stats" / mavlink link quality readout).
-// Subscribes to the active link's byte/packet observables and recomputes a 1 Hz snapshot of
-// throughput, packet count, packet loss and link quality. All counters are written from the
-// MAVLink read thread (the Subjects fire off-UI-thread) and read back on the UI-thread timer,
-// so accumulation uses Interlocked. Every subscription is torn down in Dispose (window Closed).
 public partial class LinkStatsViewModel : ViewModelBase, IDisposable {
   private readonly MAVLinkInterface _mav = AppState.comPort;
   private readonly DispatcherTimer _timer;
 
-  // Cross-thread accumulators (incremented on the link thread, drained on the UI thread).
   private long _rxBytes;
   private long _txBytes;
   private long _packetsLost;
@@ -50,8 +44,7 @@ public partial class LinkStatsViewModel : ViewModelBase, IDisposable {
   private string _status = "";
 
   public LinkStatsViewModel() {
-    // IObservable<int>.Subscribe(IObserver<int>) lives in mscorlib, so we don't depend on the
-    // System.Reactive extension methods being visible to this project.
+
     _rxSub = _mav.BytesReceived.Subscribe(new ActionObserver(n => Interlocked.Add(ref _rxBytes, n)));
     _txSub = _mav.BytesSent.Subscribe(new ActionObserver(n => Interlocked.Add(ref _txBytes, n)));
     _lostSub = _mav.WhenPacketLost.Subscribe(new ActionObserver(n => Interlocked.Add(ref _packetsLost, n)));
@@ -64,7 +57,7 @@ public partial class LinkStatsViewModel : ViewModelBase, IDisposable {
   }
 
   private void Tick() {
-    // Drain the per-second byte counters; whatever accumulated since the last tick is the rate.
+
     long rx = Interlocked.Exchange(ref _rxBytes, 0);
     long tx = Interlocked.Exchange(ref _txBytes, 0);
     RxRate = Format(rx);
@@ -102,8 +95,6 @@ public partial class LinkStatsViewModel : ViewModelBase, IDisposable {
     _recvSub?.Dispose();
   }
 
-  // Minimal IObserver<int> so we can subscribe to the link's Subjects without taking a hard
-  // dependency on the System.Reactive Subscribe(Action<T>) extension method.
   private sealed class ActionObserver : IObserver<int> {
     private readonly Action<int> _onNext;
     public ActionObserver(Action<int> onNext) => _onNext = onNext;

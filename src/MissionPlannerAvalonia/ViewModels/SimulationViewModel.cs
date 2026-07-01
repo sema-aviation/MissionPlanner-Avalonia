@@ -16,8 +16,6 @@ public partial class SimulationViewModel : ViewModelBase {
   private readonly SitlLauncher _sitl = new();
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 
-  // Raised after SITL starts and the link connects, asking the shell to switch to FlightData.
-  // The shell subscribes; this VM never touches MainWindowViewModel directly.
   public event Action? RequestFlightData;
 
   [ObservableProperty]
@@ -48,7 +46,6 @@ public partial class SimulationViewModel : ViewModelBase {
   [ObservableProperty]
   private bool _isHeli;
 
-  // Home point (set by dragging/clicking the "H" marker on the SITL map). Alt comes from SRTM.
   [ObservableProperty]
   private double _homeLat;
 
@@ -58,29 +55,24 @@ public partial class SimulationViewModel : ViewModelBase {
   [ObservableProperty]
   private double _homeAlt;
 
-  // -O / --home heading and -s speed.
   [ObservableProperty]
   private int _heading;
 
   [ObservableProperty]
   private int _simSpeed = 1;
 
-  // cmb_model override; empty => vehicle default frame.
   [ObservableProperty]
   private string _selectedModel = "";
 
-  // Free-text extra args (txt_cmdline) and --wipe toggle.
   [ObservableProperty]
   private string _extraCmdline = "";
 
   [ObservableProperty]
   private bool _wipeEeprom;
 
-  // cmb_version index: 0 Dev, 1 Beta, 2 Stable, 3 Skip (persisted as sitl_download_version).
   [ObservableProperty]
   private int _selectedChannelIndex;
 
-  // Full 34-entry cmb_model list from SITL.resx (leading blank = "use vehicle default").
   public IReadOnlyList<string> Models { get; } = new[] {
     "", "quadplane", "xplane", "xplane-heli", "firefly", "+", "quad", "copter", "x",
     "hexa", "octa", "tri", "y6", "heli", "heli-dual", "heli-compound", "singlecopter",
@@ -89,7 +81,6 @@ public partial class SimulationViewModel : ViewModelBase {
     "morse-rover", "rover-skid", "plane-3d",
   };
 
-  // cmb_version display strings (SITL.cs versionSelect).
   public IReadOnlyList<string> Channels { get; } = new[] {
     "Latest (Dev)", "Beta", "Stable", "Skip Download",
   };
@@ -108,9 +99,14 @@ public partial class SimulationViewModel : ViewModelBase {
     }
 
     InitHome();
+
+    if (!SitlSupported) {
+      Status = "No prebuilt SITL for macOS. Build from source or run under Linux/WSL.";
+    }
   }
 
-  // Seed the home marker from the planned home location, else ArduPilot's CMAC default.
+  public bool SitlSupported => SitlLauncher.PlatformSupported;
+
   private void InitHome() {
     var planned = _comPort.MAV?.cs?.PlannedHomeLocation;
     if (planned != null && (planned.Lat != 0 || planned.Lng != 0)) {
@@ -120,7 +116,6 @@ public partial class SimulationViewModel : ViewModelBase {
     }
   }
 
-  // Update the home point and look up its SRTM altitude (mirrors BuildHomeLocation's srtm call).
   public void SetHome(double lat, double lng) {
     HomeLat = lat;
     HomeLng = lng;
@@ -144,7 +139,6 @@ public partial class SimulationViewModel : ViewModelBase {
     _ => SitlChannel.Dev,
   };
 
-  // "lat,lng,alt,heading" for -O / --home (BuildHomeLocation).
   private string BuildHome() => string.Format(CultureInfo.InvariantCulture, "{0},{1},{2},{3}",
       HomeLat, HomeLng, HomeAlt, Heading);
 
@@ -164,11 +158,10 @@ public partial class SimulationViewModel : ViewModelBase {
       return;
     }
 
-    // Persist the channel choice for next launch (Settings sitl_download_version).
     try {
       Settings.Instance["sitl_download_version"] = SelectedChannelIndex.ToString();
     } catch {
-      // settings store unavailable — non-fatal
+
     }
 
     IsBusy = true;
@@ -184,7 +177,6 @@ public partial class SimulationViewModel : ViewModelBase {
         WipeEeprom = WipeEeprom,
       };
 
-      // macOS has no prebuilt ArduPilot SITL binary, so StartAsync returns false there.
       bool ok = await _sitl.StartAsync(opts);
       if (!ok) {
         Status = "SITL did not start (no prebuilt binary on this platform/channel?). See log.";
@@ -198,9 +190,8 @@ public partial class SimulationViewModel : ViewModelBase {
       StartStopText = "Stop";
       Status = connected
           ? $"SITL running and connected on {_sitl.TcpEndpoint}."
-          : $"SITL running on {_sitl.TcpEndpoint}; auto-connect failed — connect manually.";
+          : $"SITL running on {_sitl.TcpEndpoint}. Auto-connect failed, connect manually.";
 
-      // Mirrors StartSITL's ShowScreen(screens[0]) — jump to FlightData once linked.
       if (connected) {
         RequestFlightData?.Invoke();
       }
@@ -212,10 +203,8 @@ public partial class SimulationViewModel : ViewModelBase {
     }
   }
 
-  private bool CanStartStop() => !IsBusy;
+  private bool CanStartStop() => !IsBusy && SitlSupported;
 
-  // Mirrors ConnectionViewModel's TCP path: prefill CommsSettings, hand the
-  // MAVLinkInterface a TcpSerial transport pointed at the SITL endpoint, then Open.
   private async Task<bool> ConnectAsync() {
     if (_comPort.BaseStream?.IsOpen == true) {
       return true;

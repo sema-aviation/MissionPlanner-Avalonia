@@ -4,10 +4,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Standalone tool window hosting the live DroneCAN/UAVCAN bus inspector (mirrors MP's
-// UAVCAN Inspector form). LogBrowseWindow pattern with a static OpenWindow(). The VM owns a
-// DroneCanBridge it tears down on Dispose, invoked from Closed (detaches MessageReceived,
-// stops the timer + bridge — no leaks).
 public class DroneCANInspectorWindow : Window {
   private readonly DroneCANInspectorView _view = new();
   private readonly DroneCANInspectorViewModel _vm = new();

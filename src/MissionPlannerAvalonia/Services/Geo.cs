@@ -3,9 +3,6 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.Services;
 
-// Coordinate-system conversions for the FlightPlanner WP grid (UTM Zone/Easting/Northing + MGRS
-// columns). Mirrors upstream FlightPlanner.convertFromGeographic / convertFromUTM / convertFromMGRS,
-// reusing the same PointLatLngAlt / utmpos / GeoUtility backends (no modern substitute exists).
 public static class Geo {
   public static (int Zone, double Easting, double Northing) ToUtm(double lat, double lng) {
     var p = new PointLatLngAlt(lat, lng);

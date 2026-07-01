@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -12,11 +11,6 @@ using MissionPlanner;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// Live DroneCAN/UAVCAN bus inspector — 1:1 port of upstream Controls/DroneCANInspector.cs.
-// Groups the message stream as node-ID -> message-type -> fields, each message-type header
-// showing Hz rate / msgid / Bps from a PacketInspector (same accumulation as upstream).
-// Since the app has no shared DroneCAN instance, this spins up its own DroneCanBridge over
-// the active MAVLink link; Stop()/Dispose tears it down on window close.
 public partial class DroneCANInspectorViewModel : ViewModelBase, IDisposable {
   private readonly DroneCanBridge _bridge = new();
   private readonly PacketInspector<(DroneCAN.CANFrame frame, object message)> _pkt = new();
@@ -41,7 +35,7 @@ public partial class DroneCANInspectorViewModel : ViewModelBase, IDisposable {
   private string _status = "Connect over the active MAVLink link to inspect the DroneCAN bus.";
 
   public DroneCANInspectorViewModel() {
-    // 333 ms redraw, matching upstream timer1.
+
     _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(333) };
     _timer.Tick += (_, _) => Rebuild();
   }
@@ -118,8 +112,6 @@ public partial class DroneCANInspectorViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // Recursive field population — mirrors upstream DroneCANInspector.PopulateMSG (handles
-  // string-like byte arrays, primitive arrays, nested classes and class arrays).
   private static void PopulateMsg(FieldInfo[] fields, InspectorNode node, object message) {
     foreach (var field in fields) {
       var fieldNode = GetOrAdd(node.Map, node.Children, field.Name,

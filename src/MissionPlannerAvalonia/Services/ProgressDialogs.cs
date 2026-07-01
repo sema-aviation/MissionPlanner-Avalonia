@@ -1,14 +1,15 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.Services;
 
-// Modeless "please wait" box (mirrors Common.LoadingBox). Caller shows it, then calls Close().
 public class LoadingBox : Window {
   private readonly TextBlock _label;
 
@@ -40,8 +41,6 @@ public class LoadingBox : Window {
   }
 }
 
-// Determinate progress window with status + cancel (mirrors ProgressReporterDialogue). Long ops
-// report via Set(pct, status); CancelRequested flips when the user cancels.
 public class ProgressReporter : Window {
   private readonly ProgressBar _bar = new() { Maximum = 100, Height = 18, Margin = new Thickness(0, 8, 0, 8) };
   private readonly TextBlock _status = new() { Foreground = Brushes.WhiteSmoke };
@@ -81,5 +80,36 @@ public class ProgressReporter : Window {
     } else {
       Show();
     }
+
+    Activate();
   }
+}
+
+public class ForwardingProgressReporter : IProgressReporterDialogue {
+  private readonly ProgressReporter? _target;
+
+  public ProgressWorkerEventArgs doWorkArgs { get; set; } = new();
+  public event DoWorkEventHandler? DoWork;
+
+  public ForwardingProgressReporter(ProgressReporter? target) {
+    _target = target;
+    _target?.Token.Register(() => doWorkArgs.CancelRequested = true);
+  }
+
+  public void RunBackgroundOperationAsync() =>
+      Task.Run(() => {
+        try {
+          DoWork?.Invoke(this);
+        } catch (Exception e) {
+          doWorkArgs.ErrorMessage = e.Message;
+        }
+      }).Wait();
+
+  public void UpdateProgressAndStatus(int progress, string status) =>
+      _target?.Set(progress < 0 ? 0 : progress, status);
+
+  public void BeginInvoke(Delegate method) =>
+      Dispatcher.UIThread.Post(() => method?.DynamicInvoke());
+
+  public void Dispose() { }
 }

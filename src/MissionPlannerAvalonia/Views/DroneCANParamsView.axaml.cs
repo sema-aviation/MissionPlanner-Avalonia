@@ -9,7 +9,7 @@ using MissionPlannerAvalonia.ViewModels;
 namespace MissionPlannerAvalonia.Views;
 
 public partial class DroneCANParamsView : UserControl {
-  private static readonly FilePickerFileType ParamFilter =
+  private static readonly FilePickerFileType _paramFilter =
       new("Parameter File") { Patterns = new[] { "*.param", "*.parm" } };
 
   public DroneCANParamsView() {
@@ -20,8 +20,6 @@ public partial class DroneCANParamsView : UserControl {
 
   private DroneCANParamsViewModel? Vm => DataContext as DroneCANParamsViewModel;
 
-  // Click (not IsChecked binding) so it only fires on user action; the TwoWay binding has
-  // already updated IsFav before this runs.
   private void OnFavClicked(object? sender, RoutedEventArgs e) {
     if (sender is CheckBox { DataContext: DroneCanParamRow row }) {
       Vm?.ToggleFav(row);
@@ -44,7 +42,7 @@ public partial class DroneCANParamsView : UserControl {
     var file = await top.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
       Title = "Save parameters",
       DefaultExtension = "param",
-      FileTypeChoices = new[] { ParamFilter },
+      FileTypeChoices = new[] { _paramFilter },
     });
 
     var path = file?.TryGetLocalPath();
@@ -63,7 +61,7 @@ public partial class DroneCANParamsView : UserControl {
       Title = title,
       AllowMultiple = false,
       FileTypeFilter = new[] {
-        ParamFilter, new FilePickerFileType("All files") { Patterns = new[] { "*" } },
+        _paramFilter, new FilePickerFileType("All files") { Patterns = new[] { "*" } },
       },
     });
 

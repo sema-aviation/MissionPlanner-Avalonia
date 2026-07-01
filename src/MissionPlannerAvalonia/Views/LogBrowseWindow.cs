@@ -5,8 +5,6 @@ using MissionPlannerAvalonia.ViewModels;
 
 namespace MissionPlannerAvalonia.Views;
 
-// Hosts the full LogBrowse review screen in its own window (mirrors MP opening the LogBrowse form
-// from FlightData "Review a Log").
 public class LogBrowseWindow : Window {
   private readonly LogBrowseView _view = new();
 
@@ -22,7 +20,6 @@ public class LogBrowseWindow : Window {
     DataContext = vm;
   }
 
-  // Open the window (owned if possible) and load the given log.
   public static async Task OpenWith(string path) {
     var w = new LogBrowseWindow();
     var owner = Services.Dialogs.Owner;

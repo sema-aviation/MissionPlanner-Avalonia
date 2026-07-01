@@ -10,7 +10,6 @@ using MissionPlannerAvalonia.Services;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// A message type with its fields, for the 3-level check tree (MsgType -> field).
 public partial class LogTypeNode : ObservableObject {
   public string Type { get; }
   public ObservableCollection<LogFieldNode> Fields { get; } = new();
@@ -59,18 +58,14 @@ public partial class LogBrowseViewModel : ViewModelBase {
   public ObservableCollection<LogTypeNode> Tree { get; } = new();
   public ObservableCollection<GraphPreset> Presets { get; } = new();
 
-  // GPS track for the map panel; raised after a load so the view can draw it.
   public IReadOnlyList<(double lat, double lng)> Track { get; private set; } =
       Array.Empty<(double, double)>();
 
-  // Same track but tagged with the plot-X time (seconds) so a clicked plot X can be correlated to a
-  // GPS sample. Time base matches DataFlashLog.ReadField (timems/1000), NOT ReadTrack's DateTime.
   public IReadOnlyList<(double time, double lat, double lng)> TimedTrack { get; private set; } =
       Array.Empty<(double, double, double)>();
 
   public event Action? TrackChanged;
 
-  // Nearest GPS track sample to a plot-X time (seconds); null when the log has no GPS track.
   public (double lat, double lng)? NearestTrackSample(double timeSec) {
     var tt = TimedTrack;
     if (tt.Count == 0) {
@@ -138,7 +133,6 @@ public partial class LogBrowseViewModel : ViewModelBase {
     }
   }
 
-  // Read one literal TYPE.FIELD curve from the current log.
   public (IReadOnlyList<double> xs, IReadOnlyList<double> ys)? ReadCurve(string type, string field) {
     if (CurrentPath == null) {
       return null;
@@ -150,27 +144,23 @@ public partial class LogBrowseViewModel : ViewModelBase {
     return (series.Select(s => s.time).ToList(), series.Select(s => s.value).ToList());
   }
 
-  // Matches TYPE.FIELD tokens inside a derived-math expression (e.g. "BAT.Volt*BAT.Curr").
-  private static readonly System.Text.RegularExpressions.Regex FieldRef =
+  private static readonly System.Text.RegularExpressions.Regex _fieldRef =
       new(@"[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*",
           System.Text.RegularExpressions.RegexOptions.Compiled);
 
   public static bool IsExpression(string s) => s.IndexOfAny(new[] { '(', ')', '+', '-', '*', '/' }) >= 0;
 
-  // Evaluate a derived-math curve (e.g. "ATT.Roll-ATT.Pitch", "BAT.Volt*BAT.Curr"). All referenced
-  // fields must share ONE message type (so samples align row-for-row); multi-type expressions return
-  // null (cross-type time-alignment not supported). Mirrors MP's expression curves.
   public (IReadOnlyList<double> xs, IReadOnlyList<double> ys)? ReadExpressionCurve(string expr) {
     if (CurrentPath == null) {
       return null;
     }
-    var refs = FieldRef.Matches(expr).Select(m => m.Value).Distinct().ToList();
+    var refs = _fieldRef.Matches(expr).Select(m => m.Value).Distinct().ToList();
     if (refs.Count == 0) {
       return null;
     }
     var types = refs.Select(r => r.Split('.', 2)[0]).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     if (types.Count != 1) {
-      return null; // cross-type alignment unsupported
+      return null;
     }
     var series = new Dictionary<string, IReadOnlyList<(double time, double value)>>();
     foreach (var r in refs) {
@@ -194,13 +184,11 @@ public partial class LogBrowseViewModel : ViewModelBase {
         xs.Add(time[i].time);
         ys.Add(v);
       }
-      // else skip samples the expression can't evaluate (e.g. divide-by-zero rows)
+
     }
     return xs.Count > 0 ? (xs, ys) : null;
   }
 
-  // Evaluate one derived-math sample: substitute each TYPE.FIELD ref with its (parenthesised) value
-  // then arithmetic-evaluate via DataTable.Compute. Returns null if the row can't be evaluated.
   public static double? EvalExpression(string expr, IReadOnlyList<string> refs,
       IReadOnlyDictionary<string, double> values) {
     string e = expr;
@@ -211,7 +199,7 @@ public partial class LogBrowseViewModel : ViewModelBase {
     try {
       using var dt = new System.Data.DataTable();
       var v = Convert.ToDouble(dt.Compute(e, null), System.Globalization.CultureInfo.InvariantCulture);
-      return double.IsFinite(v) ? v : null; // drop NaN/±Inf (e.g. divide-by-zero) rows
+      return double.IsFinite(v) ? v : null;
     } catch {
       return null;
     }
@@ -233,7 +221,6 @@ public partial class LogBrowseViewModel : ViewModelBase {
     return null;
   }
 
-  // Mode/Error/Event overlay markers at the sample times of MODE/ERR/EV messages.
   public IReadOnlyList<(double x, string label)> ReadOverlay(string type, string labelField) {
     if (CurrentPath == null || !_formats.ContainsKey(type)) {
       return Array.Empty<(double, string)>();
@@ -242,7 +229,6 @@ public partial class LogBrowseViewModel : ViewModelBase {
     return series.Select(s => (s.time, $"{type} {s.value:0}")).ToList();
   }
 
-  // Rows of one message type for the data grid (time + each field value).
   public (IReadOnlyList<string> columns, IReadOnlyList<IReadOnlyList<string>> rows) ReadRows(
       string type, int maxRows = 5000) {
     if (CurrentPath == null || !_formats.TryGetValue(type, out var fields) || fields.Length == 0) {
@@ -289,8 +275,6 @@ public partial class LogBrowseViewModel : ViewModelBase {
     return (summary, formats, types, track, timedTrack);
   }
 
-  // Build a plot-X-aligned lat/lng track by reading GPS.Lat/GPS.Lng on the ReadField time base
-  // (seconds), so a clicked plot X maps to a GPS sample. Robust to logs without a GPS message.
   private static IReadOnlyList<(double time, double lat, double lng)> ReadTimedTrack(
       string path, IReadOnlyCollection<string> types) {
     if (!types.Contains("GPS", StringComparer.OrdinalIgnoreCase)) {
@@ -326,7 +310,6 @@ public partial class LogBrowseViewModel : ViewModelBase {
     return $"{fi.Name}\n{fi.Length / 1024.0 / 1024.0:0.0} MB\n{typeCount} msg types\n{trackInfo}";
   }
 
-  // Resolve and parse the bundled graphs/*.xml presets from the upstream submodule (best-effort).
   private static List<GraphPreset> LoadPresets() {
     foreach (var dir in PresetDirs()) {
       var list = GraphPresets.LoadDirectory(dir);

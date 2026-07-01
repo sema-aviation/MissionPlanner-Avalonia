@@ -19,21 +19,15 @@ using Org.BouncyCastle.Crypto.Signers;
 
 namespace MissionPlannerAvalonia.Services;
 
-// MP-style file-diff auto-updater. Fetches a signed per-platform manifest from GitHub Pages,
-// SHA-256s each local file, downloads only the changed ones, verifies, swaps in place, and
-// relaunches. The Ed25519 signature is verified before any hash is trusted (remote-code-execution
-// boundary). UpdateEngine holds the UI/process-free core so it can be unit tested; the static
-// Updater methods drive the app UI (Dialogs/ProgressReporter) and restart.
 public static class Updater {
   public const string DefaultOwnerRepo = "sema-aviation/MissionPlanner-Avalonia";
   public const string PagesBaseUrl = "https://sema-aviation.github.io/MissionPlanner-Avalonia";
 
-  // Raw 32-byte Ed25519 public key (base64). Private half is the GitHub secret UPDATE_SIGNING_KEY.
   public const string PublicKeyBase64 = "A0WFYpVPY1BvbOSpAzmuCTfbV6SR/cw9sUPy4AKZSgg=";
 
-  private const string SkipKey = "update_skip_version";
+  private const string _skipKey = "update_skip_version";
 
-  private static readonly HttpClient Http = CreateClient();
+  private static readonly HttpClient _http = CreateClient();
 
   private static HttpClient CreateClient() {
     var c = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
@@ -41,10 +35,8 @@ public static class Updater {
     return c;
   }
 
-  // Fire-and-forget on startup: silent unless a newer, non-skipped version exists.
   public static Task CheckOnStartupAsync() => RunAsync(silentWhenUpToDate: true, respectSkip: true);
 
-  // Manual "Check for Updates": reports up-to-date / failure, ignores the skip marker.
   public static Task CheckNowAsync() => RunAsync(silentWhenUpToDate: false, respectSkip: false);
 
   private static async Task RunAsync(bool silentWhenUpToDate, bool respectSkip) {
@@ -75,7 +67,7 @@ public static class Updater {
       return;
     }
 
-    if (respectSkip && Settings.Instance[SkipKey] == m.Version) {
+    if (respectSkip && Settings.Instance[_skipKey] == m.Version) {
       return;
     }
 
@@ -90,7 +82,7 @@ public static class Updater {
         continue;
       }
       if (choice == "Skip this version") {
-        Settings.Instance[SkipKey] = m.Version;
+        Settings.Instance[_skipKey] = m.Version;
         Settings.Instance.Save();
         return;
       }
@@ -112,7 +104,7 @@ public static class Updater {
         Directory.Delete(staging, true);
       }
       Directory.CreateDirectory(staging);
-    } catch { /* fall through; DownloadAsync will surface any real failure */ }
+    } catch { }
 
     var progress = new ProgressReporter("Downloading update");
     progress.Show2();
@@ -137,14 +129,13 @@ public static class Updater {
   }
 
   private static UpdateEngine NewEngine() =>
-      new(Http, AppContext.BaseDirectory, PagesBaseUrl, Convert.FromBase64String(PublicKeyBase64));
+      new(_http, AppContext.BaseDirectory, PagesBaseUrl, Convert.FromBase64String(PublicKeyBase64));
 
   private static void ApplyAndRestart(
       UpdateEngine engine, IReadOnlyList<UpdateEngine.ManifestFile> changed, string staging) {
     string exe = Environment.ProcessPath ?? "";
     if (OperatingSystem.IsWindows()) {
-      // A loaded exe/dll can't be overwritten while running: hand off to a throwaway .cmd that
-      // waits for our exit, copies the staged files over the install dir, and relaunches.
+
       RunWindowsHelper(engine.InstallDir, staging, exe);
     } else {
       engine.Apply(changed, staging);
@@ -175,8 +166,6 @@ public static class Updater {
     });
   }
 
-  // Swapping files inside a running signed .app breaks the code seal; re-sign ad-hoc so the bundle
-  // relaunches on Apple Silicon (unsigned arm64 Mach-O won't load).
   private static void ReSignMacBundle(string installDir) {
     try {
       string app = Path.GetFullPath(Path.Combine(installDir, "..", ".."));
@@ -186,7 +175,7 @@ public static class Updater {
       Process.Start(new ProcessStartInfo("codesign", $"--force --sign - --deep \"{app}\"") {
         UseShellExecute = false,
       })?.WaitForExit(30000);
-    } catch { /* best-effort; managed dlls aren't kernel signature-checked */ }
+    } catch { }
   }
 
   private static void Shutdown() {
@@ -198,10 +187,8 @@ public static class Updater {
   }
 }
 
-// UI/process-free updater core. Unit-testable: inject an HttpClient, install dir, base URL, and the
-// Ed25519 public key.
 public sealed class UpdateEngine {
-  private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+  private static readonly JsonSerializerOptions _jsonOpts = new() { PropertyNameCaseInsensitive = true };
 
   private readonly HttpClient _http;
   private readonly string _baseUrl;
@@ -233,8 +220,6 @@ public sealed class UpdateEngine {
 
   public sealed record Manifest(string Version, string? Notes, IReadOnlyList<ManifestFile> Files);
 
-  // Download manifest.json + manifest.sig, verify the Ed25519 signature over the raw json bytes,
-  // then deserialize. Returns null if the server can't be reached; throws on a bad signature.
   public async Task<Manifest?> FetchManifestAsync(CancellationToken ct = default) {
     byte[] json, sig;
     try {
@@ -250,7 +235,7 @@ public sealed class UpdateEngine {
     if (!VerifySignature(json, sig)) {
       throw new SecurityException("Update manifest signature is invalid.");
     }
-    return JsonSerializer.Deserialize<Manifest>(json, JsonOpts);
+    return JsonSerializer.Deserialize<Manifest>(json, _jsonOpts);
   }
 
   public bool VerifySignature(byte[] data, byte[] signature) {
@@ -260,7 +245,6 @@ public sealed class UpdateEngine {
     return verifier.VerifySignature(signature);
   }
 
-  // Files whose local copy is missing or whose SHA-256 differs from the manifest.
   public List<ManifestFile> Diff(Manifest m) {
     var changed = new List<ManifestFile>();
     foreach (var f in m.Files) {
@@ -273,7 +257,6 @@ public sealed class UpdateEngine {
     return changed;
   }
 
-  // Download the changed files into staging (mirroring their relative paths), then verify every hash.
   public async Task DownloadAsync(IReadOnlyList<ManifestFile> changed, string stagingDir,
       IProgress<double>? progress = null, CancellationToken ct = default) {
     long total = changed.Sum(f => f.Size);
@@ -311,8 +294,6 @@ public sealed class UpdateEngine {
     }
   }
 
-  // Atomic-ish swap: rename each live file to .old, move the staged file into place. On any failure,
-  // roll every moved file back from its .old. Only call after DownloadAsync has verified all hashes.
   public void Apply(IReadOnlyList<ManifestFile> changed, string stagingDir) {
     var moved = new List<(string live, string old)>();
     try {
@@ -337,19 +318,17 @@ public sealed class UpdateEngine {
             File.Delete(live);
           }
           File.Move(old, live);
-        } catch { /* leave .old in place for manual recovery */ }
+        } catch { }
       }
       throw;
     }
     foreach (var (_, old) in moved) {
       try {
         File.Delete(old);
-      } catch { /* harmless leftover */ }
+      } catch { }
     }
   }
 
-  // Compare CalVer strings by first three numeric components (avoids System.Version treating
-  // "2026.7.3" < "2026.7.3.0").
   public static bool IsNewer(string remote, string local) => V3(remote).CompareTo(V3(local)) > 0;
 
   private static (int, int, int) V3(string s) {

@@ -9,7 +9,7 @@
   d:DesignHeight="320"
   x:Class="MissionPlannerAvalonia.Views.SerialPassThroughView"
   x:DataType="vm:SerialPassThroughViewModel"
-  Background="#434445"
+  Background="{DynamicResource MpControlBg}"
 >
   <StackPanel Margin="16" Spacing="10">
     <TextBlock Text="Mavlink Mirror" FontSize="16" Foreground="#DDD" />
@@ -46,9 +46,9 @@
       <Button Content="{Binding ConnectButtonText}" Command="{Binding ToggleConnectCommand}" MinWidth="90" />
     </StackPanel>
 
-    <Border Background="#2D2D2D" CornerRadius="4" Padding="10">
+    <Border Background="{DynamicResource MpInputBg}" CornerRadius="4" Padding="10">
       <StackPanel Spacing="4">
-        <TextBlock Text="{Binding Status}" Foreground="#94C11F" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MpAccentBrush}" TextWrapping="Wrap" />
         <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8">
           <TextBlock Grid.Row="0" Grid.Column="0" Text="Tx bytes:" Foreground="#AAA" />
           <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TxBytes}" Foreground="#DDD" />

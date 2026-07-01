@@ -12,13 +12,6 @@ using MissionPlanner.Utilities;
 
 namespace MissionPlannerAvalonia.ViewModels;
 
-// FollowMe — port of MissionPlanner.Controls.FollowMe (Controls/FollowMe.cs). Drives the vehicle to
-// continually chase a moving position by streaming GUIDED-mode setpoints. Two position sources:
-//   * a serial NMEA GPS (reads $GPGGA/$GNGGA, mirrors upstream's parser), or
-//   * a manually-entered / GCS location (lat/lng typed into the form).
-// Each tick it builds a Locationwp and calls comPort.setGuidedModeWP (which under the hood issues a
-// SET_POSITION_TARGET_GLOBAL_INT for copter or a guided WP for plane — the same real path upstream
-// uses).
 public partial class FollowMeViewModel : ViewModelBase, IDisposable {
   private readonly MAVLinkInterface _comPort = AppState.comPort;
 
@@ -44,7 +37,6 @@ public partial class FollowMeViewModel : ViewModelBase, IDisposable {
 
   public ObservableCollection<double> Rates { get; } = new() { 0.2, 0.5, 1, 2 };
 
-  // false = manual / GCS location (typed lat/lng); true = serial NMEA GPS.
   [ObservableProperty]
   private bool _useSerialGps;
 
@@ -100,7 +92,6 @@ public partial class FollowMeViewModel : ViewModelBase, IDisposable {
     SelectedPort = sel != null && Ports.Contains(sel) ? sel : Ports.FirstOrDefault();
   }
 
-  // Use the current GCS map / typed position immediately as the follow target.
   [RelayCommand]
   private void UseGcsLocation() {
     UseSerialGps = false;
@@ -174,8 +165,7 @@ public partial class FollowMeViewModel : ViewModelBase, IDisposable {
 
           if (_comPort.BaseStream.IsOpen && !_comPort.giveComport) {
             try {
-              // First setpoint forces GUIDED (the method only sends setMode when not already GUIDED,
-              // so this does not spam); subsequent ones just update the target like upstream.
+
               _comPort.setGuidedModeWP(gotohere, !_guidedSet);
               _guidedSet = true;
             } catch {
@@ -192,8 +182,6 @@ public partial class FollowMeViewModel : ViewModelBase, IDisposable {
     }
   }
 
-  // Parse a $GPGGA/$GNGGA NMEA sentence into _gotoLocation, mirroring upstream FollowMe (including the
-  // 0.60 minutes-unpacking and checksum check).
   private void ParseNmea(string line) {
     if (string.IsNullOrEmpty(line)) {
       return;

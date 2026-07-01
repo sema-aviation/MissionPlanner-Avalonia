@@ -12,20 +12,14 @@ using Mapsui.Styles;
 
 namespace MissionPlannerAvalonia.Services;
 
-// Loads a NoFly .kml/.kmz file and exposes a Mapsui layer the map can add (mirrors MP's NoFly
-// zones). Parses KML <Polygon> rings and renders each as a closed red outline. Uses only core
-// Mapsui (matching the FlightPlannerMap dotted-polyline style) so it needs no extra packages.
-// Does NOT touch the map controls — the caller adds the returned layer and wires any toggle.
 public static class NoFlyOverlay {
-  private static readonly Color NoFlyRed = new(220, 0, 0, 255);
+  private static readonly Color _noFlyRed = new(220, 0, 0, 255);
 
-  // Build a NoFly layer from a .kml or .kmz file. Returns null if no polygons were found.
   public static ILayer? BuildLayer(string path, string name = "NoFly") {
     var rings = LoadPolygons(path);
     return rings.Count == 0 ? null : BuildLayer(rings, name);
   }
 
-  // Build a NoFly layer from already-parsed polygon rings (each a list of lat/lng vertices).
   public static ILayer BuildLayer(IReadOnlyList<IReadOnlyList<(double Lat, double Lng)>> rings,
       string name = "NoFly") {
     var layer = new WritableLayer { Name = name };
@@ -38,7 +32,7 @@ public static class NoFlyOverlay {
         var (x, y) = SphericalMercator.FromLonLat(lng, lat);
         pts.Add(new MPoint(x, y));
       }
-      // close the ring
+
       if (pts.Count > 0 && !pts[0].Equals(pts[^1])) {
         pts.Add(pts[0]);
       }
@@ -47,12 +41,11 @@ public static class NoFlyOverlay {
     return layer;
   }
 
-  // Parse all polygon outer-boundary rings from a .kml/.kmz file.
   public static List<IReadOnlyList<(double Lat, double Lng)>> LoadPolygons(string path) {
     var doc = XDocument.Parse(ReadKmlText(path));
     var rings = new List<IReadOnlyList<(double Lat, double Lng)>>();
     foreach (var poly in Descendants(doc.Root, "Polygon")) {
-      // outerBoundaryIs/LinearRing/coordinates (fall back to any coordinates under the polygon)
+
       var coordsEl = Descendants(poly, "outerBoundaryIs")
                          .SelectMany(b => Descendants(b, "coordinates")).FirstOrDefault()
                      ?? Descendants(poly, "coordinates").FirstOrDefault();
@@ -67,14 +60,13 @@ public static class NoFlyOverlay {
     return rings;
   }
 
-  // Closed red dotted outline (same style as FlightPlannerMap polylines).
   private static void AddOutline(WritableLayer layer, IReadOnlyList<MPoint> pts) {
     if (pts.Count < 2) {
       return;
     }
     var dot = new SymbolStyle {
       SymbolType = SymbolType.Ellipse,
-      Fill = new Brush(NoFlyRed),
+      Fill = new Brush(_noFlyRed),
       SymbolScale = 6.0 / 30.0,
     };
     for (int i = 1; i < pts.Count; i++) {
@@ -93,7 +85,6 @@ public static class NoFlyOverlay {
     }
   }
 
-  // A .kmz is a zip; pull the first .kml entry. A .kml is read directly.
   private static string ReadKmlText(string path) {
     if (path.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase)) {
       using var zip = ZipFile.OpenRead(path);
@@ -106,7 +97,6 @@ public static class NoFlyOverlay {
     return File.ReadAllText(path);
   }
 
-  // "lon,lat[,alt] lon,lat[,alt] …" → list of (lat, lng).
   private static List<(double Lat, double Lng)> ParseCoordinates(string text) {
     var pts = new List<(double, double)>();
     foreach (var tok in text.Split(new[] { ' ', '\n', '\r', '\t' },

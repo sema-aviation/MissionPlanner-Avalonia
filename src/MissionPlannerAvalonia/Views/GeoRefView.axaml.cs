@@ -31,7 +31,7 @@ public partial class GeoRefView : UserControl {
     var path = files.FirstOrDefault()?.TryGetLocalPath();
     if (path != null) {
       Vm.LogPath = path;
-      // Default the photo folder to the log's directory (mirrors upstream BUT_browselog).
+
       if (string.IsNullOrEmpty(Vm.PhotoDir)) {
         Vm.PhotoDir = System.IO.Path.GetDirectoryName(path) ?? "";
       }
