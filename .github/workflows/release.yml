@@ -205,7 +205,8 @@ jobs:
             mkdir -p "site/$rid"
             cp -R "$d"/. "site/$rid"/
           done
-          ls -R site | head -50
+          # || true: head's early exit SIGPIPEs ls; with pipefail that fails the step
+          ls -R site | head -50 || true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
