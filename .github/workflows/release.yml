@@ -150,7 +150,8 @@ jobs:
             if "$c" version 2>/dev/null | grep -q '^OpenSSL 3'; then OSSL="$c"; break; fi
           done
           "$OSSL" pkeyutl -sign -rawin -inkey update_key.pem -in "$SITE/manifest.json" -out update.sig.bin
-          base64 update.sig.bin | tr -d '\n' > "$SITE/manifest.sig"
+          # stdin keeps base64 portable: macOS BSD base64 rejects a positional file arg
+          base64 < update.sig.bin | tr -d '\n' > "$SITE/manifest.sig"
           rm -f update_key.pem update.sig.bin
 
       - uses: actions/upload-artifact@v7
